@@ -35,7 +35,7 @@
         }
 
         p.subtitle {
-            margin-0: 0;
+            margin: 0;
             margin-bottom: 30px;
             color: #64748b;
         }
@@ -171,7 +171,7 @@
 
         .btn-download:hover { background-color: #00333a; }
 
-        /* --- MRT Signage Output Area (Anti-Squish Design) --- */
+        /* --- MRT Signage Output Area --- */
         .signage-wrapper {
             overflow-x: auto;
             width: 100%;
@@ -182,7 +182,7 @@
 
         #mrt-signage {
             width: 1080px;
-            height: 190px; /* Unsquished premium height profile matching real signs */
+            height: 190px; 
             background-color: #004c54; 
             display: flex;
             align-items: center;
@@ -198,46 +198,6 @@
             gap: 35px;
         }
 
-        /* Official LTA Logo Pill Layout */
-        .mrt-logo-capsule {
-            background-color: #004c54;
-            border: 3.5px solid #ffcd00;
-            border-radius: 24px;
-            height: 64px;
-            display: flex;
-            align-items: center;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        .logo-left-dark {
-            padding: 0 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            background-color: #004c54;
-        }
-
-        /* High Fidelity Interlocking Loop Path Geometry */
-        .mrt-logo-svg {
-            width: 46px;
-            height: 32px;
-        }
-
-        .logo-right-yellow {
-            background-color: #ffcd00;
-            color: #004c54;
-            font-weight: 800;
-            font-size: 20px;
-            height: 100%;
-            padding: 0 16px;
-            display: flex;
-            align-items: center;
-            font-family: 'MRT-Identity', sans-serif;
-            letter-spacing: 0.5px;
-        }
-
         /* Unified Interchange Code Capsule */
         .interchange-capsule {
             border: 4px solid #ffffff;
@@ -245,7 +205,7 @@
             display: inline-flex;
             overflow: hidden;
             box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-            height: 68px; /* Unsquished capsule metrics */
+            height: 68px; 
             box-sizing: border-box;
         }
 
@@ -265,20 +225,19 @@
         /* Station Name */
         .station-name {
             color: #ffffff;
-            font-size: 54px; /* Crisp, readable scale */
+            font-size: 54px; 
             font-weight: 500;
             font-family: 'MRT-Identity', 'Arial', sans-serif;
             letter-spacing: 0.2px;
         }
 
-        /* Exit Box Graphic */
+        /* --- Updated Solid Yellow Exit Square Box --- */
         .exit-container {
-            border: 4.5px solid #ffcd00;
-            border-radius: 12px;
-            width: 70px;
-            height: 70px;
+            background-color: #ffcd00; /* Solid transit yellow background */
+            border-radius: 10px;
+            width: 72px;
+            height: 72px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             position: relative;
@@ -286,21 +245,22 @@
         }
 
         .exit-roof {
-            width: 40px;
-            height: 15px;
-            border: 4.5px solid #ffcd00;
+            width: 44px;
+            height: 44px;
+            border: 4.5px solid #004c54; /* Dark teal frame line */
             border-bottom: none;
             position: absolute;
-            top: 5px;
+            top: 14px;
             box-sizing: border-box;
         }
 
         .exit-number {
-            color: #ffcd00;
-            font-size: 32px;
-            font-weight: bold;
+            color: #004c54; /* Dark teal number text */
+            font-size: 28px;
+            font-weight: 900;
             font-family: 'MRT-Identity', 'Arial Black', sans-serif;
-            margin-top: 14px;
+            position: relative;
+            top: 7px; 
         }
     </style>
 </head>
@@ -315,11 +275,11 @@
                 <div class="section-title">General Settings</div>
                 <div class="control-group">
                     <label for="stationName">Station Name</label>
-                    <input type="text" id="stationName" value="Bishan">
+                    <input type="text" id="stationName" value="Bishan South">
                 </div>
                 <div class="control-group">
                     <label for="exitNumber">Exit Identifier</label>
-                    <input type="text" id="exitNumber" value="7" maxLength="3">
+                    <input type="text" id="exitNumber" value="8" maxLength="3">
                 </div>
             </div>
 
@@ -340,12 +300,12 @@
 
                 <div class="interchange-capsule" id="interchangeCapsule"></div>
                 
-                <div class="station-name" id="signageName">Bishan</div>
+                <div class="station-name" id="signageName">Bishan South</div>
             </div>
 
             <div class="exit-container">
                 <div class="exit-roof"></div>
-                <div class="exit-number" id="signageExit">7</div>
+                <div class="exit-number" id="signageExit">8</div>
             </div>
         </div>
     </div>
