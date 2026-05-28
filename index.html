@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SG MRT Signage Generator</title>
+    <title>SG MRT Signage Generator Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* --- Font Setup --- */
-        /* Link your downloaded font from jglim's repo here */
         @font-face {
             font-family: 'MRT-Identity';
             src: url('LTA_Identity-Medium.ttf') format('truetype'),
@@ -18,90 +17,177 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f3f4f6;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: #f0f4f8;
             margin: 0;
             padding: 40px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            color: #1e293b;
         }
 
         h1 {
-            color: #111827;
-            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #0f172a;
         }
 
-        /* --- Editor Panels --- */
+        p.subtitle {
+            margin-0: 0;
+            margin-bottom: 30px;
+            color: #64748b;
+        }
+
         .container {
             width: 100%;
-            max-width: 1000px;
+            max-width: 1050px;
             background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            margin-bottom: 35px;
+            box-sizing: border-box;
         }
 
-        .controls {
+        /* --- Layout Grid --- */
+        .editor-regions {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .editor-regions { grid-template-columns: 1fr; }
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 5px;
         }
 
         .control-group {
             display: flex;
             flex-direction: column;
+            margin-bottom: 15px;
         }
 
         .control-group label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            color: #4b5563;
-            margin-bottom: 8px;
+            color: #475569;
+            margin-bottom: 6px;
         }
 
         .control-group input, .control-group select {
-            padding: 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 16px;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            background-color: #fff;
+            color: #1e293b;
+            outline: none;
+            transition: border-color 0.2s;
         }
+
+        .control-group input:focus, .control-group select:focus {
+            border-color: #004c54;
+        }
+
+        /* --- Dynamic Line Rows --- */
+        .line-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .color-picker-wrapper input[type="color"] {
+            padding: 0;
+            width: 35px;
+            height: 35px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            background: none;
+        }
+
+        .btn-action {
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-add {
+            background-color: #e2e8f0;
+            color: #334155;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .btn-add:hover:not(:disabled) { background-color: #cbd5e1; }
+        .btn-add:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-delete {
+            background-color: #fee2e2;
+            color: #ef4444;
+        }
+        .btn-delete:hover { background-color: #fca5a5; }
 
         .btn-download {
-            background-color: #007a87;
+            background-color: #004c54;
             color: white;
-            border: none;
-            padding: 12px 24px;
+            width: 100%;
+            padding: 14px;
             font-size: 16px;
             font-weight: 600;
-            border-radius: 6px;
+            border-radius: 8px;
+            border: none;
             cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 76, 84, 0.2);
             transition: background 0.2s;
-            display: block;
-            width: 100%;
         }
 
-        .btn-download:hover {
-            background-color: #005d68;
-        }
+        .btn-download:hover { background-color: #00333a; }
 
-        /* --- MRT Signage Output Styles --- */
+        /* --- MRT Signage Output Area (Anti-Squish Design) --- */
         .signage-wrapper {
             overflow-x: auto;
             width: 100%;
-            padding: 10px 0;
+            padding: 15px 0;
+            display: flex;
+            justify-content: center;
         }
 
         #mrt-signage {
-            width: 1000px;
-            height: 140px;
-            background-color: #004c54; /* Iconic dark teal signage background */
+            width: 1080px;
+            height: 190px; /* Unsquished premium height profile matching real signs */
+            background-color: #004c54; 
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 40px;
+            padding: 0 45px;
             box-sizing: border-box;
             user-select: none;
         }
@@ -109,64 +195,88 @@
         .left-section {
             display: flex;
             align-items: center;
+            gap: 35px;
         }
 
-        /* MRT Capsule Logo */
+        /* Official LTA Logo Pill Layout */
         .mrt-logo-capsule {
-            background-color: #ffcd00;
-            padding: 6px 14px;
-            border-radius: 50px;
+            background-color: #004c54;
+            border: 3.5px solid #ffcd00;
+            border-radius: 24px;
+            height: 64px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            margin-right: 40px;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
-        .mrt-logo-capsule svg {
-            width: 32px;
-            height: 22px;
-            fill: #004c54;
+        .logo-left-dark {
+            padding: 0 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background-color: #004c54;
         }
 
-        .mrt-text {
+        /* High Fidelity Interlocking Loop Path Geometry */
+        .mrt-logo-svg {
+            width: 46px;
+            height: 32px;
+        }
+
+        .logo-right-yellow {
+            background-color: #ffcd00;
             color: #004c54;
-            font-weight: 900;
-            font-size: 15px;
-            font-family: sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+            height: 100%;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            font-family: 'MRT-Identity', sans-serif;
             letter-spacing: 0.5px;
         }
 
-        /* Station Code Pill */
-        .station-code-pill {
-            border: 3px solid #ffffff;
-            border-radius: 50px;
-            padding: 4px 18px;
-            color: #ffffff;
+        /* Unified Interchange Code Capsule */
+        .interchange-capsule {
+            border: 4px solid #ffffff;
+            border-radius: 40px;
+            display: inline-flex;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+            height: 68px; /* Unsquished capsule metrics */
+            box-sizing: border-box;
+        }
+
+        .code-segment {
+            padding: 0 24px;
+            font-size: 28px;
             font-weight: bold;
-            font-size: 24px;
             font-family: 'MRT-Identity', 'Arial Black', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
             text-align: center;
-            min-width: 70px;
-            display: inline-block;
-            margin-right: 25px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            white-space: nowrap;
         }
 
         /* Station Name */
         .station-name {
             color: #ffffff;
-            font-size: 42px;
+            font-size: 54px; /* Crisp, readable scale */
             font-weight: 500;
             font-family: 'MRT-Identity', 'Arial', sans-serif;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.2px;
         }
 
         /* Exit Box Graphic */
         .exit-container {
-            border: 4px solid #ffcd00;
-            border-radius: 8px;
-            width: 55px;
-            height: 55px;
+            border: 4.5px solid #ffcd00;
+            border-radius: 12px;
+            width: 70px;
+            height: 70px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -176,129 +286,253 @@
         }
 
         .exit-roof {
-            width: 32px;
-            height: 12px;
-            border: 4px solid #ffcd00;
+            width: 40px;
+            height: 15px;
+            border: 4.5px solid #ffcd00;
             border-bottom: none;
             position: absolute;
-            top: 4px;
+            top: 5px;
             box-sizing: border-box;
         }
 
         .exit-number {
             color: #ffcd00;
-            font-size: 26px;
-            font-weight: 900;
+            font-size: 32px;
+            font-weight: bold;
             font-family: 'MRT-Identity', 'Arial Black', sans-serif;
-            margin-top: 10px;
+            margin-top: 14px;
         }
     </style>
 </head>
 <body>
 
     <h1>Singapore MRT Signage Generator</h1>
+    <p class="subtitle">Supports custom colors and up to 4 interchange lines</p>
 
     <div class="container">
-        <div class="controls">
-            <div class="control-group">
-                <label for="lineSelect">MRT Line Color</label>
-                <select id="lineSelect">
-                    <option value="#9D5B25" selected>Thomson–East Coast Line (TE)</option>
-                    <option value="#d42e12">North–South Line (NS)</option>
-                    <option value="#009645">East–West Line (EW)</option>
-                    <option value="#9900aa">North East Line (NE)</option>
-                    <option value="#fa9e0d">Circle Line (CC)</option>
-                    <option value="#005ec4">Downtown Line (DT)</option>
-                    <option value="#97C616">Cross Island Line (CR)</option>
-                    <option value="#0099aa">Jurong Region Line (JW)</option>
-                    <option value="#b85600">Branch Line (BP)</option>
-                </select>
+        <div class="editor-regions">
+            <div>
+                <div class="section-title">General Settings</div>
+                <div class="control-group">
+                    <label for="stationName">Station Name</label>
+                    <input type="text" id="stationName" value="Bishan">
+                </div>
+                <div class="control-group">
+                    <label for="exitNumber">Exit Identifier</label>
+                    <input type="text" id="exitNumber" value="7" maxLength="3">
+                </div>
             </div>
 
-            <div class="control-group">
-                <label for="stationCode">Station Code</label>
-                <input type="text" id="stationCode" value="TE 6" placeholder="e.g., TE 6">
-            </div>
-
-            <div class="control-group">
-                <label for="stationName">Station Name</label>
-                <input type="text" id="stationName" value="Mayflower" placeholder="e.g., Mayflower">
-            </div>
-
-            <div class="control-group">
-                <label for="exitNumber">Exit</label>
-                <input type="text" id="exitNumber" value="1" placeholder="e.g., 1" maxLength="3">
+            <div>
+                <div class="section-title">Lines Configuration (Max 4)</div>
+                <div id="linesContainer"></div>
+                <button id="addLineBtn" class="btn-action btn-add">+ Add Interchange Line</button>
             </div>
         </div>
 
-        <button class="btn-download" id="downloadBtn">Download Signage as PNG</button>
+        <button class="btn-download" id="downloadBtn">Export Signage as PNG</button>
     </div>
 
     <div class="signage-wrapper">
         <div id="mrt-signage">
             <div class="left-section">
                 <div class="mrt-logo-capsule">
-                    <svg viewBox="0 0 100 60">
-                        <path d="M 20,30 C 20,15 35,10 50,10 C 65,10 80,15 80,30 C 80,45 65,50 50,50 C 35,50 20,45 20,30 Z M 32,30 C 32,38 42,41 50,41 C 58,41 68,38 68,30 C 68,22 58,19 50,19 C 42,19 32,22 32,30 Z" fill="none" stroke="#004c54" stroke-width="7"/>
-                        <path d="M 10,30 L 90,30" stroke="#004c54" stroke-width="6"/>
-                    </svg>
-                    <span class="mrt-text">MRT</span>
+                    <div class="logo-left-dark">
+                        <svg class="mrt-logo-svg" viewBox="0 0 80 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M54.3 16.3C50.2 11.9 43.5 11.9 39.4 16.3L15.3 41.8C12.7 44.5 9.1 44.5 6.5 41.8C3.9 39.1 3.9 34.7 6.5 32L27.2 10.1C34.4 2.5 45.6 2.5 52.8 10.1L73.5 32C76.1 34.7 76.1 39.1 73.5 41.8C70.9 44.5 67.3 44.5 64.7 41.8L54.3 16.3Z" fill="#ffcd00"/>
+                            <path d="M25.7 37.7C29.8 42.1 36.5 42.1 40.6 37.7L64.7 12.2C67.3 9.5 70.9 9.5 73.5 12.2C76.1 14.9 76.1 19.3 73.5 22L52.8 43.9C45.6 51.5 34.4 51.5 27.2 43.9L6.5 22C3.9 19.3 3.9 14.9 6.5 12.2C9.1 9.5 12.7 9.5 15.3 12.2L25.7 37.7Z" fill="#ffcd00"/>
+                        </svg>
+                    </div>
+                    <div class="logo-right-yellow">MRT</div>
                 </div>
 
-                <div class="station-code-pill" id="signagePill">TE 6</div>
-                <div class="station-name" id="signageName">Mayflower</div>
+                <div class="interchange-capsule" id="interchangeCapsule"></div>
+                
+                <div class="station-name" id="signageName">Bishan</div>
             </div>
 
             <div class="exit-container">
                 <div class="exit-roof"></div>
-                <div class="exit-number" id="signageExit">1</div>
+                <div class="exit-number" id="signageExit">7</div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- DOM Elements ---
-        const lineSelect = document.getElementById('lineSelect');
-        const stationCodeInput = document.getElementById('stationCode');
+        // Predefined LTA Palette Registry
+        const standardLines = [
+            { name: "North–South Line (NS)", color: "#d42e12" },
+            { name: "Circle Line (CC)", color: "#fa9e0d" },
+            { name: "East–West Line (EW)", color: "#009645" },
+            { name: "North East Line (NE)", color: "#9900aa" },
+            { name: "Downtown Line (DT)", color: "#005ec4" },
+            { name: "Thomson–East Coast Line (TE)", color: "#9D5B25" },
+            { name: "Cross Island Line (CR)", color: "#97C616" },
+            { name: "Jurong Region Line (JW)", color: "#0099aa" },
+            { name: "Branch Line (BP)", color: "#b85600" },
+            { name: "[ Custom Color ]", color: "#custom" }
+        ];
+
+        // Initial default state configuration matching the user's sample
+        let linesState = [
+            { code: "NS 17", color: "#d42e12" },
+            { code: "CC 15", color: "#fa9e0d" }
+        ];
+
+        const linesContainer = document.getElementById('linesContainer');
+        const addLineBtn = document.getElementById('addLineBtn');
         const stationNameInput = document.getElementById('stationName');
         const exitNumberInput = document.getElementById('exitNumber');
-
-        const signagePill = document.getElementById('signagePill');
+        const interchangeCapsule = document.getElementById('interchangeCapsule');
         const signageName = document.getElementById('signageName');
         const signageExit = document.getElementById('signageExit');
-        const downloadBtn = document.getElementById('downloadBtn');
 
-        // --- Live Update Event Listeners ---
-        function updateSignage() {
-            signagePill.style.backgroundColor = lineSelect.value;
-            signagePill.innerText = stationCodeInput.value.toUpperCase();
-            signageName.innerText = stationNameInput.value;
-            signageExit.innerText = exitNumberInput.value.toUpperCase();
+        // Intelligent relative luminance calculator for automatic text contrast styling
+        function getContrastColor(hexColor) {
+            // Hardcoded exemptions for official LTA branding profiles
+            const darkTextLines = ["#FA9E0D", "#97C616", "#0099AA", "#FFCD00"];
+            if (darkTextLines.includes(hexColor.toUpperCase())) return '#000000';
+            
+            const hex = hexColor.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            return (yiq >= 140) ? '#000000' : '#ffffff';
         }
 
-        lineSelect.addEventListener('input', updateSignage);
-        stationCodeInput.addEventListener('input', updateSignage);
-        stationNameInput.addEventListener('input', updateSignage);
-        exitNumberInput.addEventListener('input', updateSignage);
+        function renderControls() {
+            linesContainer.innerHTML = '';
+            linesState.forEach((line, index) => {
+                const row = document.createElement('div');
+                row.className = 'line-row';
 
-        // Initialize background color on first load
-        updateSignage();
+                // Dropdown structural build
+                const select = document.createElement('select');
+                let isCustom = true;
+                standardLines.forEach(std => {
+                    const opt = document.createElement('option');
+                    opt.value = std.color;
+                    opt.text = std.name;
+                    if (std.color.toUpperCase() === line.color.toUpperCase()) {
+                        opt.selected = true;
+                        isCustom = false;
+                    }
+                    select.appendChild(opt);
+                });
 
-        // --- Export to PNG Functionality ---
-        downloadBtn.addEventListener('click', () => {
-            const signageElement = document.getElementById('mrt-signage');
-            
-            // Ensure fonts are completely rendered before generating image
+                if (isCustom && line.color !== "#custom") {
+                    select.value = "#custom";
+                }
+
+                // Code Input build
+                const codeInput = document.createElement('input');
+                codeInput.type = 'text';
+                codeInput.value = line.code;
+                codeInput.placeholder = "e.g. NS 17";
+
+                // Color picker block
+                const pickerWrapper = document.createElement('div');
+                pickerWrapper.className = 'color-picker-wrapper';
+                
+                const colorPicker = document.createElement('input');
+                colorPicker.type = 'color';
+                colorPicker.value = isCustom ? line.color : "#64748b";
+                colorPicker.style.display = isCustom ? 'block' : 'none';
+
+                pickerWrapper.appendChild(select);
+                pickerWrapper.appendChild(colorPicker);
+
+                // Delete button block
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn-action btn-delete';
+                delBtn.innerText = '✕';
+                if (linesState.length === 1) delBtn.disabled = true;
+
+                // Event routing
+                select.addEventListener('change', (e) => {
+                    if (e.target.value === '#custom') {
+                        linesState[index].color = '#64748b';
+                    } else {
+                        linesState[index].color = e.target.value;
+                    }
+                    renderAll();
+                });
+
+                colorPicker.addEventListener('input', (e) => {
+                    linesState[index].color = e.target.value;
+                    updateSignagePreview();
+                });
+
+                codeInput.addEventListener('input', (e) => {
+                    linesState[index].code = e.target.value;
+                    updateSignagePreview();
+                });
+
+                delBtn.addEventListener('click', () => {
+                    linesState.splice(index, 1);
+                    renderAll();
+                });
+
+                row.appendChild(pickerWrapper);
+                row.appendChild(codeInput);
+                row.appendChild(delBtn);
+                linesContainer.appendChild(row);
+            });
+
+            addLineBtn.disabled = linesState.length >= 4;
+        }
+
+        function updateSignagePreview() {
+            // Update textual elements
+            signageName.innerText = stationNameInput.value;
+            signageExit.innerText = exitNumberInput.value.toUpperCase();
+
+            // Construct unified interchange capsule architecture
+            interchangeCapsule.innerHTML = '';
+            linesState.forEach(line => {
+                const segment = document.createElement('div');
+                segment.className = 'code-segment';
+                segment.style.backgroundColor = line.color;
+                segment.style.color = getContrastColor(line.color);
+                segment.innerText = line.code.toUpperCase();
+                interchangeCapsule.appendChild(segment);
+            });
+        }
+
+        function renderAll() {
+            renderControls();
+            updateSignagePreview();
+        }
+
+        // Add line interaction engine
+        addLineBtn.addEventListener('click', () => {
+            if (linesState.length < 4) {
+                linesState.push({ code: 'TE 7', color: '#9D5B25' });
+                renderAll();
+            }
+        });
+
+        stationNameInput.addEventListener('input', updateSignagePreview);
+        exitNumberInput.addEventListener('input', updateSignagePreview);
+
+        // Core initialization trigger
+        renderAll();
+
+        // --- Quality Export Capture Engine ---
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const target = document.getElementById('mrt-signage');
             document.fonts.ready.then(() => {
-                html2canvas(signageElement, {
-                    scale: 2, // Enhances quality for crisp output
+                html2canvas(target, {
+                    scale: 2, // High resolution pixel ratio override
                     logging: false,
-                    useCORS: true
+                    useCORS: true,
+                    backgroundColor: null
                 }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = `${stationNameInput.value.replace(/\s+/g, '_')}_signage.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
+                    const downloadLink = document.createElement('a');
+                    downloadLink.download = `${stationNameInput.value.trim().replace(/\s+/g, '_')}_signage.png`;
+                    downloadLink.href = canvas.toDataURL('image/png');
+                    downloadLink.click();
                 });
             });
         });
