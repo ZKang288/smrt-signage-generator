@@ -206,7 +206,7 @@
         /* Unified Interchange Code Capsule */
         .interchange-capsule {
             border: 4px solid #ffffff;
-            border-radius: 40px; 
+            /* Border-radius style rule updated dynamically as an ellipse via JS */
             display: inline-flex;
             overflow: hidden;
             box-shadow: 0 4px 10px rgba(0,0,0,0.25);
@@ -215,8 +215,8 @@
         }
 
         .code-segment {
-            padding: 0 24px;
-            font-size: 28px;
+            padding: 0 16px; 
+            font-size: 24px; 
             font-weight: bold;
             font-family: 'MRT-Identity', 'Arial Black', sans-serif;
             display: flex;
@@ -260,11 +260,10 @@
             font-size: 28px;
             font-weight: 900;
             font-family: 'MRT-Identity', 'Arial Black', sans-serif;
-            /* Anchors text alignment inside the door frame opening */
             top: 56%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: #ffcd00; /* Blends natively to cover baked-in values */
+            background-color: #ffcd00; 
             padding: 0 2px;
             line-height: 1;
             text-align: center;
@@ -279,7 +278,7 @@
     </nav>
 
     <h1>Singapore MRT Signage Generator</h1>
-    <p class="subtitle">Supports custom colors, geometry modifications, and asset-based rendering</p>
+    <p class="subtitle">Supports custom colors, 1:2 elliptical geometry curves, and asset-based rendering</p>
 
     <div class="container">
         <div class="editor-regions">
@@ -300,13 +299,13 @@
                     <input type="range" id="capsuleHeight" min="45" max="110" value="68">
                 </div>
                 <div class="control-group">
-                    <label for="capsuleRoundness">Capsule Roundness: <span id="roundnessVal">40px</span></label>
-                    <input type="range" id="capsuleRoundness" min="0" max="55" value="40">
+                    <label for="capsuleRoundness">Vertical Radius (1:2 Ellipse): <span id="roundnessVal">34px</span></label>
+                    <input type="range" id="capsuleRoundness" min="0" max="55" value="34">
                 </div>
             </div>
 
             <div>
-                <div class="section-title">Lines Configuration (Max 4)</div>
+                <div class="section-title">Lines Configuration (Max 10)</div>
                 <div id="linesContainer"></div>
                 <button id="addLineBtn" class="btn-action btn-add">+ Add Interchange Line</button>
             </div>
@@ -454,7 +453,7 @@
                 linesContainer.appendChild(row);
             });
 
-            addLineBtn.disabled = linesState.length >= 4;
+            addLineBtn.disabled = linesState.length >= 10;
         }
 
         function updateSignagePreview() {
@@ -462,13 +461,17 @@
             signageName.innerText = stationNameInput.value;
             signageExit.innerText = exitNumberInput.value.toUpperCase();
 
+            // Parse slider value
+            const vRadius = parseInt(capsuleRoundnessInput.value);
+            const hRadius = vRadius * 2; // Strict 1:2 Elliptical Ratio Lock
+
             // Update Geometry Metrics Label Indicators
             heightVal.innerText = capsuleHeightInput.value + 'px';
-            roundnessVal.innerText = capsuleRoundnessInput.value + 'px';
+            roundnessVal.innerText = `${hRadius}px / ${vRadius}px`;
 
-            // Apply custom structural styling definitions
+            // Apply custom layout and elliptical curve transformations
             interchangeCapsule.style.height = capsuleHeightInput.value + 'px';
-            interchangeCapsule.style.borderRadius = capsuleRoundnessInput.value + 'px';
+            interchangeCapsule.style.borderRadius = `${hRadius}px / ${vRadius}px`;
 
             // Construct unified interchange capsule architecture
             interchangeCapsule.innerHTML = '';
@@ -489,7 +492,7 @@
 
         // Event Listeners for controls
         addLineBtn.addEventListener('click', () => {
-            if (linesState.length < 4) {
+            if (linesState.length < 10) { 
                 linesState.push({ code: 'TE 7', color: '#9D5B25' });
                 renderAll();
             }
@@ -508,7 +511,7 @@
             const target = document.getElementById('mrt-signage');
             document.fonts.ready.then(() => {
                 html2canvas(target, {
-                    scale: 2, // High resolution pixel ratio override
+                    scale: 2, 
                     logging: false,
                     useCORS: true,
                     backgroundColor: null
