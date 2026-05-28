@@ -176,7 +176,7 @@
 
         .btn-download:hover { background-color: #00333a; }
 
-        /* --- MRT Signage Output Area --- */
+        /* --- MRT Signage Output Area (Dynamic Extension Setup) --- */
         .signage-wrapper {
             overflow-x: auto;
             width: 100%;
@@ -186,27 +186,30 @@
         }
 
         #mrt-signage {
-            width: 1080px;
+            min-width: 1080px;
+            width: fit-content; /* Dynamic expansion support */
             height: 190px; 
             background-color: #004c54; 
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 45px;
+            padding: 0 50px;
+            gap: 60px; /* Maintains clean spacing margin between layers */
             box-sizing: border-box;
             user-select: none;
+            white-space: nowrap;
         }
 
         .left-section {
             display: flex;
             align-items: center;
             gap: 35px;
+            flex-shrink: 0;
         }
 
         /* Unified Interchange Code Capsule */
         .interchange-capsule {
             border: 4px solid #ffffff;
-            /* Border-radius style rule updated dynamically as an ellipse via JS */
             display: inline-flex;
             overflow: hidden;
             box-shadow: 0 4px 10px rgba(0,0,0,0.25);
@@ -215,8 +218,8 @@
         }
 
         .code-segment {
-            padding: 0 16px; 
-            font-size: 24px; 
+            padding: 0 20px; 
+            font-size: 26px; 
             font-weight: bold;
             font-family: 'MRT-Identity', 'Arial Black', sans-serif;
             display: flex;
@@ -245,6 +248,7 @@
             align-items: center;
             justify-content: center;
             box-sizing: border-box;
+            flex-shrink: 0;
         }
 
         .exit-image {
@@ -278,7 +282,7 @@
     </nav>
 
     <h1>Singapore MRT Signage Generator</h1>
-    <p class="subtitle">Supports custom colors, 1:2 elliptical geometry curves, and asset-based rendering</p>
+    <p class="subtitle">Supports dynamic signboard extension, 2:1 elliptical curves, and up to 10 lines</p>
 
     <div class="container">
         <div class="editor-regions">
@@ -299,7 +303,7 @@
                     <input type="range" id="capsuleHeight" min="45" max="110" value="68">
                 </div>
                 <div class="control-group">
-                    <label for="capsuleRoundness">Vertical Radius (1:2 Ellipse): <span id="roundnessVal">34px</span></label>
+                    <label for="capsuleRoundness">Vertical Radius (2:1 Ellipse): <span id="roundnessVal">34px</span></label>
                     <input type="range" id="capsuleRoundness" min="0" max="55" value="34">
                 </div>
             </div>
@@ -461,15 +465,15 @@
             signageName.innerText = stationNameInput.value;
             signageExit.innerText = exitNumberInput.value.toUpperCase();
 
-            // Parse slider value
+            // Parse slider value for a 2:1 Elliptical Profile Configuration
             const vRadius = parseInt(capsuleRoundnessInput.value);
-            const hRadius = vRadius * 2; // Strict 1:2 Elliptical Ratio Lock
+            const hRadius = vRadius * 2; // Strict 2:1 horizontal-to-vertical multiplier lock
 
             // Update Geometry Metrics Label Indicators
             heightVal.innerText = capsuleHeightInput.value + 'px';
             roundnessVal.innerText = `${hRadius}px / ${vRadius}px`;
 
-            // Apply custom layout and elliptical curve transformations
+            // Apply custom layout transformations
             interchangeCapsule.style.height = capsuleHeightInput.value + 'px';
             interchangeCapsule.style.borderRadius = `${hRadius}px / ${vRadius}px`;
 
