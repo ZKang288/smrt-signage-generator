@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SG MRT Platform Map Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* --- Font Setup --- */
+        @font-face {
+            font-family: 'MRT-Identity';
+            src: url('LTA_Identity-Medium.ttf') format('truetype'),
+                 url('OceanSans.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #1e293b;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 5px 0;
+            color: #0f172a;
+        }
+
+        p.subtitle {
+            margin: 0 0 30px 0;
+            color: #64748b;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1120px;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            margin-bottom: 35px;
+            box-sizing: border-box;
+        }
+
+        .editor-regions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .editor-regions { grid-template-columns: 1fr; }
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 5px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .control-group input, .control-group select, .control-group textarea {
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            background-color: #fff;
+            color: #1e293b;
+            outline: none;
+        }
+
+        .control-group input:focus, .control-group select:focus {
+            border-color: #004c54;
+        }
+
+        .row-inline {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-download {
+            background-color: #004c54;
+            color: white;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 76, 84, 0.2);
+        }
+
+        /* --- Master Panel Board Configurations --- */
+        .preview-scroll-wrapper {
+            overflow-x: auto;
+            width: 100%;
+            padding: 15px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        #platform-panel {
+            width: 1100px;
+            height: 220px;
+            box-sizing: border-box;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            user-select: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        /* --- VERSION A: DESTINATION MODE STYLES --- */
+        .mode-destination {
+            background-color: #16161a;
+            color: white;
+            padding: 25px 40px 0 40px;
+        }
+
+        .dest-main-row {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .dest-capsule {
+            border: 4px solid #ffffff;
+            border-radius: 30px;
+            padding: 4px 20px;
+            font-size: 26px;
+            font-weight: bold;
+            font-family: 'MRT-Identity', sans-serif;
+            text-align: center;
+            min-width: 90px;
+        }
+
+        .dest-names {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dest-name-en {
+            font-size: 46px;
+            font-weight: 600;
+            font-family: 'MRT-Identity', Arial, sans-serif;
+            line-height: 1.1;
+        }
+
+        .dest-name-sub {
+            font-size: 22px;
+            color: #e2e8f0;
+            font-family: 'MRT-Identity', sans-serif;
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Essential LTA Platform Safety Track Lower Strip */
+        .orange-warning-strip {
+            background-color: #ff5d00;
+            height: 55px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            gap: 40px;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .warning-text {
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: system-ui, sans-serif;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .warning-triangle {
+            width: 0;
+            height: 0;
+            border-left: 16px solid transparent;
+            border-right: 16px solid transparent;
+            border-top: 24px solid #ffcd00;
+            animation: pulse-light 1s infinite alternate;
+        }
+
+        /* --- VERSION B: FULL MAP MODE STYLES --- */
+        .mode-fullmap {
+            background-color: #f1f0f4;
+            color: #1c1917;
+            padding: 40px 40px 20px 40px;
+        }
+
+        .map-track-line {
+            position: absolute;
+            top: 90px;
+            left: 60px;
+            right: 60px;
+            height: 12px;
+            border-radius: 6px;
+            z-index: 1;
+        }
+
+        .map-stations-container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .map-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 100px;
+        }
+
+        .node-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: white;
+            border: 4px solid #716c7a;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .node-dot.interchange {
+            border-radius: 6px;
+            width: 24px;
+            height: 24px;
+            background-color: #ffffff;
+            border: 4px solid #1c1917;
+        }
+
+        .node-dot.current-active {
+            transform: scale(1.25);
+            box-shadow: 0 0 0 4px #ffffff, 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .node-label-en {
+            font-size: 14px;
+            font-weight: bold;
+            font-family: 'MRT-Identity', sans-serif;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .node-label-code {
+            font-size: 11px;
+            font-weight: 800;
+            color: white;
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-top: 4px;
+            font-family: sans-serif;
+        }
+
+        .bottom-line-banner {
+            width: 100%;
+            height: 24px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            padding-left: 40px;
+            box-sizing: border-box;
+            font-family: sans-serif;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <nav style="margin-bottom: 20px; display: flex; gap: 15px;">
+        <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Signage Generator</a>
+        <a href="map.html" style="font-weight: bold; color: #004c54; text-decoration: none;">🗺️ Platform Map Generator</a>
+    </nav>
+
+    <h1>MRT Platform Line Map Generator</h1>
+    <p class="subtitle">Switch layouts easily and save directly to your portfolio</p>
+
+    <div class="container">
+        <div class="editor-regions">
+            <div>
+                <div class="section-title">Display Mode</div>
+                <div class="control-group">
+                    <label for="panelMode">Select Panel Layout Style</label>
+                    <select id="panelMode">
+                        <option value="destination" selected>Destination Indicator (Dark Panel)</option>
+                        <option value="fullmap">Full Line Map (Light Panel)</option>
+                    </select>
+                </div>
+
+                <div class="section-title" style="margin-top: 25px;">Station Typography Settings</div>
+                <div class="control-group">
+                    <label for="stationEn">Station Name (English)</label>
+                    <input type="text" id="stationEn" value="Outram Park">
+                </div>
+                <div class="control-group">
+                    <label for="stationSub">Sub-Languages (Chinese / Tamil / Characters)</label>
+                    <input type="text" id="stationSub" value="欧南园  ஓடறம் பார்க்">
+                </div>
+                <div class="control-group">
+                    <label for="stationCode">Station Identifier Code</label>
+                    <input type="text" id="stationCode" value="NE 3">
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Transit Line Branding</div>
+                <div class="control-group">
+                    <label for="lineName">Branding Line Name</label>
+                    <input type="text" id="lineName" value="North East Line">
+                </div>
+                <div class="control-group">
+                    <label for="lineColor">Branding Core Hex Color</label>
+                    <div class="row-inline">
+                        <select id="linePreset">
+                            <option value="#9900aa" selected>North East Line (NE)</option>
+                            <option value="#d42e12">North–South Line (NS)</option>
+                            <option value="#009645">East–West Line (EW)</option>
+                            <option value="#fa9e0d">Circle Line (CC)</option>
+                            <option value="#005ec4">Downtown Line (DT)</option>
+                            <option value="#9D5B25">Thomson–East Coast Line (TE)</option>
+                            <option value="#custom">Custom Color Profile</option>
+                        </select>
+                        <input type="color" id="customColor" value="#9900aa" style="width:45px; padding:0; height:38px; border:none; cursor:pointer;">
+                    </div>
+                </div>
+
+                <div class="section-title" style="margin-top: 25px;">Full Map Network Parameters</div>
+                <div class="control-group">
+                    <label for="mapStationsJSON">Route Stations Array (Format: Name|Code|isInterchange)</label>
+                    <textarea id="mapStationsJSON" rows="3" style="font-family: monospace; font-size: 12px; resize: vertical;">HarbourFront|NE 1|false&#10;Outram Park|NE 3|true&#10;Chinatown|NE 4|true&#10;Dhoby Ghaut|NE 6|true&#10;Little India|NE 7|true&#10;Farrer Park|NE 8|false</textarea>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-download" id="downloadBtn">Export Platform Board as PNG</button>
+    </div>
+
+    <div class="preview-scroll-wrapper">
+        <div id="platform-panel" class="mode-destination">
+            </div>
+    </div>
+
+    <script>
+        // --- Core Application Nodes ---
+        const panelMode = document.getElementById('panelMode');
+        const stationEn = document.getElementById('stationEn');
+        const stationSub = document.getElementById('stationSub');
+        const stationCode = document.getElementById('stationCode');
+        const linePreset = document.getElementById('linePreset');
+        const customColor = document.getElementById('customColor');
+        const mapStationsJSON = document.getElementById('mapStationsJSON');
+        const platformPanel = document.getElementById('platform-panel');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        function getActiveColor() {
+            return linePreset.value === 'custom' ? customColor.value : linePreset.value;
+        }
+
+        function renderPanel() {
+            const currentMode = panelMode.value;
+            const coreColor = getActiveColor();
+            
+            // Wipe slate clean
+            platformPanel.className = '';
+            platformPanel.innerHTML = '';
+
+            if (currentMode === 'destination') {
+                platformPanel.classList.add('mode-destination');
+                
+                // Build Destination Structural Component Trees
+                const mainRow = document.createElement('div');
+                mainRow.className = 'dest-main-row';
+
+                const capsule = document.createElement('div');
+                capsule.className = 'dest-capsule';
+                capsule.style.borderColor = coreColor;
+                capsule.style.color = coreColor;
+                capsule.innerText = stationCode.value.toUpperCase();
+
+                const namesWrapper = document.createElement('div');
+                namesWrapper.className = 'dest-names';
+                
+                const enName = document.createElement('div');
+                enName.className = 'dest-name-en';
+                enName.innerText = stationEn.value;
+
+                const subName = document.createElement('div');
+                subName.className = 'dest-name-sub';
+                subName.innerText = stationSub.value;
+
+                namesWrapper.appendChild(enName);
+                namesWrapper.appendChild(subName);
+                mainRow.appendChild(capsule);
+                mainRow.appendChild(namesWrapper);
+
+                // Build lower orange warning system track
+                const warningStrip = document.createElement('div');
+                warningStrip.className = 'orange-warning-strip';
+
+                const txtLeft = document.createElement('div');
+                txtLeft.className = 'warning-text';
+                txtLeft.innerHTML = "Please do not board when the light is flashing<br>Harap jangan naik bila lampu berkelip";
+
+                const indicator = document.createElement('div');
+                indicator.className = 'warning-triangle';
+
+                const txtRight = document.createElement('div');
+                txtRight.className = 'warning-text';
+                txtRight.innerHTML = "当信号灯闪烁时，请不要上车<br>தயவுசெய்து விளக்கு மின்னும்போது நுழையாதீர்கள்";
+
+                warningStrip.appendChild(txtLeft);
+                warningStrip.appendChild(indicator);
+                warningStrip.appendChild(txtRight);
+
+                platformPanel.appendChild(mainRow);
+                platformPanel.appendChild(warningStrip);
+
+            } else {
+                platformPanel.classList.add('mode-fullmap');
+
+                // Build vector line graphic track path behind dots
+                const lineTrack = document.createElement('div');
+                lineTrack.className = 'map-track-line';
+                lineTrack.style.backgroundColor = coreColor;
+                platformPanel.appendChild(lineTrack);
+
+                // Nodes container flex mapping
+                const nodesContainer = document.createElement('div');
+                nodesContainer.className = 'map-stations-container';
+
+                // Process input text block safely line by line
+                const linesRaw = mapStationsJSON.value.split('\n');
+                linesRaw.forEach(rawRow => {
+                    if(!rawRow.trim()) return;
+                    const segments = rawRow.split('|');
+                    const name = segments[0] || 'Station';
+                    const code = segments[1] || 'Code';
+                    const isInterchange = segments[2] === 'true';
+                    const isCurrentActive = name.trim().toLowerCase() === stationEn.value.trim().toLowerCase();
+
+                    const node = document.createElement('div');
+                    node.className = 'map-node';
+
+                    const dot = document.createElement('div');
+                    dot.className = 'node-dot';
+                    if (isInterchange) dot.classList.add('interchange');
+                    if (isCurrentActive) {
+                        dot.classList.add('current-active');
+                        dot.style.backgroundColor = coreColor;
+                        dot.style.borderColor = '#ffffff';
+                    } else {
+                        dot.style.borderColor = coreColor;
+                    }
+
+                    const labelEn = document.createElement('div');
+                    labelEn.className = 'node-label-en';
+                    labelEn.innerText = name;
+                    if(isCurrentActive) labelEn.style.color = coreColor;
+
+                    const labelCode = document.createElement('div');
+                    labelCode.className = 'node-label-code';
+                    labelCode.style.backgroundColor = coreColor;
+                    labelCode.innerText = code.toUpperCase();
+
+                    node.appendChild(dot);
+                    node.appendChild(labelEn);
+                    node.appendChild(labelCode);
+                    nodesContainer.appendChild(node);
+                });
+
+                platformPanel.appendChild(nodesContainer);
+
+                // Lower colored banner strip detailing map route identification
+                const bottomBanner = document.createElement('div');
+                bottomBanner.className = 'bottom-line-banner';
+                bottomBanner.style.backgroundColor = coreColor;
+                bottomBanner.innerText = document.getElementById('lineName').value.toUpperCase();
+                platformPanel.appendChild(bottomBanner);
+            }
+        }
+
+        // --- Event Listeners and Auto-updates ---
+        const triggers = [panelMode, stationEn, stationSub, stationCode, linePreset, customColor, mapStationsJSON, document.getElementById('lineName')];
+        triggers.forEach(element => {
+            element.addEventListener('input', () => {
+                if(element === linePreset) {
+                    customColor.style.display = linePreset.value === 'custom' ? 'block' : 'none';
+                    if(linePreset.value !== 'custom') customColor.value = linePreset.value;
+                }
+                renderPanel();
+            });
+        });
+
+        // Initialize display configuration on loading loop sequence
+        renderPanel();
+
+        // --- Crisp High-Resolution Export Hook ---
+        downloadBtn.addEventListener('click', () => {
+            document.fonts.ready.then(() => {
+                html2canvas(platformPanel, {
+                    scale: 2, 
+                    logging: false,
+                    useCORS: true,
+                    backgroundColor: null
+                }).then(canvas => {
+                    const downloadLink = document.createElement('a');
+                    downloadLink.download = `platform_${stationEn.value.trim().replace(/\s+/g, '_')}.png`;
+                    downloadLink.href = canvas.toDataURL('image/png');
+                    downloadLink.click();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
