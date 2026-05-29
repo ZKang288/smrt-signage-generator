@@ -504,12 +504,12 @@
             wrapper.style.alignItems = 'center';
             wrapper.style.justifyContent = 'center';
             wrapper.style.boxSizing = 'border-box';
-            wrapper.style.width = 'auto'; // Reverts to auto-expanding system boundaries
+            wrapper.style.width = 'auto'; 
             
             const inner = document.createElement('div');
             inner.className = 'inner-capsule';
             
-            // Proportional layout mathematics scaling rules
+            // Proportional scaling parameters
             const currentScale = isInterchange ? parseFloat(icScale.value) : 1.0;
             const finalH = h * currentScale;
             const finalP = p * currentScale;
@@ -532,7 +532,11 @@
             inner.style.alignItems = 'center';
             inner.style.justifyContent = 'center';
             inner.style.boxSizing = 'border-box';
+            inner.style.whiteSpace = 'nowrap'; // Blocks wrapping mechanics permanently
             
+            // Locks layout symmetry for shorter codes (e.g. "CC 1" matches "NS 24")
+            inner.style.minWidth = `${finalH * 1.5}px`; 
+
             wrapper.appendChild(inner);
             return { wrapper, inner };
         }
@@ -740,6 +744,7 @@
                         icTokensCount++;
                         const icBgColor = getAutoColor(token);
                         
+                        // isInterchange = true scales horizontally and dynamically without layout constraint
                         const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true);
                         icCaplet.inner.innerText = token.trim().toUpperCase();
                         icWrapper.appendChild(icCaplet.wrapper);
