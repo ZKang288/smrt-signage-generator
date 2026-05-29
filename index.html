@@ -547,7 +547,8 @@
             innerCapsule.style.overflow = 'hidden';
             innerCapsule.style.boxSizing = 'border-box';
             
-            // Build line segments
+            // Clear and rebuild line segments
+            innerCapsule.innerHTML = '';
             linesState.forEach((line, index) => {
                 const segment = document.createElement('div');
             
