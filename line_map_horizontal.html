@@ -183,6 +183,7 @@
             z-index: 2;
             box-sizing: border-box;
             height: 100%;
+            transition: opacity 0.2s;
         }
 
         /* High Precision Label Anchor Framework */
@@ -347,8 +348,8 @@
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="fsStationName">Station Label Font: <span id="fsStationNameVal">22px</span></label>
-                        <input type="range" id="fsStationName" min="12" max="36" value="22">
+                        <label for="fsStationName">Station Label Font (12px - 60px): <span id="fsStationNameVal">22px</span></label>
+                        <input type="range" id="fsStationName" min="12" max="60" value="22">
                     </div>
                     <div class="control-group">
                         <label for="fsCapletCode">Caplet Text Font: <span id="fsCapletCodeVal">14px</span></label>
@@ -483,18 +484,34 @@
             return '#ffffff';
         }
 
-        function buildCapletStyleElement(bg, textHex, fs, h, p, vr, hr) {
+        // Standard Track Caplet Builder Element
+        function buildCapletStyleElement(bg, textHex, fs, h, p, vr, hr, isInterchange = false) {
             const wrapper = document.createElement('div');
             wrapper.className = 'outer-capsule';
             wrapper.style.padding = '2px';
             wrapper.style.background = '#ffffff';
             wrapper.style.borderRadius = `${hr}px / ${vr}px`;
+            wrapper.style.display = 'inline-flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.style.justifyContent = 'center';
+            wrapper.style.boxSizing = 'border-box';
             
             const inner = document.createElement('div');
             inner.className = 'inner-capsule';
-            inner.style.height = `${h}px`;
-            inner.style.paddingLeft = `${p}px`;
-            inner.style.paddingRight = `${p}px`;
+            
+            let finalH = h;
+            if (isInterchange) {
+                // Scaling metrics ensure interchange nodes are uniformly smaller and matched perfectly
+                finalH = h * 0.85; 
+                wrapper.style.width = `${finalH * 1.6}px`; 
+            } else {
+                inner.style.paddingLeft = `${p}px`;
+                inner.style.paddingRight = `${p}px`;
+                wrapper.style.width = 'auto';
+            }
+            
+            inner.style.height = `${finalH}px`;
+            inner.style.width = isInterchange ? '100%' : 'auto';
             inner.style.backgroundColor = bg;
             inner.style.color = textHex;
             inner.style.fontSize = `${fs}px`;
@@ -504,6 +521,7 @@
             inner.style.display = 'flex';
             inner.style.alignItems = 'center';
             inner.style.justifyContent = 'center';
+            inner.style.boxSizing = 'border-box';
             
             wrapper.appendChild(inner);
             return { wrapper, inner };
@@ -614,34 +632,32 @@
             const nodeCount = stationsState.length;
             const horizontalStepDistance = (totalW - 100) / (nodeCount > 1 ? nodeCount : 1);
             
-            // Dynamic track capping execution logic
             const boundedLineOffset = 50 + (horizontalStepDistance / 2);
             trackLineUnderlay.style.left = boundedLineOffset + 'px';
             trackLineUnderlay.style.right = boundedLineOffset + 'px';
 
-            let globalFadingActive = false;
+            // Find the split station index to implement backward-facing historical network fading
+            const splitIdx = stationsState.findIndex(s => s.fadeSplit);
 
             stationsState.forEach((station, idx) => {
-                if (station.fadeSplit) {
-                    globalFadingActive = true;
-                }
+                // Fading direction corrected: All stations *before* the active node fade out smoothly
+                const isFaded = (splitIdx !== -1 && idx < splitIdx);
 
                 const col = document.createElement('div');
                 col.className = 'station-column';
                 col.style.width = `${horizontalStepDistance}px`;
-                col.style.opacity = globalFadingActive ? '0.35' : '1';
-                
-                if (station.fadeSplit) col.style.opacity = '1'; 
+                col.style.opacity = isFaded ? '0.35' : '1';
 
-                // Geometry Variables Setup
+                // Geometry Mapping Variables
                 const H = parseInt(capH.value);
                 const P = parseInt(capP.value);
                 const Fs = parseInt(fsCapletCode.value);
                 const Vr = parseInt(capVr.value);
                 const Hr = parseInt(capHr.value);
                 const actualCapletHeight = H + 4;
+                const icHeight = (H * 0.85) + 4;
 
-                // --- 1. Typography Handling System (High Stability Coordinate Vectors) ---
+                // --- 1. Typography Handling System (Zero-Drift Vector Anchor Mapping) ---
                 const labelWrap = document.createElement('div');
                 labelWrap.className = 'station-label-wrapper';
                 labelWrap.style.top = `${Y - (actualCapletHeight / 2) - O}px`;
@@ -651,7 +667,6 @@
                 labelTxt.innerText = station.name;
                 labelTxt.style.fontSize = fsStationName.value + 'px';
 
-                // Explicit transform origins prevent rotational text drift
                 if (textOrientation.value === 'tilt-right') {
                     labelTxt.style.transform = 'rotate(-45deg)';
                     labelTxt.style.transformOrigin = 'left bottom';
@@ -684,12 +699,12 @@
                 nodeContainer.className = 'node-container';
                 nodeContainer.style.top = Y + 'px';
                 
-                const mainCaplet = buildCapletStyleElement(activeLineColor, getContrastColor(activeLineColor), Fs, H, P, Vr, Hr);
+                const mainCaplet = buildCapletStyleElement(activeLineColor, getContrastColor(activeLineColor), Fs, H, P, Vr, Hr, false);
                 mainCaplet.inner.innerText = station.code.toUpperCase();
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // --- 3. Interchange Matrix Grid System ---
+                // --- 3. Interchange Matrix Grid System (Perfect Dimension Stability) ---
                 let icTokensCount = 0;
                 if (station.interchanges.trim().length > 0) {
                     const icWrapper = document.createElement('div');
@@ -710,7 +725,8 @@
                         icTokensCount++;
                         const icBgColor = getAutoColor(token);
                         
-                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr);
+                        // isInterchange = true ensures completely locked sizing parameters
+                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs * 0.9, H, P, Vr, Hr, true);
                         icCaplet.inner.innerText = token.trim().toUpperCase();
                         icWrapper.appendChild(icCaplet.wrapper);
                     });
@@ -728,9 +744,9 @@
                     let arrowTop = Y + (actualCapletHeight / 2) + G;
                     if (icTokensCount > 0) {
                         if (interchangeLayout.value === 'stacked') {
-                            arrowTop += (icTokensCount * actualCapletHeight) + ((icTokensCount - 1) * G) + G + 10;
+                            arrowTop += (icTokensCount * icHeight) + ((icTokensCount - 1) * G) + G + 10;
                         } else {
-                            arrowTop += actualCapletHeight + G + 10;
+                            arrowTop += icHeight + G + 10;
                         }
                     } else {
                         arrowTop += G + 10;
