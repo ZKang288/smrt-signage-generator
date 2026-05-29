@@ -347,6 +347,7 @@
                         <option value="tilt-right">Tilted Upward Right (45°)</option>
                         <option value="tilt-left">Tilted Upward Left (-45°)</option>
                         <option value="horizontal">Flat Horizontal (0°)</option>
+                        <option value="horizontal-alternate">Flat Horizontal (Alternating Top/Bottom)</option>
                         <option value="vertical">Strict Vertical (-90°)</option>
                     </select>
                 </div>
@@ -368,35 +369,40 @@
                         <input type="range" id="fsCapletCode" min="10" max="60" value="30">
                     </div>
                 </div>
+
                 <div class="section-title" style="margin-top:20px;">Line Banner (Bottom Ribbon)</div>
+                <div class="control-group">
+                    <label for="customBandLineName">Custom Line Name (Override)</label>
+                    <input type="text" id="customBandLineName" placeholder="Leave blank for automatic assignment">
+                </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
                         <label for="fsBandName">Line Name Font: <span id="fsBandNameVal">36px</span></label>
                         <input type="range" id="fsBandName" min="16" max="72" value="36">
                     </div>
                     <div class="control-group">
-                        <label for="fsBandCaplet">Caplet Font: <span id="fsBandCapletVal">20px</span></label>
-                        <input type="range" id="fsBandCaplet" min="10" max="60" value="20">
+                        <label for="fsBandCaplet">Caplet Font: <span id="fsBandCapletVal">28px</span></label>
+                        <input type="range" id="fsBandCaplet" min="10" max="60" value="28">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="bandCapH">Caplet Height: <span id="bandCapHVal">36px</span></label>
-                        <input type="range" id="bandCapH" min="20" max="100" value="36">
+                        <label for="bandCapH">Caplet Height: <span id="bandCapHVal">45px</span></label>
+                        <input type="range" id="bandCapH" min="20" max="100" value="45">
                     </div>
                     <div class="control-group">
-                        <label for="bandCapP">Caplet H. Padding: <span id="bandCapPVal">25px</span></label>
-                        <input type="range" id="bandCapP" min="5" max="60" value="25">
+                        <label for="bandCapP">Caplet H. Padding: <span id="bandCapPVal">28px</span></label>
+                        <input type="range" id="bandCapP" min="5" max="60" value="28">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="bandCapVr">Caplet Vert. Radius: <span id="bandCapVrVal">50px</span></label>
-                        <input type="range" id="bandCapVr" min="0" max="100" value="50">
+                        <label for="bandCapVr">Caplet Vert. Radius: <span id="bandCapVrVal">28px</span></label>
+                        <input type="range" id="bandCapVr" min="0" max="100" value="28">
                     </div>
                     <div class="control-group">
-                        <label for="bandCapHr">Caplet Horiz. Radius: <span id="bandCapHrVal">25px</span></label>
-                        <input type="range" id="bandCapHr" min="0" max="160" value="25">
+                        <label for="bandCapHr">Caplet Horiz. Radius: <span id="bandCapHrVal">13px</span></label>
+                        <input type="range" id="bandCapHr" min="0" max="160" value="13">
                     </div>
                 </div>
 
@@ -485,6 +491,7 @@
         const bandCapP      = document.getElementById('bandCapP');
         const bandCapVr     = document.getElementById('bandCapVr');
         const bandCapHr     = document.getElementById('bandCapHr');
+        const customBandLineName = document.getElementById('customBandLineName');
         
         const capP = document.getElementById('capP');
         const capH = document.getElementById('capH');
@@ -669,7 +676,15 @@
             trackLineUnderlay.innerHTML = ''; 
 
             const selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value) || {name: "Custom Route Line", prefix: "CUST"};
-            bandLineNameText.innerText = selectedLineObj.name.replace(/\s\([^)]*\)$/, ""); 
+            
+            // Check for manual line name text input override
+            const manualOverride = customBandLineName.value.trim();
+            if (manualOverride) {
+                bandLineNameText.innerText = manualOverride;
+            } else {
+                bandLineNameText.innerText = selectedLineObj.name.replace(/\s\([^)]*\)$/, ""); 
+            }
+            
             bandLineNameText.style.fontSize = fsBandName.value + 'px';
             document.getElementById('fsBandNameVal').innerText   = fsBandName.value   + 'px';
             document.getElementById('fsBandCapletVal').innerText = fsBandCaplet.value + 'px';
@@ -736,10 +751,36 @@
                 const actualCapletHeight = H + 4;
                 const icHeight = (H * currentScale) + 4;
 
+                // Alternate bottom positioning boolean verification metric
+                const isAlternateBottom = (textOrientation.value === 'horizontal-alternate' && idx % 2 === 1);
+
+                // Pre-count clean interchange entries to accurately map coordinate boundaries
+                let icTokensCount = 0;
+                if (station.interchanges.trim().length > 0) {
+                    icTokensCount = station.interchanges.split(',').filter(t => t.trim()).length;
+                }
+
                 // --- 1. Typography Handling System ---
                 const labelWrap = document.createElement('div');
                 labelWrap.className = 'station-label-wrapper';
-                labelWrap.style.top = `${Y - (actualCapletHeight / 2) - O}px`;
+                
+                if (isAlternateBottom) {
+                    let labelBottomY = Y + (actualCapletHeight / 2) + O;
+                    if (icTokensCount > 0) {
+                        if (interchangeLayout.value === 'stacked') {
+                            labelBottomY += (icTokensCount * icHeight) + ((icTokensCount - 1) * G);
+                        } else {
+                            labelBottomY += icHeight;
+                        }
+                        labelBottomY += O; 
+                    }
+                    if (station.fadeSplit) {
+                        labelBottomY += 36; 
+                    }
+                    labelWrap.style.top = `${labelBottomY}px`;
+                } else {
+                    labelWrap.style.top = `${Y - (actualCapletHeight / 2) - O}px`;
+                }
                 
                 const labelTxt = document.createElement('span');
                 labelTxt.className = 'station-label-text';
@@ -763,6 +804,12 @@
                     labelTxt.style.left = '0px';
                     labelTxt.style.top = '50%';
                     labelTxt.style.transform += ' translateY(-50%)';
+                } else if (isAlternateBottom) {
+                    labelTxt.style.transform = 'rotate(0deg)';
+                    labelTxt.style.transformOrigin = 'center top';
+                    labelTxt.style.left = '50%';
+                    labelTxt.style.transform += ' translateX(-50%)';
+                    labelTxt.style.top = '0px';
                 } else {
                     labelTxt.style.transform = 'rotate(0deg)';
                     labelTxt.style.transformOrigin = 'center bottom';
@@ -785,11 +832,11 @@
                 col.appendChild(nodeContainer);
 
                 // --- 3. Interchange Matrix Grid System ---
-                let icTokensCount = 0;
-                if (station.interchanges.trim().length > 0) {
+                if (icTokensCount > 0) {
                     const icWrapper = document.createElement('div');
                     icWrapper.className = 'interchanges-wrapper';
                     icWrapper.style.top = `${Y + (actualCapletHeight / 2) + G}px`;
+                    icWrapper.style.opacity = isFaded ? '0.35' : '1';
                     
                     if (interchangeLayout.value === 'stacked') {
                         icWrapper.style.flexDirection = 'column';
@@ -802,7 +849,6 @@
                     const icTokens = station.interchanges.split(',');
                     icTokens.forEach(token => {
                         if(!token.trim()) return;
-                        icTokensCount++;
                         const icBgColor = getAutoColor(token);
                         
                         const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true, isFaded);
@@ -843,6 +889,13 @@
                     }
                 }
 
+                if (isAlternateBottom) {
+                    const estimatedLabelBottom = parseFloat(labelWrap.style.top) + parseInt(fsStationName.value) + 20;
+                    if (estimatedLabelBottom > totalStackNodeBottomPosition) {
+                        totalStackNodeBottomPosition = estimatedLabelBottom;
+                    }
+                }
+
                 // Track extreme coordinates reached
                 if (totalStackNodeBottomPosition > maxStructuralHeightCalculated) {
                     maxStructuralHeightCalculated = totalStackNodeBottomPosition;
@@ -851,7 +904,6 @@
                 routeVisualArea.appendChild(col);
             });
 
-            // Dynamically apply computed height limits to canvas matrix wrapper
             routeVisualArea.style.height = maxStructuralHeightCalculated + 'px';
 
             // Sync Value Indicators
@@ -872,7 +924,7 @@
             updateMapRenderer();
         });
 
-        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr].forEach(ctrl => {
+        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName].forEach(ctrl => {
             ctrl.addEventListener('input', updateMapRenderer);
             ctrl.addEventListener('change', updateMapRenderer);
         });
