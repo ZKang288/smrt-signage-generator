@@ -163,16 +163,14 @@
             display: flex;
             align-items: flex-start;
             position: relative;
-            height: 480px; /* Secure blueprint room to prevent tall stacks clipping */
+            height: 480px; 
             padding: 0 50px;
             flex-grow: 1;
         }
 
-        /* Continuous Track Line */
+        /* Continuous Track Line (Dynamically Capped Ends) */
         .track-line-underlay {
             position: absolute;
-            left: 0;
-            right: 0;
             height: 14px;
             background-color: #9900aa;
             z-index: 1;
@@ -614,6 +612,12 @@
             const nodeCount = stationsState.length;
             const horizontalStepDistance = (totalW - 100) / (nodeCount > 1 ? nodeCount : 1);
             
+            // --- Capping Engine Math Calculation ---
+            // Forces track timeline boundaries to terminate cleanly at center axis positions
+            const boundedLineOffset = 50 + (horizontalStepDistance / 2);
+            trackLineUnderlay.style.left = boundedLineOffset + 'px';
+            trackLineUnderlay.style.right = boundedLineOffset + 'px';
+
             let globalFadingActive = false;
 
             stationsState.forEach((station, idx) => {
@@ -634,9 +638,9 @@
                 const Fs = parseInt(fsCapletCode.value);
                 const Vr = parseInt(capVr.value);
                 const Hr = parseInt(capHr.value);
-                const actualCapletHeight = H + 4; // Including boundary padding
+                const actualCapletHeight = H + 4;
 
-                // --- 1. Typography Handling System (Anchor Base Clearance) ---
+                // --- 1. Typography Handling System ---
                 const labelWrap = document.createElement('div');
                 labelWrap.className = 'station-label-wrapper';
                 labelWrap.style.top = '10px';
@@ -660,7 +664,7 @@
                 labelWrap.appendChild(labelTxt);
                 col.appendChild(labelWrap);
 
-                // --- 2. Track Node (Centered perfectly on track Y coordinate) ---
+                // --- 2. Track Node ---
                 const nodeContainer = document.createElement('div');
                 nodeContainer.className = 'node-container';
                 nodeContainer.style.top = Y + 'px';
@@ -670,7 +674,7 @@
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // --- 3. Interchange Matrix (Uniform Grid Positioning) ---
+                // --- 3. Interchange Matrix Grid System ---
                 let icTokensCount = 0;
                 if (station.interchanges.trim().length > 0) {
                     const icWrapper = document.createElement('div');
@@ -698,7 +702,7 @@
                     col.appendChild(icWrapper);
                 }
 
-                // --- 4. Mathematically Tracked Direction Arrow Anchor Placement ---
+                // --- 4. Render Active Split Point Direction Arrow ---
                 if (station.fadeSplit) {
                     const arrowBox = document.createElement('div');
                     arrowBox.className = 'direction-arrow-box';
@@ -724,7 +728,7 @@
                 routeVisualArea.appendChild(col);
             });
 
-            // Display UI value indicators updates
+            // Sync Value Indicators
             document.getElementById('trackLineYVal').innerText = Y + 'px';
             document.getElementById('interchangeGapVal').innerText = G + 'px';
             document.getElementById('labelOffsetVal').innerText = O + 'px';
@@ -758,7 +762,7 @@
         renderControlsRows();
         updateMapRenderer();
 
-        // High-Fidelity Capture Export Engine Execution 
+        // Canvas Capture Processing Engine
         document.getElementById('downloadMapBtn').addEventListener('click', () => {
             const target = document.getElementById('line-map-container');
             document.fonts.ready.then(() => {
