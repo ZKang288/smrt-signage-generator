@@ -176,7 +176,7 @@
 
         .btn-download:hover { background-color: #00333a; }
 
-        /* --- MRT Signage Output Area (Dynamic Extension Setup) --- */
+        /* --- MRT Signage Output Area --- */
         .signage-wrapper {
             overflow-x: auto;
             width: 100%;
@@ -186,15 +186,13 @@
         }
 
         #mrt-signage {
-            min-width: 1080px;
-            width: fit-content; /* Dynamic expansion support */
             height: 190px; 
             background-color: #004c54; 
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 50px;
-            gap: 60px; /* Maintains clean spacing margin between layers */
+            gap: 60px; 
             box-sizing: border-box;
             user-select: none;
             white-space: nowrap;
@@ -207,18 +205,7 @@
             flex-shrink: 0;
         }
 
-        /* Unified Interchange Code Capsule */
-        .interchange-capsule {
-            border: 4px solid #ffffff;
-            display: inline-flex;
-            overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-            height: 68px; 
-            box-sizing: border-box;
-        }
-
         .code-segment {
-            padding: 0 20px; 
             font-size: 26px; 
             font-weight: bold;
             font-family: 'MRT-Identity', 'Arial Black', sans-serif;
@@ -228,6 +215,7 @@
             height: 100%;
             text-align: center;
             white-space: nowrap;
+            box-sizing: border-box;
         }
 
         /* Station Name */
@@ -282,7 +270,7 @@
     </nav>
 
     <h1>Singapore MRT Signage Generator</h1>
-    <p class="subtitle">Supports dynamic signboard extension, 2:1 elliptical curves, and up to 10 lines</p>
+    <p class="subtitle">Supports length adjustments, visibility toggles, 2:1 elliptical curves, and up to 10 lines</p>
 
     <div class="container">
         <div class="editor-regions">
@@ -292,9 +280,26 @@
                     <label for="stationName">Station Name</label>
                     <input type="text" id="stationName" value="Bishan South">
                 </div>
-                <div class="control-group">
+                
+                <div style="display: flex; gap: 25px; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="showExit" checked style="width: auto; cursor: pointer;">
+                        <label for="showExit" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Display Exit Box</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="autoWidth" checked style="width: auto; cursor: pointer;">
+                        <label for="autoWidth" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Auto Width</label>
+                    </div>
+                </div>
+
+                <div class="control-group" id="exitInputGroup">
                     <label for="exitNumber">Exit Identifier</label>
                     <input type="text" id="exitNumber" value="1">
+                </div>
+
+                <div class="control-group" id="widthSliderGroup" style="display: none;">
+                    <label for="signageWidth">Signboard Custom Width: <span id="widthVal">1080px</span></label>
+                    <input type="range" id="signageWidth" min="800" max="2500" value="1080">
                 </div>
 
                 <div class="section-title" style="margin-top: 25px;">Caplet Geometry</div>
@@ -303,8 +308,8 @@
                     <input type="range" id="capsuleHeight" min="45" max="110" value="68">
                 </div>
                 <div class="control-group">
-                    <label for="capsuleRoundness">Vertical Radius (2:1 Ellipse): <span id="roundnessVal">34px</span></label>
-                    <input type="range" id="capsuleRoundness" min="0" max="55" value="34">
+                    <label for="capsuleRoundness">Vertical Radius (2:1 Ellipse): <span id="roundnessVal">40px</span></label>
+                    <input type="range" id="capsuleRoundness" min="0" max="80" value="40">
                 </div>
             </div>
 
@@ -323,12 +328,14 @@
             <div class="left-section">
                 <img src="mrt_logo.svg" alt="MRT Logo" style="height: 68px; width: auto; display: block;">
 
-                <div class="interchange-capsule" id="interchangeCapsule"></div>
+                <div id="interchangeCapsule" style="display: inline-flex; overflow: hidden; position: relative; border-top: 4px solid #ffffff; border-bottom: 4px solid #ffffff; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.25);">
+                    <div id="capsuleInner" style="display: inline-flex; border-left: 4px solid #ffffff; border-right: 4px solid #ffffff; box-sizing: border-box;"></div>
+                </div>
                 
                 <div class="station-name" id="signageName">Bishan South</div>
             </div>
 
-            <div class="exit-container">
+            <div class="exit-container" id="exitContainer">
                 <img src="exit_logo.png" alt="Exit Icon" class="exit-image">
                 <div class="exit-number" id="signageExit">1</div>
             </div>
@@ -360,9 +367,20 @@
         const addLineBtn = document.getElementById('addLineBtn');
         const stationNameInput = document.getElementById('stationName');
         const exitNumberInput = document.getElementById('exitNumber');
-        const interchangeCapsule = document.getElementById('interchangeCapsule');
+        const outerCapsule = document.getElementById('interchangeCapsule');
+        const innerCapsule = document.getElementById('capsuleInner');
         const signageName = document.getElementById('signageName');
         const signageExit = document.getElementById('signageExit');
+        const mrtSignage = document.getElementById('mrt-signage');
+        const exitContainer = document.getElementById('exitContainer');
+
+        // Toggle / Width Inputs
+        const showExit = document.getElementById('showExit');
+        const autoWidth = document.getElementById('autoWidth');
+        const exitInputGroup = document.getElementById('exitInputGroup');
+        const widthSliderGroup = document.getElementById('widthSliderGroup');
+        const signageWidthInput = document.getElementById('signageWidth');
+        const widthVal = document.getElementById('widthVal');
 
         // Geometry Inputs
         const capsuleHeightInput = document.getElementById('capsuleHeight');
@@ -461,31 +479,71 @@
         }
 
         function updateSignagePreview() {
+            // Toggle Display Rules
+            exitContainer.style.display = showExit.checked ? 'flex' : 'none';
+            exitInputGroup.style.display = showExit.checked ? 'flex' : 'none';
+
+            if (autoWidth.checked) {
+                mrtSignage.style.width = 'fit-content';
+                mrtSignage.style.minWidth = '1080px';
+                widthSliderGroup.style.display = 'none';
+            } else {
+                mrtSignage.style.width = signageWidthInput.value + 'px';
+                mrtSignage.style.minWidth = 'unset';
+                widthSliderGroup.style.display = 'flex';
+                widthVal.innerText = signageWidthInput.value + 'px';
+            }
+
             // Update textual elements
             signageName.innerText = stationNameInput.value;
             signageExit.innerText = exitNumberInput.value.toUpperCase();
 
-            // Parse slider value for a 2:1 Elliptical Profile Configuration
-            const vRadius = parseInt(capsuleRoundnessInput.value);
-            const hRadius = vRadius * 2; // Strict 2:1 horizontal-to-vertical multiplier lock
+            // Setup mathematical constraints
+            const H = parseInt(capsuleHeightInput.value);
+            const minVr = Math.ceil(H / 2);
+            
+            // Enforce minimum vertical bounds to prevent layout math errors
+            capsuleRoundnessInput.min = minVr;
+            if (parseInt(capsuleRoundnessInput.value) < minVr) {
+                capsuleRoundnessInput.value = minVr;
+            }
 
-            // Update Geometry Metrics Label Indicators
-            heightVal.innerText = capsuleHeightInput.value + 'px';
-            roundnessVal.innerText = `${hRadius}px / ${vRadius}px`;
+            const Vr = parseInt(capsuleRoundnessInput.value);
+            const Hr = Vr * 2; // Strict 2:1 horizontal-to-vertical lock
 
-            // Apply custom layout transformations
-            interchangeCapsule.style.height = capsuleHeightInput.value + 'px';
-            interchangeCapsule.style.borderRadius = `${hRadius}px / ${vRadius}px`;
+            // Calculate the horizontal wing extension distance to pad the text perfectly
+            const ratio = (H * H) / (4 * Vr * Vr);
+            const xCorner = Hr * (1 - Math.sqrt(1 - ratio));
 
-            // Construct unified interchange capsule architecture
-            interchangeCapsule.innerHTML = '';
-            linesState.forEach(line => {
+            // Update Geometry Indicators
+            heightVal.innerText = H + 'px';
+            roundnessVal.innerText = `${Hr}px / ${Vr}px`;
+
+            // Apply nested truncation transformation properties
+            outerCapsule.style.height = H + 'px';
+            innerCapsule.style.height = (2 * Vr) + 'px';
+            innerCapsule.style.marginTop = ((H - (2 * Vr)) / 2) + 'px';
+            innerCapsule.style.borderRadius = `${Hr}px / ${Vr}px`;
+
+            // Clear and construct layout segments dynamically
+            innerCapsule.innerHTML = '';
+            linesState.forEach((line, index) => {
                 const segment = document.createElement('div');
                 segment.className = 'code-segment';
                 segment.style.backgroundColor = line.color;
                 segment.style.color = getContrastColor(line.color);
                 segment.innerText = line.code.toUpperCase();
-                interchangeCapsule.appendChild(segment);
+
+                let paddingLeft = 20;
+                let paddingRight = 20;
+
+                if (index === 0) paddingLeft = 20 + xCorner;
+                if (index === linesState.length - 1) paddingRight = 20 + xCorner;
+
+                segment.style.paddingLeft = paddingLeft + 'px';
+                segment.style.paddingRight = paddingRight + 'px';
+
+                innerCapsule.appendChild(segment);
             });
         }
 
@@ -504,6 +562,9 @@
 
         stationNameInput.addEventListener('input', updateSignagePreview);
         exitNumberInput.addEventListener('input', updateSignagePreview);
+        showExit.addEventListener('change', updateSignagePreview);
+        autoWidth.addEventListener('change', updateSignagePreview);
+        signageWidthInput.addEventListener('input', updateSignagePreview);
         capsuleHeightInput.addEventListener('input', updateSignagePreview);
         capsuleRoundnessInput.addEventListener('input', updateSignagePreview);
 
