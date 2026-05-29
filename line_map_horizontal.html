@@ -57,7 +57,7 @@
             margin-bottom: 25px;
         }
 
-        @media (max-width: 5000px) {
+        @media (max-width: 992px) {
             .editor-regions { grid-template-columns: 1fr; }
         }
 
@@ -168,7 +168,7 @@
             flex-grow: 1;
         }
 
-        /* Segmented Track Underlay Container */
+        /* Continuous Track Line */
         .track-line-underlay {
             position: absolute;
             left: 0;
@@ -293,7 +293,7 @@
     </nav>
 
     <h1>MRT Horizontal Route Map Generator</h1>
-    <p class="subtitle">Supports precision name layouts, adaptive track snapping, and scaling tools</p>
+    <p class="subtitle">Supports precision name layouts, dynamic track snapping, and scaling tools</p>
 
     <div class="container">
         <div class="editor-regions">
@@ -500,35 +500,34 @@
             wrapper.className = 'outer-capsule';
             wrapper.style.padding = '2px';
             wrapper.style.background = '#ffffff';
-            wrapper.style.borderRadius = `${hr}px / ${vr}px`;
             wrapper.style.display = 'inline-flex';
             wrapper.style.alignItems = 'center';
             wrapper.style.justifyContent = 'center';
             wrapper.style.boxSizing = 'border-box';
+            wrapper.style.width = 'auto'; // Reverts to auto-expanding system boundaries
             
             const inner = document.createElement('div');
             inner.className = 'inner-capsule';
             
-            let finalH = h;
-            if (isInterchange) {
-                // Apply dynamic layout scale values based on control slider
-                const currentScale = parseFloat(icScale.value);
-                finalH = h * currentScale; 
-                wrapper.style.width = `${finalH * 1.6}px`; 
-            } else {
-                inner.style.paddingLeft = `${p}px`;
-                inner.style.paddingRight = `${p}px`;
-                wrapper.style.width = 'auto';
-            }
+            // Proportional layout mathematics scaling rules
+            const currentScale = isInterchange ? parseFloat(icScale.value) : 1.0;
+            const finalH = h * currentScale;
+            const finalP = p * currentScale;
+            const finalFs = fs * currentScale;
+            const finalVr = vr * currentScale;
+            const finalHr = hr * currentScale;
+
+            wrapper.style.borderRadius = `${finalHr}px / ${finalVr}px`;
             
             inner.style.height = `${finalH}px`;
-            inner.style.width = isInterchange ? '100%' : 'auto';
+            inner.style.paddingLeft = `${finalP}px`;
+            inner.style.paddingRight = `${finalP}px`;
             inner.style.backgroundColor = bg;
             inner.style.color = textHex;
-            inner.style.fontSize = `${isInterchange ? fs * parseFloat(icScale.value) : fs}px`;
+            inner.style.fontSize = `${finalFs}px`;
             inner.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
             inner.style.fontWeight = '700';
-            inner.style.borderRadius = `${hr}px / ${vr}px`;
+            inner.style.borderRadius = `${finalHr}px / ${finalVr}px`;
             inner.style.display = 'flex';
             inner.style.alignItems = 'center';
             inner.style.justifyContent = 'center';
@@ -619,7 +618,7 @@
             const currentScale = parseFloat(icScale.value);
             
             trackLineUnderlay.style.top = Y + 'px';
-            trackLineUnderlay.innerHTML = ''; // Reset segment registry
+            trackLineUnderlay.innerHTML = ''; 
 
             const selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value) || {name: "Custom Route Line", prefix: "CUST"};
             bandLineNameText.innerText = selectedLineObj.name.replace(/\s\([^)]*\)$/, ""); 
@@ -639,7 +638,6 @@
             const splitIdx = stationsState.findIndex(s => s.fadeSplit);
 
             // --- Segmented Track Drawing Engine ---
-            // Breaks down track line into individual fragments to allow fading before the target node
             for (let i = 0; i < nodeCount - 1; i++) {
                 const seg = document.createElement('div');
                 seg.className = 'track-segment';
@@ -651,7 +649,6 @@
                 seg.style.backgroundColor = activeLineColor;
                 seg.style.zIndex = '1';
                 
-                // Track segments connecting historical nodes fade down smoothly
                 const isSegFaded = (splitIdx !== -1 && i < splitIdx);
                 seg.style.opacity = isSegFaded ? '0.35' : '1';
                 
@@ -659,7 +656,6 @@
             }
 
             stationsState.forEach((station, idx) => {
-                // Historical nodes to the left of the split point drop structural opacity
                 const isFaded = (splitIdx !== -1 && idx < splitIdx);
 
                 const col = document.createElement('div');
@@ -674,9 +670,9 @@
                 const Vr = parseInt(capVr.value);
                 const Hr = parseInt(capHr.value);
                 const actualCapletHeight = H + 4;
-                const icHeight = ((H * currentScale) + 4);
+                const icHeight = (H * currentScale) + 4;
 
-                // --- 1. Typography Structural Matrix ---
+                // --- 1. Typography Handling System ---
                 const labelWrap = document.createElement('div');
                 labelWrap.className = 'station-label-wrapper';
                 labelWrap.style.top = `${Y - (actualCapletHeight / 2) - O}px`;
@@ -713,7 +709,7 @@
                 labelWrap.appendChild(labelTxt);
                 col.appendChild(labelWrap);
 
-                // --- 2. Track Node (Main Caplet) ---
+                // --- 2. Track Node ---
                 const nodeContainer = document.createElement('div');
                 nodeContainer.className = 'node-container';
                 nodeContainer.style.top = Y + 'px';
@@ -723,7 +719,7 @@
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // --- 3. Interchange Matrix Grid System (Proportional Uniform Sizing) ---
+                // --- 3. Interchange Matrix Grid System ---
                 let icTokensCount = 0;
                 if (station.interchanges.trim().length > 0) {
                     const icWrapper = document.createElement('div');
@@ -751,7 +747,7 @@
                     col.appendChild(icWrapper);
                 }
 
-                // --- 4. Render Active Direction Arrow ---
+                // --- 4. Render Active Split Point Direction Arrow ---
                 if (station.fadeSplit) {
                     const arrowBox = document.createElement('div');
                     arrowBox.className = 'direction-arrow-box';
