@@ -175,20 +175,21 @@
 
         .route-visual-area {
             display: flex;
-            align-items: flex-end;
+            align-items: flex-start;
             position: relative;
-            padding: 60px 50px 40px 50px;
+            height: 380px; /* Fixed height container to prevent clipping */
+            padding: 0 50px;
             flex-grow: 1;
         }
 
-        /* Continuous Dynamic Route Track */
+        /* Continuous Track Line (Anchor Point) */
         .track-line-underlay {
             position: absolute;
             left: 0;
             right: 0;
-            height: 10px;
+            height: 14px;
             background-color: #9900aa;
-            top: calc(100% - 75px);
+            top: 180px; /* Unified horizontal baseline anchor */
             z-index: 1;
             transition: all 0.2s;
         }
@@ -200,12 +201,13 @@
             position: relative;
             z-index: 2;
             box-sizing: border-box;
+            height: 100%;
         }
 
         .station-label-wrapper {
             position: absolute;
-            bottom: 95px;
-            height: 120px;
+            top: 20px;
+            height: 135px;
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -226,7 +228,9 @@
             align-items: center;
             justify-content: center;
             position: absolute;
-            top: calc(100% - 95px);
+            top: 187px; /* Center-aligned perfectly with the 14px track line */
+            transform: translateY(-50%);
+            z-index: 3;
         }
 
         /* Base Caplet Engine Styles */
@@ -250,34 +254,36 @@
 
         .interchanges-wrapper {
             position: absolute;
-            top: calc(100% - 38px);
+            top: 230px; /* Anchored safely below the main track line */
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            z-index: 2;
         }
 
         .direction-arrow-box {
             position: absolute;
-            top: calc(100% - -12px);
-            width: 24px;
-            height: 24px;
+            top: 320px; /* Adjusted to sit comfortably at the lowest layout track tier */
+            width: 26px;
+            height: 26px;
             background-color: #000000;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 4;
         }
 
         .direction-arrow-box::before {
             content: '➔';
             color: #ffffff;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
         }
 
         /* Bottom Color Identification Ribbon */
         .bottom-identity-band {
-            height: 70px;
+            height: 75px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -584,8 +590,6 @@
             let globalFadingActive = false;
 
             stationsState.forEach((station, idx) => {
-                // If previous element triggered fadeSplit, then current and onward tracks are faded.
-                // Or according to instructions: "the line fades before the station" 
                 if (station.fadeSplit) {
                     globalFadingActive = true;
                 }
@@ -595,7 +599,6 @@
                 col.style.width = `${horizontalStepDistance}px`;
                 col.style.opacity = globalFadingActive ? '0.35' : '1';
                 
-                // Keep the target split configuration item sharp or let it fade out perfectly as defined
                 if (station.fadeSplit) col.style.opacity = '1'; 
 
                 // --- 1. Typography Handling System ---
