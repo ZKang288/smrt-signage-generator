@@ -731,6 +731,7 @@
                 nodeContainer.style.top = Y + 'px';
                 
                 const mainCaplet = buildCapletStyleElement(activeLineColor, getContrastColor(activeLineColor), Fs, H, P, Vr, Hr, false, isFaded);
+                mainCaplet.inner.innerText = station.code.toUpperCase(); // Injected Main Track Text Code
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
@@ -740,7 +741,6 @@
                     const icWrapper = document.createElement('div');
                     icWrapper.className = 'interchanges-wrapper';
                     icWrapper.style.top = `${Y + (actualCapletHeight / 2) + G}px`;
-                    icWrapper.style.opacity = isFaded ? '0.35' : '1';
                     
                     if (interchangeLayout.value === 'stacked') {
                         icWrapper.style.flexDirection = 'column';
@@ -756,7 +756,8 @@
                         icTokensCount++;
                         const icBgColor = getAutoColor(token);
                         
-                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true, false);
+                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true, isFaded);
+                        icCaplet.inner.innerText = token.trim().toUpperCase(); // Injected Interchange Text Code
                         icWrapper.appendChild(icCaplet.wrapper);
                     });
                     col.appendChild(icWrapper);
