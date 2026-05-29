@@ -57,7 +57,7 @@
             margin-bottom: 25px;
         }
 
-        @media (max-width: 992px) {
+        @media (max-width: 5000px) {
             .editor-regions { grid-template-columns: 1fr; }
         }
 
@@ -163,17 +163,22 @@
             display: flex;
             align-items: flex-start;
             position: relative;
-            height: 520px; 
+            height: 480px; 
             padding: 0 50px;
             flex-grow: 1;
         }
 
-        /* Dynamic Segment-Based Track Line */
-        .track-segment-line {
+        /* Segmented Track Underlay Container */
+        .track-line-underlay {
             position: absolute;
-            height: 14px;
+            left: 0;
+            right: 0;
             z-index: 1;
             transition: all 0.1s;
+        }
+
+        .track-segment {
+            transition: opacity 0.2s, background-color 0.2s;
             transform: translateY(-50%);
         }
 
@@ -288,7 +293,7 @@
     </nav>
 
     <h1>MRT Horizontal Route Map Generator</h1>
-    <p class="subtitle">Supports precision name layouts, adaptive caplet scales, and selective route fading</p>
+    <p class="subtitle">Supports precision name layouts, adaptive track snapping, and scaling tools</p>
 
     <div class="container">
         <div class="editor-regions">
@@ -325,6 +330,10 @@
                     <input type="range" id="interchangeGap" min="2" max="30" value="6">
                 </div>
                 <div class="control-group">
+                    <label for="icScale">Interchange Caplet Scale (50% - 100%): <span id="icScaleVal">85%</span></label>
+                    <input type="range" id="icScale" min="0.5" max="1.0" value="0.85" step="0.05">
+                </div>
+                <div class="control-group">
                     <label for="labelOffset">Station Label Clearance Offset: <span id="labelOffsetVal">20px</span></label>
                     <input type="range" id="labelOffset" min="0" max="60" value="20">
                 </div>
@@ -347,8 +356,8 @@
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="fsStationName">Station Label Font (12px - 60px): <span id="fsStationNameVal">30px</span></label>
-                        <input type="range" id="fsStationName" min="12" max="60" value="30">
+                        <label for="fsStationName">Station Label Font (12px - 60px): <span id="fsStationNameVal">22px</span></label>
+                        <input type="range" id="fsStationName" min="12" max="60" value="22">
                     </div>
                     <div class="control-group">
                         <label for="fsCapletCode">Caplet Text Font: <span id="fsCapletCodeVal">14px</span></label>
@@ -363,10 +372,6 @@
                 </div>
 
                 <div class="section-title" style="margin-top:20px;">Caplet Core Geometry Formula</div>
-                <div class="control-group">
-                    <label for="icScale">Interchange Caplet Scale (50% - 100%): <span id="icScaleVal">85%</span></label>
-                    <input type="range" id="icScale" min="50" max="100" value="85">
-                </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
                         <label for="capP">Horiz. Padding: <span id="capPVal">12px</span></label>
@@ -396,6 +401,7 @@
     <div class="map-viewport">
         <div id="line-map-container">
             <div class="route-visual-area" id="routeVisualArea">
+                <div class="track-line-underlay" id="trackLineUnderlay"></div>
                 </div>
             <div class="bottom-identity-band" id="bottomIdentityBand">
                 <div id="bandCapletWrapper"></div>
@@ -438,13 +444,14 @@
         
         const trackLineY = document.getElementById('trackLineY');
         const interchangeGap = document.getElementById('interchangeGap');
+        const icScale = document.getElementById('icScale');
+        const icScaleVal = document.getElementById('icScaleVal');
         const labelOffset = document.getElementById('labelOffset');
         
         const fsStationName = document.getElementById('fsStationName');
         const fsCapletCode = document.getElementById('fsCapletCode');
         const fsBandName = document.getElementById('fsBandName');
         
-        const icScale = document.getElementById('icScale');
         const capP = document.getElementById('capP');
         const capH = document.getElementById('capH');
         const capVr = document.getElementById('capVr');
@@ -453,6 +460,7 @@
         const stationManagerContainer = document.getElementById('stationManagerContainer');
         const addStationBtn = document.getElementById('addStationBtn');
         const routeVisualArea = document.getElementById('routeVisualArea');
+        const trackLineUnderlay = document.getElementById('trackLineUnderlay');
         const bottomIdentityBand = document.getElementById('bottomIdentityBand');
         const bandCapletWrapper = document.getElementById('bandCapletWrapper');
         const bandLineNameText = document.getElementById('bandLineNameText');
@@ -486,8 +494,8 @@
             return '#ffffff';
         }
 
-        // Track Caplet Builder Element
-        function buildCapletStyleElement(bg, textHex, fs, h, p, vr, hr, isInterchange = false, scaleFactor = 0.85) {
+        // Track Caplet Generation Factory
+        function buildCapletStyleElement(bg, textHex, fs, h, p, vr, hr, isInterchange = false) {
             const wrapper = document.createElement('div');
             wrapper.className = 'outer-capsule';
             wrapper.style.padding = '2px';
@@ -502,13 +510,11 @@
             inner.className = 'inner-capsule';
             
             let finalH = h;
-            let finalFs = fs;
             if (isInterchange) {
-                // Uniformly compute and lock dimension scales across all interchange modes
-                finalH = h * scaleFactor;
-                finalFs = fs * scaleFactor;
-                if (finalFs < 10) finalFs = 10;
-                wrapper.style.width = `${finalH * 1.75}px`; 
+                // Apply dynamic layout scale values based on control slider
+                const currentScale = parseFloat(icScale.value);
+                finalH = h * currentScale; 
+                wrapper.style.width = `${finalH * 1.6}px`; 
             } else {
                 inner.style.paddingLeft = `${p}px`;
                 inner.style.paddingRight = `${p}px`;
@@ -519,7 +525,7 @@
             inner.style.width = isInterchange ? '100%' : 'auto';
             inner.style.backgroundColor = bg;
             inner.style.color = textHex;
-            inner.style.fontSize = `${finalFs}px`;
+            inner.style.fontSize = `${isInterchange ? fs * parseFloat(icScale.value) : fs}px`;
             inner.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
             inner.style.fontWeight = '700';
             inner.style.borderRadius = `${hr}px / ${vr}px`;
@@ -610,16 +616,16 @@
             const Y = parseInt(trackLineY.value);
             const G = parseInt(interchangeGap.value);
             const O = parseInt(labelOffset.value);
-            const scaleFactor = parseInt(icScale.value) / 100;
+            const currentScale = parseFloat(icScale.value);
             
-            bottomIdentityBand.style.backgroundColor = activeLineColor;
+            trackLineUnderlay.style.top = Y + 'px';
+            trackLineUnderlay.innerHTML = ''; // Reset segment registry
 
             const selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value) || {name: "Custom Route Line", prefix: "CUST"};
             bandLineNameText.innerText = selectedLineObj.name.replace(/\s\([^)]*\)$/, ""); 
             bandLineNameText.style.fontSize = fsBandName.value + 'px';
 
-            // Wipe clean historical elements securely
-            const dynamicNodes = routeVisualArea.querySelectorAll('.station-column, .track-segment-line');
+            const dynamicNodes = routeVisualArea.querySelectorAll('.station-column');
             dynamicNodes.forEach(node => node.remove());
 
             // Render Banner Caplet
@@ -632,34 +638,32 @@
             
             const splitIdx = stationsState.findIndex(s => s.fadeSplit);
 
-            // --- Modern Segmented Track Render Loop ---
-            // Breaks down single underlay track line to implement precise "fading before station" alignment
+            // --- Segmented Track Drawing Engine ---
+            // Breaks down track line into individual fragments to allow fading before the target node
             for (let i = 0; i < nodeCount - 1; i++) {
                 const seg = document.createElement('div');
-                seg.className = 'track-segment-line';
+                seg.className = 'track-segment';
+                seg.style.position = 'absolute';
+                seg.style.top = '0px'; 
+                seg.style.left = (50 + (i * horizontalStepDistance) + (horizontalStepDistance / 2)) + 'px';
+                seg.style.width = horizontalStepDistance + 'px';
                 seg.style.height = '14px';
                 seg.style.backgroundColor = activeLineColor;
-                seg.style.top = Y + 'px';
+                seg.style.zIndex = '1';
                 
-                const segLeft = 50 + (horizontalStepDistance / 2) + (i * horizontalStepDistance);
-                seg.style.left = `${segLeft}px`;
-                seg.style.width = `${horizontalStepDistance}px`;
+                // Track segments connecting historical nodes fade down smoothly
+                const isSegFaded = (splitIdx !== -1 && i < splitIdx);
+                seg.style.opacity = isSegFaded ? '0.35' : '1';
                 
-                // Track fades out completely *before* the active platform node split
-                const isSegmentFaded = (splitIdx !== -1 && i < splitIdx);
-                seg.style.opacity = isSegmentFaded ? '0.35' : '1';
-                
-                routeVisualArea.appendChild(seg);
+                trackLineUnderlay.appendChild(seg);
             }
 
             stationsState.forEach((station, idx) => {
-                // Stations and corresponding main codes *before* the split are faded out uniformly
+                // Historical nodes to the left of the split point drop structural opacity
                 const isFaded = (splitIdx !== -1 && idx < splitIdx);
 
                 const col = document.createElement('div');
                 col.className = 'station-column';
-                col.style.position = 'absolute';
-                col.style.left = `${50 + (idx * horizontalStepDistance)}px`;
                 col.style.width = `${horizontalStepDistance}px`;
                 col.style.opacity = isFaded ? '0.35' : '1';
 
@@ -670,9 +674,9 @@
                 const Vr = parseInt(capVr.value);
                 const Hr = parseInt(capHr.value);
                 const actualCapletHeight = H + 4;
-                const icHeight = (H * scaleFactor) + 4;
+                const icHeight = ((H * currentScale) + 4);
 
-                // --- 1. Typography Handling System ---
+                // --- 1. Typography Structural Matrix ---
                 const labelWrap = document.createElement('div');
                 labelWrap.className = 'station-label-wrapper';
                 labelWrap.style.top = `${Y - (actualCapletHeight / 2) - O}px`;
@@ -709,7 +713,7 @@
                 labelWrap.appendChild(labelTxt);
                 col.appendChild(labelWrap);
 
-                // --- 2. Track Node ---
+                // --- 2. Track Node (Main Caplet) ---
                 const nodeContainer = document.createElement('div');
                 nodeContainer.className = 'node-container';
                 nodeContainer.style.top = Y + 'px';
@@ -719,7 +723,7 @@
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // --- 3. Interchange Matrix Grid System (Adjustable Scales) ---
+                // --- 3. Interchange Matrix Grid System (Proportional Uniform Sizing) ---
                 let icTokensCount = 0;
                 if (station.interchanges.trim().length > 0) {
                     const icWrapper = document.createElement('div');
@@ -740,15 +744,14 @@
                         icTokensCount++;
                         const icBgColor = getAutoColor(token);
                         
-                        // scaleFactor applies the custom size reduction configuration dynamically
-                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true, scaleFactor);
+                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true);
                         icCaplet.inner.innerText = token.trim().toUpperCase();
                         icWrapper.appendChild(icCaplet.wrapper);
                     });
                     col.appendChild(icWrapper);
                 }
 
-                // --- 4. Render Active Direction Tracking Arrow ---
+                // --- 4. Render Active Direction Arrow ---
                 if (station.fadeSplit) {
                     const arrowBox = document.createElement('div');
                     arrowBox.className = 'direction-arrow-box';
@@ -777,8 +780,8 @@
             // Sync Value Indicators
             document.getElementById('trackLineYVal').innerText = Y + 'px';
             document.getElementById('interchangeGapVal').innerText = G + 'px';
+            document.getElementById('icScaleVal').innerText = Math.round(currentScale * 100) + '%';
             document.getElementById('labelOffsetVal').innerText = O + 'px';
-            document.getElementById('icScaleVal').innerText = Math.round(scaleFactor * 100) + '%';
             document.getElementById('fsStationNameVal').innerText = fsStationName.value + 'px';
             document.getElementById('fsCapletCodeVal').innerText = fsCapletCode.value + 'px';
             document.getElementById('fsBandNameVal').innerText = fsBandName.value + 'px';
@@ -793,7 +796,7 @@
             updateMapRenderer();
         });
 
-        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, labelOffset, icScale, fsStationName, fsCapletCode, fsBandName, capP, capH, capVr, capHr].forEach(ctrl => {
+        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, capP, capH, capVr, capHr].forEach(ctrl => {
             ctrl.addEventListener('input', updateMapRenderer);
             ctrl.addEventListener('change', updateMapRenderer);
         });
