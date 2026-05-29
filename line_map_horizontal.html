@@ -156,13 +156,14 @@
             position: relative;
             box-sizing: border-box;
             user-select: none;
+            height: auto;
         }
 
         .route-visual-area {
             display: flex;
             align-items: flex-start;
             position: relative;
-            height: 480px; 
+            min-height: 480px; 
             padding: 0 50px;
             flex-grow: 1;
         }
@@ -226,7 +227,7 @@
             justify-content: center;
             box-sizing: border-box;
             overflow: hidden;
-            background: #ffffff;
+            background: #ffffff; 
         }
 
         .inner-capsule {
@@ -269,14 +270,15 @@
 
         /* Bottom Color Identification Ribbon */
         .bottom-identity-band {
-            height: 75px;
+            height: 85px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 20px;
             box-sizing: border-box;
             width: 100%;
-            flex-shrink: 0;
+            flex-shrink: 0; 
+            z-index: 10;
         }
 
         .band-text {
@@ -671,6 +673,9 @@
                 trackLineUnderlay.appendChild(seg);
             }
 
+            // Track blueprint height parameters to dynamically push the banner down safely
+            let maxStructuralHeightCalculated = 480;
+
             stationsState.forEach((station, idx) => {
                 const isFaded = (splitIdx !== -1 && idx < splitIdx);
 
@@ -731,7 +736,7 @@
                 nodeContainer.style.top = Y + 'px';
                 
                 const mainCaplet = buildCapletStyleElement(activeLineColor, getContrastColor(activeLineColor), Fs, H, P, Vr, Hr, false, isFaded);
-                mainCaplet.inner.innerText = station.code.toUpperCase(); // Injected Main Track Text Code
+                mainCaplet.inner.innerText = station.code.toUpperCase();
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
@@ -757,13 +762,14 @@
                         const icBgColor = getAutoColor(token);
                         
                         const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true, isFaded);
-                        icCaplet.inner.innerText = token.trim().toUpperCase(); // Injected Interchange Text Code
+                        icCaplet.inner.innerText = token.trim().toUpperCase();
                         icWrapper.appendChild(icCaplet.wrapper);
                     });
                     col.appendChild(icWrapper);
                 }
 
                 // --- 4. Render Active Split Point Direction Arrow ---
+                let totalStackNodeBottomPosition = Y + (actualCapletHeight / 2);
                 if (station.fadeSplit) {
                     const arrowBox = document.createElement('div');
                     arrowBox.className = 'direction-arrow-box';
@@ -783,11 +789,26 @@
                     }
                     
                     arrowBox.style.top = arrowTop + 'px';
+                    totalStackNodeBottomPosition = arrowTop + 30;
                     col.appendChild(arrowBox);
+                } else if (icTokensCount > 0) {
+                    if (interchangeLayout.value === 'stacked') {
+                        totalStackNodeBottomPosition += (icTokensCount * icHeight) + ((icTokensCount - 1) * G) + 30;
+                    } else {
+                        totalStackNodeBottomPosition += icHeight + 30;
+                    }
+                }
+
+                // Track extreme coordinates reached
+                if (totalStackNodeBottomPosition > maxStructuralHeightCalculated) {
+                    maxStructuralHeightCalculated = totalStackNodeBottomPosition;
                 }
 
                 routeVisualArea.appendChild(col);
             });
+
+            // Dynamically apply computed height limits to canvas matrix wrapper
+            routeVisualArea.style.height = maxStructuralHeightCalculated + 'px';
 
             // Sync Value Indicators
             document.getElementById('trackLineYVal').innerText = Y + 'px';
