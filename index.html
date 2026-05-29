@@ -575,52 +575,49 @@
             // Sweep direction: left cap arcs counter-clockwise (sweep=0), right cap clockwise (sweep=1).
 
             function makeEndCap(side) {
-                const rx = Hr;   // horizontal ellipse radius
-                const ry = Vr;   // vertical ellipse radius
-                const h = capletH; // SVG height = rectangle height H
+                // Geometry: ellipse Hr x Vr, cropped to rect height H.
+                // Two arcs via tip point to avoid SVG degenerate-arc (same-x start/end).
+                const rx = Hr;
+                const ry = Vr;
+                const h = capletH;
+                const wing = xCorner; // protrusion width at top/bottom corners
 
-                // How far the cap wing protrudes beyond the rect edge (at top/bottom corners)
-                // xCorner already computed above from ellipse intersection math
-                const wing = xCorner; // px the arc extends outward from rect
+                const svgW = Math.max(wing, 1);
 
-                // SVG canvas: wing + border padding wide, h tall
-                const pad = borderW;
-                const svgW = wing + pad;
+                // Join points: where cap meets rect top/bottom border
+                const jx = side === 'left' ? svgW : 0;
 
-                // In SVG coords, ellipse centre x:
-                //   LEFT cap:  centre is at the RIGHT edge of SVG (x = svgW - pad/2 = wing + pad/2... 
-                //              but we want the flat join face at x = pad, so centre at x = svgW)
-                //   RIGHT cap: centre is at LEFT edge (x = 0)
-                const ecx = side === 'left' ? svgW : 0;
-                const ecy = h / 2;
+                // Tip: leftmost or rightmost point of ellipse at mid-height
+                const tipX = side === 'left' ? 0 : svgW;
+                const tipY = h / 2;
 
-                // Arc start/end points in SVG coords:
-                //   At top:    x = ecx ± wing,  y = 0        (the corner where arc meets rect top)
-                //   At bottom: x = ecx ± wing,  y = h
-                const innerX = side === 'left' ? svgW - wing : wing; // x of the flat join face
-                const outerX_top    = innerX; // same x — arc starts here at y=0
-                const outerX_bottom = innerX; // and ends here at y=h
-                // sweep: left cap arcs CCW (sweep-flag=0), right cap CW (sweep-flag=1)
+                // sweep=0: CCW (left cap curves left), sweep=1: CW (right cap curves right)
                 const sweep = side === 'left' ? 0 : 1;
 
+                // Filled path: join-top -> arc to tip -> arc to join-bottom -> close
+                const fillPath = [
+                    `M ${jx} 0`,
+                    `A ${rx} ${ry} 0 0 ${sweep} ${tipX} ${tipY}`,
+                    `A ${rx} ${ry} 0 0 ${sweep} ${jx} ${h}`,
+                    `Z`
+                ].join(' ');
+
+                // Stroke path: inset by borderW/2, same two-arc structure
+                const s = borderW / 2;
+                const srx = Math.max(rx - s, 1);
+                const sry = Math.max(ry - s, 1);
+                // Inset join x: where inset ellipse crosses y = s (top) and y = h-s (bottom)
+                const ty = h / 2 - s;
+                const insetWing = (ty >= 0) ? srx * (1 - Math.sqrt(Math.max(0, 1 - (ty / sry) ** 2))) : srx;
+                const sjx   = side === 'left' ? svgW - insetWing : insetWing;
+                const stipX = side === 'left' ? s : svgW - s;
+                const strokePath = [
+                    `M ${sjx} ${s}`,
+                    `A ${srx} ${sry} 0 0 ${sweep} ${stipX} ${h / 2}`,
+                    `A ${srx} ${sry} 0 0 ${sweep} ${sjx} ${h - s}`
+                ].join(' ');
+
                 const adjLine = side === 'left' ? linesState[0] : linesState[linesState.length - 1];
-                const fillColor = adjLine.color;
-
-                // Build filled path: arc from top-inner to bottom-inner, closed with vertical line
-                // For LEFT: M (innerX, 0)  A rx ry 0 0 0 (innerX, h)  L (innerX, h) ... close
-                // The arc goes around the outside. We trace:
-                //   top corner → around the ellipse tip → bottom corner → straight back
-                const fillPath = `M ${innerX} 0 A ${rx} ${ry} 0 0 ${sweep} ${innerX} ${h} Z`;
-
-                // Border stroke path: same arc, inset by borderW/2
-                // Inset rx and ry slightly, keep same centre
-                const srx = rx - pad / 2;
-                const sry = ry - pad / 2;
-                // Recompute inset wing at y = ±H/2 from ellipse centre
-                const t = (h / 2) / sry; // normalised y for inset ellipse
-                const insetWing = t <= 1 ? srx * (1 - Math.sqrt(1 - t * t)) : srx;
-                const sinnerX = side === 'left' ? svgW - insetWing : insetWing;
-                const strokePath = `M ${sinnerX} ${pad/2} A ${srx} ${sry} 0 0 ${sweep} ${sinnerX} ${h - pad/2}`;
 
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('width', svgW);
@@ -628,19 +625,19 @@
                 svg.style.display = 'block';
                 svg.style.flexShrink = '0';
                 svg.style.overflow = 'visible';
+                svg.style.marginLeft  = side === 'right' ? '-1px' : '0';
+                svg.style.marginRight = side === 'left'  ? '-1px' : '0';
 
-                // Filled shape
                 const fillEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 fillEl.setAttribute('d', fillPath);
-                fillEl.setAttribute('fill', fillColor);
+                fillEl.setAttribute('fill', adjLine.color);
                 svg.appendChild(fillEl);
 
-                // White border arc (open path, no fill)
                 const strokeEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 strokeEl.setAttribute('d', strokePath);
                 strokeEl.setAttribute('fill', 'none');
                 strokeEl.setAttribute('stroke', '#ffffff');
-                strokeEl.setAttribute('stroke-width', pad);
+                strokeEl.setAttribute('stroke-width', borderW);
                 strokeEl.setAttribute('stroke-linecap', 'butt');
                 svg.appendChild(strokeEl);
 
