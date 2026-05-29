@@ -222,9 +222,10 @@
                 <div class="control-group">
                     <label for="panelTheme">Panel Aesthetic Theme</label>
                     <select id="panelTheme">
-                        <option value="dark">Dark Panel (White Typography)</option>
-                        <option value="silver">Silver / Grey Panel (Black Typography)</option>
+                        <option value="dark">Dark Panel (White Typography & Outline)</option>
+                        <option value="silver">Silver / Grey Panel (Black Typography & Outline)</option>
                     </select>
+                    <input type="color" id="panelColorPicker" class="color-picker-box" value="#cbd5e1" style="display: none;">
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
                     <input type="checkbox" id="autoWidth" style="width: auto; cursor: pointer;">
@@ -308,6 +309,7 @@
         const lineSelect = document.getElementById('lineSelect');
         const lineColorPicker = document.getElementById('lineColorPicker');
         const panelTheme = document.getElementById('panelTheme');
+        const panelColorPicker = document.getElementById('panelColorPicker');
         const stationCodeInput = document.getElementById('stationCode');
         const stationEnInput = document.getElementById('stationEn');
         const stationZhInput = document.getElementById('stationZh');
@@ -363,8 +365,9 @@
             // Theme Style Engine Application
             const isSilver = (panelTheme.value === 'silver');
             const textColor = isSilver ? '#000000' : '#ffffff';
+            const outlineColor = isSilver ? '#000000' : '#ffffff'; // Dynamic Black Outline for Silver Panels
             
-            mrtSignage.style.backgroundColor = isSilver ? '#cbd5e1' : '#141517';
+            mrtSignage.style.backgroundColor = isSilver ? panelColorPicker.value : '#141517';
             signageEn.style.color = textColor;
             signageZh.style.color = textColor;
             signageTa.style.color = textColor;
@@ -410,9 +413,9 @@
             const borderW = 4;
             const radius = `${Hr}px / ${Vr}px`;
 
-            // Style Outer Capsule Frame (Maintain white crisp boundary ring or adjust if silver blends)
+            // Style Outer Capsule Frame with Dynamic Outline Theme
             outerCapsule.style.padding = borderW + 'px';
-            outerCapsule.style.background = isSilver ? '#ffffff' : '#ffffff'; 
+            outerCapsule.style.background = outlineColor; 
             outerCapsule.style.borderRadius = radius;
             outerCapsule.style.overflow = 'hidden';
             outerCapsule.style.boxSizing = 'border-box';
@@ -451,8 +454,19 @@
             updateSignage();
         });
 
+        // Toggle Theme Background Color Picker Display Logic
+        panelTheme.addEventListener('change', (e) => {
+            if (e.target.value === 'silver') {
+                panelColorPicker.style.display = 'block';
+            } else {
+                panelColorPicker.style.display = 'none';
+            }
+            updateSignage();
+        });
+
         // Configuration Event Bindings
         panelTheme.addEventListener('change', updateSignage);
+        panelColorPicker.addEventListener('input', updateSignage);
         lineColorPicker.addEventListener('input', updateSignage);
         stationEnInput.addEventListener('input', updateSignage);
         stationZhInput.addEventListener('input', updateSignage);
