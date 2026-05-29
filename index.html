@@ -519,144 +519,58 @@
             heightVal.innerText = H + 'px';
             roundnessVal.innerText = `${Hr}px / ${Vr}px`;
 
-            // The caplet is rendered as: [left end-cap SVG] [colored segments] [right end-cap SVG]
-            // This produces the authentic LTA pill shape with full rounded ends visible outside the colors.
+            // ===============================
+            // CLEAN CAPSULE RENDERING ENGINE
+            // ===============================
+
             const borderW = 4;
-            const capletH = H; // outer height including border
-            const innerH = H - borderW * 2; // colored area height
-            // End-cap SVG: a half-ellipse (Hr wide, Vr tall) centered vertically, with white fill
-            // The end-cap sits outside the segments and provides the rounded pill termination.
+            const H = parseInt(capsuleHeightInput.value);
+            const Vr = parseInt(capsuleRoundnessInput.value);
 
-            outerCapsule.style.height = capletH + 'px';
+            // True MRT-style elongated capsule
+            const radius = Vr + 'px';
+
+            // Outer white outline
             outerCapsule.style.display = 'inline-flex';
-            outerCapsule.style.alignItems = 'center';
-            outerCapsule.style.overflow = 'visible';
+            outerCapsule.style.alignItems = 'stretch';
+            outerCapsule.style.padding = borderW + 'px';
+            outerCapsule.style.background = '#ffffff';
+            outerCapsule.style.borderRadius = radius;
+            outerCapsule.style.overflow = 'hidden';
+            outerCapsule.style.height = H + 'px';
+            outerCapsule.style.boxSizing = 'border-box';
             outerCapsule.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
-
-            // Clear and construct layout segments dynamically
+            
+            // Inner coloured segments container
             innerCapsule.innerHTML = '';
-            innerCapsule.style.height = capletH + 'px';
-            innerCapsule.style.boxSizing = 'border-box';
-            innerCapsule.style.marginTop = '';
-            innerCapsule.style.borderRadius = '';
-            innerCapsule.style.border = 'none';
-            innerCapsule.style.borderTop = `${borderW}px solid #ffffff`;
-            innerCapsule.style.borderBottom = `${borderW}px solid #ffffff`;
+            innerCapsule.style.display = 'inline-flex';
+            innerCapsule.style.height = '100%';
+            innerCapsule.style.borderRadius = radius;
             innerCapsule.style.overflow = 'hidden';
-            innerCapsule.style.outline = 'none';
-
+            innerCapsule.style.boxSizing = 'border-box';
+            
+            // Build line segments
             linesState.forEach((line, index) => {
                 const segment = document.createElement('div');
+            
                 segment.className = 'code-segment';
+                segment.innerText = line.code.toUpperCase();
+            
                 segment.style.backgroundColor = line.color;
                 segment.style.color = getContrastColor(line.color);
-                segment.innerText = line.code.toUpperCase();
-                segment.style.height = '100%';
+            
                 segment.style.paddingLeft = '18px';
                 segment.style.paddingRight = '18px';
-                // Divider between segments
-                if (index > 0) segment.style.borderLeft = `${borderW}px solid #ffffff`;
+            
+                segment.style.height = '100%';
+            
+                // White divider between lines
+                if (index > 0) {
+                    segment.style.borderLeft = `${borderW}px solid #ffffff`;
+                }
+            
                 innerCapsule.appendChild(segment);
             });
-
-            // Build end-cap SVGs using correct geometry from ZK's sketch:
-            // The shape is a full ellipse (Hr × Vr) with the top arc (B) and bottom arc (C) removed,
-            // keeping only the vertical slice that aligns with the rectangle height H.
-            //
-            // Ellipse centre is at (cx, Vr) in ellipse-space.
-            // The rectangle top/bottom are at y = Vr - H/2 and y = Vr + H/2 in ellipse-space.
-            // At those y-values, the ellipse x-offset from centre = xCorner (pre-calculated).
-            // So the cap wing extends xCorner px beyond the rectangle edge.
-            //
-            // SVG path for LEFT cap (ellipse centre at right edge of SVG):
-            //   Start at (xCorner, 0) [top-right of cap, meeting rect]
-            //   Arc leftward around to (xCorner, H) [bottom-right]
-            //   Close with a vertical line back up.
-            // Sweep direction: left cap arcs counter-clockwise (sweep=0), right cap clockwise (sweep=1).
-
-            function makeEndCap(side) {
-                // Geometry: ellipse Hr x Vr, cropped to rect height H.
-                // Two arcs via tip point to avoid SVG degenerate-arc (same-x start/end).
-                const rx = Hr;
-                const ry = Vr;
-                const h = capletH;
-                const wing = xCorner; // protrusion width at top/bottom corners
-
-                const svgW = Math.max(wing, 1);
-
-                // Join points: where cap meets rect top/bottom border
-                const jx = side === 'left' ? svgW : 0;
-
-                // Tip: leftmost or rightmost point of ellipse at mid-height
-                const tipX = side === 'left' ? 0 : svgW;
-                const tipY = h / 2;
-
-                // sweep=0: CCW (left cap curves left), sweep=1: CW (right cap curves right)
-                const sweep = side === 'left' ? 0 : 1;
-
-                // Filled path: join-top -> arc to tip -> arc to join-bottom -> close
-                const fillPath = [
-                    `M ${jx} 0`,
-                    `A ${rx} ${ry} 0 0 ${sweep} ${tipX} ${tipY}`,
-                    `A ${rx} ${ry} 0 0 ${sweep} ${jx} ${h}`,
-                    `Z`
-                ].join(' ');
-
-                // Stroke path: inset by borderW/2, same two-arc structure
-                const s = borderW / 2;
-                const srx = Math.max(rx - s, 1);
-                const sry = Math.max(ry - s, 1);
-                // Inset join x: where inset ellipse crosses y = s (top) and y = h-s (bottom)
-                const ty = h / 2 - s;
-                const insetWing = (ty >= 0) ? srx * (1 - Math.sqrt(Math.max(0, 1 - (ty / sry) ** 2))) : srx;
-                const sjx   = side === 'left' ? svgW - insetWing : insetWing;
-                const stipX = side === 'left' ? s : svgW - s;
-                const strokePath = [
-                    `M ${sjx} ${s}`,
-                    `A ${srx} ${sry} 0 0 ${sweep} ${stipX} ${h / 2}`,
-                    `A ${srx} ${sry} 0 0 ${sweep} ${sjx} ${h - s}`
-                ].join(' ');
-
-                const adjLine = side === 'left' ? linesState[0] : linesState[linesState.length - 1];
-
-                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svg.setAttribute('width', svgW);
-                svg.setAttribute('height', h);
-                svg.style.display = 'block';
-                svg.style.flexShrink = '0';
-                svg.style.overflow = 'visible';
-                svg.style.marginLeft  = side === 'right' ? '-1px' : '0';
-                svg.style.marginRight = side === 'left'  ? '-1px' : '0';
-
-                const fillEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                fillEl.setAttribute('d', fillPath);
-                fillEl.setAttribute('fill', adjLine.color);
-                svg.appendChild(fillEl);
-
-                const strokeEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                strokeEl.setAttribute('d', strokePath);
-                strokeEl.setAttribute('fill', 'none');
-                strokeEl.setAttribute('stroke', '#ffffff');
-                strokeEl.setAttribute('stroke-width', borderW);
-                strokeEl.setAttribute('stroke-linecap', 'butt');
-                svg.appendChild(strokeEl);
-
-                return svg;
-            }
-
-            // Remove old end-caps if present
-            const oldLeft = outerCapsule.querySelector('.end-cap-left');
-            const oldRight = outerCapsule.querySelector('.end-cap-right');
-            if (oldLeft) oldLeft.remove();
-            if (oldRight) oldRight.remove();
-
-            const leftCap = makeEndCap('left');
-            leftCap.classList.add('end-cap-left');
-            const rightCap = makeEndCap('right');
-            rightCap.classList.add('end-cap-right');
-
-            outerCapsule.insertBefore(leftCap, innerCapsule);
-            outerCapsule.appendChild(rightCap);
         }
 
         function renderAll() {
