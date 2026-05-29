@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MRT Route Horizontal Line Map Generator</title>
+    <title>SG Horizontal Line Map Generator Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        /* --- Font Setup --- */
+        /* --- Font & System Setup --- */
         @font-face {
             font-family: 'MRT-Identity';
-            src: url('LTA_Identity-Medium.ttf') format('truetype');
+            src: url('LTA_Identity-Medium.ttf') format('truetype'),
+                 url('OceanSans.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
             font-display: swap;
@@ -29,19 +30,18 @@
         h1 {
             font-size: 28px;
             font-weight: 700;
-            margin-bottom: 5px;
+            margin: 0 0 5px 0;
             color: #0f172a;
         }
 
         p.subtitle {
-            margin: 0;
-            margin-bottom: 30px;
+            margin: 0 0 30px 0;
             color: #64748b;
         }
 
         .container {
             width: 100%;
-            max-width: 1150px;
+            max-width: 1200px;
             background: white;
             padding: 30px;
             border-radius: 16px;
@@ -50,9 +50,10 @@
             box-sizing: border-box;
         }
 
+        /* --- Workspace Grid Layout --- */
         .editor-regions {
             display: grid;
-            grid-template-columns: 1.2fr 1.8fr;
+            grid-template-columns: 1fr 1fr;
             gap: 30px;
             margin-bottom: 25px;
         }
@@ -83,14 +84,15 @@
             margin-bottom: 6px;
         }
 
-        .control-group input, .control-group select {
+        .control-group input, .control-group select, .control-group textarea {
             padding: 10px 14px;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 15px;
             background-color: #fff;
             color: #1e293b;
             outline: none;
+            transition: border-color 0.2s;
         }
 
         .control-group input[type="range"] {
@@ -98,63 +100,15 @@
             cursor: pointer;
         }
 
-        /* --- Station List Table Setup --- */
-        .station-table-container {
-            max-height: 420px;
-            overflow-y: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            margin-bottom: 15px;
+        .control-row-nested {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f8fafc;
-            padding: 10px;
-            font-weight: 600;
-            color: #475569;
-            border-bottom: 2px solid #e2e8f0;
-            position: sticky;
-            top: 0;
-        }
-
-        td {
-            padding: 8px 10px;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-        }
-
-        .station-input {
-            width: 100%;
-            padding: 6px 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            box-sizing: border-box;
-        }
-
-        .btn-action {
-            padding: 8px 12px;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            border: none;
-            transition: background 0.2s;
-        }
-
-        .btn-add { background-color: #004c54; color: white; width: 100%; margin-top: 5px;}
-        .btn-add:hover { background-color: #00333a; }
-        .btn-delete { background-color: #fee2e2; color: #ef4444; }
-        .btn-delete:hover { background-color: #fca5a5; }
-
+        /* --- Buttons --- */
         .btn-download {
-            background-color: #1e293b;
+            background-color: #004c54;
             color: white;
             width: 100%;
             padding: 14px;
@@ -163,590 +117,694 @@
             border-radius: 8px;
             border: none;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 76, 84, 0.2);
+            transition: background 0.2s;
         }
-        .btn-download:hover { background-color: #0f172a; }
 
-        /* --- Map Rendering Canvas Shell --- */
-        .canvas-scroll-container {
-            overflow: auto;
+        .btn-download:hover { background-color: #00333a; }
+
+        /* --- Live Canvas Viewport Window --- */
+        .signage-wrapper {
+            overflow-x: auto;
             width: 100%;
-            max-width: 100%;
             padding: 20px 0;
-            background-color: #e2e8f0;
-            border-radius: 12px;
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.06);
             display: flex;
             justify-content: flex-start;
+            background: #e2e8f0;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        #mrt-map {
-            background-color: #e8e9eb; /* Neutral architectural layout grey background */
-            position: relative;
-            box-sizing: border-box;
-            font-family: 'MRT-Identity', 'Arial', sans-serif;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        /* --- Orientation Style Layout Structures --- */
-        #mrt-map.horizontal {
+        #line-map-signage {
+            background-color: #f3f3f3;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            height: 380px;
-        }
-
-        #mrt-map.vertical-left, #mrt-map.vertical-right {
-            display: flex;
-            width: 480px !important;
-        }
-        #mrt-map.vertical-left { flex-direction: row; }
-        #mrt-map.vertical-right { flex-direction: row-reverse; }
-
-        /* Color Bands */
-        .system-color-band {
-            display: flex;
-            align-items: center;
+            padding: 60px 80px 0px 80px;
             box-sizing: border-box;
-            background-color: #9900aa; /* Dynamic assignment fallback */
-            color: white;
-            font-family: 'MRT-Identity', sans-serif;
-            font-weight: bold;
-        }
-
-        .horizontal .system-color-band {
-            width: 100%;
-            height: 45px;
-            padding: 0 30px;
-            gap: 15px;
-            font-size: 20px;
-        }
-
-        .vertical-left .system-color-band, .vertical-right .system-color-band {
-            width: 45px;
-            height: 100%;
-            writing-mode: vertical-lr;
-            transform: rotate(180deg);
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            font-size: 20px;
-            padding: 30px 0;
-        }
-
-        .band-caplet {
-            background: white;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 900;
-            text-align: center;
-            writing-mode: horizontal-tb;
-        }
-
-        /* Tracks Container Framework */
-        .track-workspace {
+            user-select: none;
             position: relative;
-            flex-grow: 1;
-            box-sizing: border-box;
+            min-width: max-content;
         }
 
-        .horizontal .track-workspace { width: 100%; height: calc(100% - 45px); }
-        .vertical-left .track-workspace, .vertical-right .track-workspace { height: 100%; width: calc(100% - 45px); }
+        /* --- Main Map Track Construction --- */
+        .map-track-container {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 80px;
+            padding: 0 40px;
+        }
 
-        /* Dynamic SVG Track Lines */
-        .track-svg-layer {
+        /* Continuous underlying transit track rail line */
+        .base-route-line {
             position: absolute;
-            top: 0;
+            top: 16px; /* Dynamically modified alignment offset */
             left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+            right: 0;
+            height: 12px;
+            background-color: #9900aa;
             z-index: 1;
+            transition: background-color 0.2s;
         }
 
-        /* Stations Nodes Flex Box Distributor */
-        .nodes-delivery-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            z-index: 2;
-            box-sizing: border-box;
-        }
-
-        .horizontal .nodes-delivery-layer {
-            flex-direction: row;
-            justify-content: space-between;
-            padding: 0 60px;
-            align-items: center; /* Centered around central track projection line */
-        }
-
-        .vertical-left .nodes-delivery-layer, .vertical-right .nodes-delivery-layer {
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 60px 0;
-            align-items: center;
-        }
-
-        /* Individual Station Junction Element Layouts */
-        .station-junction {
+        /* Station Node Wrapper Column */
+        .station-node {
             position: relative;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
+            z-index: 2;
+            text-align: center;
         }
 
-        .horizontal .station-junction { flex-direction: column; width: 0; height: 100%; }
-        .vertical-left .station-junction { flex-direction: row; height: 0; width: 100%; justify-content: flex-start; padding-left: 100px; }
-        .vertical-right .station-junction { flex-direction: row-reverse; height: 0; width: 100%; justify-content: flex-start; padding-right: 100px; }
-
-        /* Core Node Vector Point */
-        .node-dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background-color: white;
-            border: 4px solid #9900aa;
-            z-index: 5;
-            box-sizing: border-box;
-            transition: all 0.2s;
-        }
-
-        .node-dot.active-node {
-            width: 22px;
-            height: 22px;
-            border-width: 6px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
-
-        /* Direction Indicator Arrows Style Rules */
-        .direction-arrow-circle {
-            position: absolute;
-            width: 22px;
-            height: 22px;
-            background-color: #ffffff;
-            border: 3px solid #141517;
-            border-radius: 50%;
+        /* Caplet Position Anchor Configuration */
+        .caplet-anchor-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
-            font-weight: 900;
-            color: #141517;
-            z-index: 6;
+            height: 44px; /* Default height matching baseline code configuration */
+            margin-bottom: 15px;
         }
-        .horizontal .direction-arrow-circle { top: calc(50% - 11px); margin-left: 55px; }
-        .vertical-left .direction-arrow-circle { left: calc(100px - 11px); margin-top: 40px; transform: rotate(90deg); }
-        .vertical-right .direction-arrow-circle { right: calc(100px - 11px); margin-top: 40px; transform: rotate(90deg); }
 
-        /* Station Typography Settings */
-        .station-label-text {
-            font-size: 15px;
+        .station-caplet-item {
+            font-family: 'MRT-Identity', 'Arial Black', sans-serif;
             font-weight: bold;
-            color: #1e293b;
-            position: absolute;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            background-color: #9900aa;
+            color: #ffffff;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
             white-space: nowrap;
         }
 
-        /* Text positioning variations based on orientation */
-        .horizontal .station-label-text {
-            transform: rotate(-45deg);
-            transform-origin: bottom left;
-            bottom: calc(50% + 22px);
-            left: 5px;
-        }
-        .vertical-left .station-label-text { left: 140px; }
-        .vertical-right .station-label-text { right: 140px; text-align: right; }
-
-        /* Interchange Caplets Layout structures */
-        .interchange-container {
-            display: flex;
-            position: absolute;
+        /* Stacked Alignment Layout Rules Override */
+        .layout-stacked .caplet-anchor-container {
+            flex-direction: column;
+            height: auto;
             gap: 4px;
-            z-index: 4;
+            margin-bottom: 10px;
         }
-        .horizontal .interchange-container { flex-direction: column; top: calc(50% + 20px); align-items: center; }
-        .vertical-left .interchange-container { flex-direction: row; left: calc(100px - 65px); align-items: center; justify-content: flex-end; width: 100px; }
-        .vertical-right .interchange-container { flex-direction: row-reverse; right: calc(100px - 65px); align-items: center; justify-content: flex-end; width: 100px; }
 
-        .mini-caplet {
-            padding: 2px 6px;
-            border-radius: 5px;
-            font-size: 11px;
-            font-weight: 800;
-            color: white;
-            min-width: 38px;
-            text-align: center;
+        /* --- Station Labels Text Transformations --- */
+        .station-label-container {
+            position: relative;
+            white-space: nowrap;
+            transform-origin: top center;
+        }
+
+        .text-orient-horizontal {
+            transform: none;
+            padding-top: 5px;
+        }
+
+        .text-orient-slant-right {
+            transform: rotate(45deg);
+            text-align: left;
+            transform-origin: left top;
+            margin-left: 20px;
+        }
+
+        .text-orient-slant-left {
+            transform: rotate(-45deg);
+            text-align: right;
+            transform-origin: right top;
+            margin-right: 20px;
+        }
+
+        .station-name-text {
+            font-family: 'MRT-Identity', 'Arial', sans-serif;
+            font-weight: 600;
+            color: #1c1917;
+            display: block;
+        }
+
+        /* --- Active Tracking State Signage Indicators --- */
+        .active-direction-marker {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: #000000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 5;
+        }
+
+        /* State Modifiers for Line-Fade Logic */
+        .faded-element {
+            opacity: 0.25 !important;
+            filter: grayscale(40%);
+        }
+
+        /* --- Long Base Color Identity Branding Band --- */
+        .bottom-branding-band {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             box-sizing: border-box;
-            border: 1px solid #fff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background-color: #9900aa;
+            margin-top: auto;
+            position: relative;
+            left: 0;
         }
 
-        /* Status Styling Triggers for Map Fading System */
-        .faded-element { opacity: 0.22 !important; }
-        .passed-text { color: #8e949e !important; font-weight: normal; }
-</style>
+        .band-content-centerpiece {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            color: #ffffff;
+        }
+
+        /* Distinctive LTA Signature Hollow Loop Line Branding Caplet */
+        .hollow-brand-caplet {
+            border: 4px solid #ffffff;
+            background-color: transparent !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            font-family: 'MRT-Identity', 'Arial Black', sans-serif;
+            font-weight: 900;
+        }
+
+        .full-line-name-label {
+            font-family: 'MRT-Identity', 'Arial', sans-serif;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+        }
+    </style>
 </head>
 <body>
 
-    <nav style="margin-bottom: 20px; display: flex; gap: 15px;">
-        <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Signage Generator</a>
-        <a href="map.html" style="color: #64748b; text-decoration: none;">🗺️ Platform Signage</a>
-        <a href="line_map_horizontal.html" style="font-weight: bold; color: #004c54; text-decoration: none;">🚇 Route Map Generator</a>
-    </nav>
+    <div class="container" style="max-width: 1200px; width:100%; background:none; box-shadow:none; padding:0; margin-bottom:10px;">
+        <nav style="display: flex; gap: 15px;">
+            <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Exit Signage Generator</a>
+            <a href="#" style="font-weight: bold; color: #004c54; text-decoration: none;">🗺️ Horizontal Line Map Generator</a>
+        </nav>
+    </div>
 
-    <h1>MRT Route Track Map Generator</h1>
-    <p class="subtitle">Generates accurate linearly organized maps featuring multi-directional configurations and system fading variables</p>
+    <h1>Horizontal Platform Track Map Signage Generator</h1>
+    <p class="subtitle">Supports dynamic text orientation configurations, interchange stacking, track fading filters, and custom dimensions</p>
 
     <div class="container">
         <div class="editor-regions">
             <div>
-                <div class="section-title">Global Map Settings</div>
-                <div class="control-group">
-                    <label for="lineSelect">Primary System Track Line</label>
-                    <select id="lineSelect"></select>
-                    <input type="color" id="lineColorPicker" class="color-picker-box" value="#9900aa" style="display: none; width:100%; height:40px; padding:0; border:1px solid #cbd5e1; border-radius:8px; margin-top:8px;">
+                <div class="section-title">System Line Identity Configuration</div>
+                <div class="control-row-nested">
+                    <div class="control-group">
+                        <label for="lineSelect">Active Route Preset</label>
+                        <select id="lineSelect"></select>
+                    </div>
+                    <div class="control-group" id="customColorGroup" style="display:none;">
+                        <label for="customColorInput">Custom Color Override</label>
+                        <input type="color" id="customColorInput" value="#99aa00" style="height:42px; width:100%; padding:0; cursor:pointer;">
+                    </div>
                 </div>
-                <div class="control-group">
-                    <label for="lineAbbr">Line System Abbreviation (Code)</label>
-                    <input type="text" id="lineAbbr" value="NEL">
+
+                <div class="control-row-nested">
+                    <div class="control-group">
+                        <label for="lineShortCode">Line Abbreviation Code</label>
+                        <input type="text" id="lineShortCode" value="NEL">
+                    </div>
+                    <div class="control-group">
+                        <label for="lineFullName">Full Line Identification Name</label>
+                        <input type="text" id="lineFullName" value="North East Line">
+                    </div>
                 </div>
-                <div class="control-group">
-                    <label for="lineName">Line Banner Name</label>
-                    <input type="text" id="lineName" value="North East Line">
+
+                <div class="section-title" style="margin-top: 15px;">Layout & Node Traversal Settings</div>
+                <div class="control-row-nested">
+                    <div class="control-group">
+                        <label for="textOrientation">Station Name Orientation</label>
+                        <select id="textOrientation">
+                            <option value="horizontal">Horizontal</option>
+                            <option value="slant-right">45° Slant Right (Upward)</option>
+                            <option value="slant-left">45° Slant Left (Upward)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="interchangeLayout">Interchange Node Arrangement</label>
+                        <select id="interchangeLayout">
+                            <option value="side-by-side">Side-by-Side (Horizontal Row)</option>
+                            <option value="stacked">Vertical Stack (Continuous Column)</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="control-group">
-                    <label for="mapOrientation">Canvas Layout Orientation</label>
-                    <select id="mapOrientation">
-                        <option value="horizontal">Horizontal (Bottom Banner)</option>
-                        <option value="vertical-left">Vertical (Left Banner / Right Text)</option>
-                        <option value="vertical-right">Vertical (Right Banner / Left Text)</option>
-                    </select>
+
+                <div class="control-row-nested">
+                    <div class="control-group">
+                        <label for="activeStationIdx">Visual Faded Tracking Stop Anchor</label>
+                        <select id="activeStationIdx">
+                            <option value="-1">None (All Sections Active)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="signageWidth">Canvas Width Dimensions</label>
+                        <input type="range" id="signageWidth" min="1200" max="4000" value="1800">
+                    </div>
                 </div>
-                <div class="control-group">
-                    <label for="mapLength">Custom Map Stretch Length: <span id="lengthVal">1200px</span></label>
-                    <input type="range" id="mapLength" min="600" max="3000" value="1200">
+
+                <div class="control-row-nested">
+                    <div class="control-group">
+                        <label for="signageHeight">Canvas Height Dimensions</label>
+                        <input type="range" id="signageHeight" min="300" max="700" value="420">
+                    </div>
+                    <div class="control-group">
+                        <label for="bottomBandHeight">Bottom Ribbon Thickness</label>
+                        <input type="range" id="bottomBandHeight" min="50" max="150" value="85">
+                    </div>
                 </div>
             </div>
 
             <div>
-                <div class="section-title">Route Station Configuration (Max 50)</div>
-                <div class="station-table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 22%;">Primary Code</th>
-                                <th style="width: 32%;">Station Name</th>
-                                <th style="width: 26%;">Interchanges (CSV)</th>
-                                <th style="width: 10%; text-align:center;">Passed</th>
-                                <th style="width: 10%; text-align:center;">Active</th>
-                                <th style="width: 10%;">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody id="stationTableBody"></tbody>
-                    </table>
+                <div class="section-title">Station Transit Manifest Data Registry (Max 50)</div>
+                <div class="control-group">
+                    <label for="stationRawData">Input Format: [Station Code(s)] [Station Name] (One Node Per Line)</label>
+                    <textarea id="stationRawData" rows="7" style="font-family: monospace; font-size: 13px; resize: vertical; line-height: 1.4;"></textarea>
                 </div>
-                <button id="addStationBtn" class="btn-action btn-add">+ Add Route Station Point</button>
+
+                <div class="section-title">Granular Typographic Scaling Controllers</div>
+                <div class="control-row-nested">
+                    <div class="control-group">
+                        <label for="fsStationCode">Station Code Font Size</label>
+                        <input type="range" id="fsStationCode" min="10" max="32" value="14">
+                    </div>
+                    <div class="control-group">
+                        <label for="fsStationName">Station Title Font Size</label>
+                        <input type="range" id="fsStationName" min="14" max="40" value="18">
+                    </div>
+                </div>
+
+                <div class="control-row-nested">
+                    <div class="control-group">
+                        <label for="fsBandCode">Band Caplet Font Size</label>
+                        <input type="range" id="fsBandCode" min="16" max="50" value="28">
+                    </div>
+                    <div class="control-group">
+                        <label for="fsBandTitle">Band Main Text Font Size</label>
+                        <input type="range" id="fsBandTitle" min="20" max="65" value="44">
+                    </div>
+                </div>
+
+                <div class="section-title">Caplet Profile Modifiers</div>
+                <div class="control-row-nested">
+                    <div class="control-group">
+                        <label for="capletHeight">Node Height Bounds</label>
+                        <input type="range" id="capletHeight" min="24" max="60" value="34">
+                    </div>
+                    <div class="control-group">
+                        <label for="capletHRadius">Node Padding Width</label>
+                        <input type="range" id="capletHRadius" min="15" max="80" value="38">
+                    </div>
+                </div>
             </div>
         </div>
 
-        <button class="btn-download" id="downloadBtn">Export Route Map Panel Asset as PNG</button>
+        <button class="btn-download" id="downloadBtn">Export Horizontal Signage Map Drawing as High-Res PNG</button>
     </div>
 
-    <div class="canvas-scroll-container">
-        <div id="mrt-map" class="horizontal">
-            <div class="track-workspace">
-                <svg class="track-svg-layer">
-                    <path id="bgTrackPath" d="" fill="none" stroke="#b6babf" stroke-width="6" />
-                    <path id="activeTrackPath" d="" fill="none" stroke="#9900aa" stroke-width="6" />
-                </svg>
-                <div class="nodes-delivery-layer" id="nodesDeliveryLayer"></div>
+    <div class="signage-wrapper">
+        <div id="line-map-signage">
+            
+            <div class="map-track-container" id="mapTrackContainer">
+                <div class="base-route-line" id="baseRouteLine"></div>
+                
+                </div>
+
+            <div class="bottom-branding-band" id="bottomBrandingBand">
+                <div class="band-content-centerpiece">
+                    <div class="hollow-brand-caplet" id="bandHollowCaplet">NEL</div>
+                    <div class="full-line-name-label" id="bandFullLineLabel">North East Line</div>
+                </div>
             </div>
 
-            <div class="system-color-band" id="systemColorBand">
-                <div class="band-caplet" id="bandCaplet">NEL</div>
-                <div id="bandName">North East Line</div>
-            </div>
         </div>
     </div>
 
     <script>
+        // Predefined Unified LTA Palette Registry
         const standardLines = [
-            { name: "North East Line (NE)", color: "#9900aa", abbr: "NEL", fullName: "North East Line" },
-            { name: "North–South Line (NS)", color: "#d42e12", abbr: "NSL", fullName: "North South Line" },
-            { name: "East–West Line (EW)", color: "#009645", abbr: "EWL", fullName: "East West Line" },
-            { name: "Circle Line (CC)", color: "#fa9e0d", abbr: "CCL", fullName: "Circle Line" },
-            { name: "Downtown Line (DT)", color: "#005ec4", abbr: "DTL", fullName: "Downtown Line" },
-            { name: "Thomson–East Coast Line (TE)", color: "#9D5B25", abbr: "TEL", fullName: "Thomson-East Coast Line" },
-            { name: "Cross Island Line (CR)", color: "#97C616", abbr: "CRL", fullName: "Cross Island Line" },
-            { name: "[ Custom Color Definition ]", color: "#custom", abbr: "CST", fullName: "Custom System Line" }
+            { id: "NE", name: "North East Line (NE)", color: "#9900aa", short: "NEL", title: "North East Line", defaultStations: "NE1 HarbourFront\nNE3 Outram Park\nNE4 Chinatown\nNE5 Clarke Quay\nNE6 Dhoby Ghaut\nNE7 Little India\nNE8 Farrer Park\nNE9 Boon Keng\nNE10 Potong Pasir\nNE11 Woodleigh\nNE12 Serangoon\nNE13 Kovan\nNE14 Hougang\nNE15 Buangkok\nNE16 Sengkang\nNE17 Punggol" },
+            { id: "NS", name: "North–South Line (NS)", color: "#d42e12", short: "NSL", title: "North South Line", defaultStations: "NS1 Jurong East\nNS2 Bukit Batok\nNS3 Bukit Gombak\nNS4 Choa Chu Kang\nNS5 Yew Tee\nNS7 Kranji\nNS8 Marsiling\nNS9 Woodlands\nNS10 Admiralty\nNS11 Sembawang\nNS12 Canberra\nNS13 Yishun" },
+            { id: "EW", name: "East–West Line (EW)", color: "#009645", short: "EWL", title: "East West Line", defaultStations: "EW1 Pasir Ris\nEW2 Tampines\nEW3 Simei\nEW4 Tanah Merah\nEW5 Bedok\nEW6 Kembangan\nEW7 Eunos\nEW8 Paya Lebar\nEW9 Aljunied\nEW10 Kallang\nEW11 Lavender\nEW12 Bugis\nEW13 City Hall\nEW14 Raffles Place" },
+            { id: "CC", name: "Circle Line (CC)", color: "#fa9e0d", short: "CCL", title: "Circle Line", defaultStations: "CC1 Dhoby Ghaut\nCC2 Bras Basah\nCC3 Esplanade\nCC4 Promenade\nCC5 Nicoll Highway\nCC6 Stadium\nCC7 Mountbatten\nCC8 Dakota\nCC9 Paya Lebar\nCC10 MacPherson" },
+            { id: "DT", name: "Downtown Line (DT)", color: "#005ec4", short: "DTL", title: "Downtown Line", defaultStations: "DT1 Bukit Panjang\nDT2 Cashew\nDT3 Hillview\nDT5 Beauty World\nDT6 King Albert Park\nDT7 Sixth Avenue\nDT8 Tan Kah Kee\nDT9 Botanic Gardens\nDT10 Stevens" },
+            { id: "TE", name: "Thomson–East Coast Line (TE)", color: "#9d5b25", short: "TEL", title: "Thomson-East Coast Line", defaultStations: "TE1 Woodlands North\nTE2 Woodlands\nTE3 Woodlands South\nTE4 Springleaf\nTE5 Lentor\nTE6 Mayflower\nTE7 Bright Hill\nTE8 Upper Thomson\nTE9 Caldecott" },
+            { id: "CR", name: "Cross Island Line (CR)", color: "#97c616", short: "CRL", title: "Cross Island Line", defaultStations: "CR2 Aviary\nCR3 Loyang\nCR4 Pasir Ris East\nCR5 Pasir Ris\nCR6 Tampines North\nCR7 Defu\nCR8 Hougang\nCR9 Serangoon North" },
+            { id: "CUSTOM", name: "[ Custom Color Configuration Override ]", color: "#64748b", short: "CST", title: "Custom Transit Line", defaultStations: "C1 Alpha Station\nC2 Beta Interchange/NS1\nC3 Gamma Station\nC4 Delta Station/EW2/DT5\nC5 Epsilon Terminal" }
         ];
 
-        // Seed data structures mimicking user specifications sample map
-        let stationsState = [
-            { code: "NE 1", name: "HarbourFront", interchanges: "CC 29", passed: true, active: false },
-            { code: "NE 3", name: "Outram Park", interchanges: "EW 16, TE 17", passed: false, active: true },
-            { code: "NE 4", name: "Chinatown", interchanges: "DT 19", passed: false, active: false },
-            { code: "NE 5", name: "Clarke Quay", interchanges: "", passed: false, active: false },
-            { code: "NE 6", name: "Dhoby Ghaut", interchanges: "NS 24, CC 1", passed: false, active: false }
-        ];
-
-        // Component select triggers
+        // System Configuration Element Selectors
         const lineSelect = document.getElementById('lineSelect');
-        const lineColorPicker = document.getElementById('lineColorPicker');
-        const lineAbbrInput = document.getElementById('lineAbbr');
-        const lineNameInput = document.getElementById('lineName');
-        const mapOrientationSelect = document.getElementById('mapOrientation');
-        const mapLengthInput = document.getElementById('mapLength');
-        const lengthVal = document.getElementById('lengthVal');
-        const stationTableBody = document.getElementById('stationTableBody');
-        const addStationBtn = document.getElementById('addStationBtn');
+        const customColorGroup = document.getElementById('customColorGroup');
+        const customColorInput = document.getElementById('customColorInput');
+        const lineShortCode = document.getElementById('lineShortCode');
+        const lineFullName = document.getElementById('lineFullName');
+        const textOrientation = document.getElementById('textOrientation');
+        const interchangeLayout = document.getElementById('interchangeLayout');
+        const activeStationIdx = document.getElementById('activeStationIdx');
         
-        const mrtMapCanvas = document.getElementById('mrt-map');
-        const systemColorBand = document.getElementById('systemColorBand');
-        const bandCaplet = document.getElementById('bandCaplet');
-        const bandName = document.getElementById('bandName');
-        const nodesDeliveryLayer = document.getElementById('nodesDeliveryLayer');
+        // Canvas Element Sizing Selectors
+        const signageWidth = document.getElementById('signageWidth');
+        const signageHeight = document.getElementById('signageHeight');
+        const bottomBandHeight = document.getElementById('bottomBandHeight');
+        const capletHeight = document.getElementById('capletHeight');
+        const capletHRadius = document.getElementById('capletHRadius');
         
-        const bgTrackPath = document.getElementById('bgTrackPath');
-        const activeTrackPath = document.getElementById('activeTrackPath');
+        // Text Typography Controller Selectors
+        const fsStationCode = document.getElementById('fsStationCode');
+        const fsStationName = document.getElementById('fsStationName');
+        const fsBandCode = document.getElementById('fsBandCode');
+        const fsBandTitle = document.getElementById('fsBandTitle');
+        const stationRawData = document.getElementById('stationRawData');
 
-        // Populate system selectors
-        standardLines.forEach(line => {
-            const opt = document.createElement('option');
-            opt.value = line.color;
-            opt.text = line.name;
-            lineSelect.appendChild(opt);
-        });
+        // Target Layout Destination DOM Nodes
+        const canvasContainer = document.getElementById('line-map-signage');
+        const mapTrackContainer = document.getElementById('mapTrackContainer');
+        const baseRouteLine = document.getElementById('baseRouteLine');
+        const bottomBrandingBand = document.getElementById('bottomBrandingBand');
+        const bandHollowCaplet = document.getElementById('bandHollowCaplet');
+        const bandFullLineLabel = document.getElementById('bandFullLineLabel');
 
-        // Event detection bindings for input automation syncs
-        lineSelect.addEventListener('change', (e) => {
-            if (e.target.value === '#custom') {
-                lineColorPicker.style.display = 'block';
-            } else {
-                lineColorPicker.style.display = 'none';
-                const found = standardLines.find(l => l.color === e.target.value);
-                if (found) {
-                    lineAbbrInput.value = found.abbr;
-                    lineNameInput.value = found.fullName;
-                }
-            }
-            renderAll();
-        });
-
-        function lookupColor(codeStr) {
-            const clean = codeStr.trim().toUpperCase();
-            if(clean.startsWith('NE')) return '#9900aa';
-            if(clean.startsWith('NS')) return '#d42e12';
-            if(clean.startsWith('EW')) return '#009645';
-            if(clean.startsWith('CC')) return '#fa9e0d';
-            if(clean.startsWith('DT')) return '#005ec4';
-            if(clean.startsWith('TE')) return '#9D5B25';
-            if(clean.startsWith('CR')) return '#97C616';
-            return '#64748b'; // Fallback systemic gray color code
+        // Intelligent relative luminance calculator for automatic text contrast styling
+        function getContrastColor(hexColor) {
+            const darkTextLines = ["#FA9E0D", "#97C616", "#0099AA", "#FFCD00"];
+            if (darkTextLines.includes(hexColor.toUpperCase())) return '#000000';
+            
+            const hex = hexColor.replace('#', '');
+            if(hex.length !== 6) return '#ffffff';
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            return (yiq >= 145) ? '#000000' : '#ffffff';
         }
 
-        function renderControlsTable() {
-            stationTableBody.innerHTML = '';
-            stationsState.forEach((station, index) => {
-                const tr = document.createElement('tr');
+        // Return core matching primary line identifier colors 
+        function querySubCapletColor(codeStr) {
+            const clean = codeStr.toUpperCase().trim();
+            if (clean.startsWith("NS")) return "#d42e12";
+            if (clean.startsWith("EW")) return "#009645";
+            if (clean.startsWith("NE")) return "#9900aa";
+            if (clean.startsWith("CC")) return "#fa9e0d";
+            if (clean.startsWith("DT")) return "#005ec4";
+            if (clean.startsWith("TE")) return "#9d5b25";
+            if (clean.startsWith("CR")) return "#97c616";
+            if (clean.startsWith("JW")) return "#0099aa";
+            if (clean.startsWith("BP")) return "#b85600";
+            return getActiveSystemColor(); // Fallback color injection override
+        }
 
-                tr.innerHTML = `
-                    <td><input type="text" class="station-input data-code" value="${station.code}"></td>
-                    <td><input type="text" class="station-input data-name" value="${station.name}"></td>
-                    <td><input type="text" class="station-input data-interchanges" value="${station.interchanges}" placeholder="e.g. NS 24, CC 1"></td>
-                    <td style="text-align:center;"><input type="checkbox" class="data-passed" ${station.passed ? 'checked' : ''}></td>
-                    <td style="text-align:center;"><input type="radio" name="activeStationGroup" class="data-active" ${station.active ? 'checked' : ''}></td>
-                    <td><button class="btn-action btn-delete">✕</button></td>
-                `;
+        function getActiveSystemColor() {
+            if (lineSelect.value === "CUSTOM") {
+                return customColorInput.value;
+            }
+            const activePreset = standardLines.find(x => x.id === lineSelect.value);
+            return activePreset ? activePreset.color : "#9900aa";
+        }
 
-                // Sub-component direct mutations mappings
-                tr.querySelector('.data-code').addEventListener('input', (e) => { stationsState[index].code = e.target.value; updateLiveCanvas(); });
-                tr.querySelector('.data-name').addEventListener('input', (e) => { stationsState[index].name = e.target.value; updateLiveCanvas(); });
-                tr.querySelector('.data-interchanges').addEventListener('input', (e) => { stationsState[index].interchanges = e.target.value; updateLiveCanvas(); });
+        // Initialize Line Selector Options List
+        function initDropdowns() {
+            standardLines.forEach(line => {
+                const opt = document.createElement('option');
+                opt.value = line.id;
+                opt.textContent = line.name;
+                lineSelect.appendChild(opt);
+            });
+            lineSelect.value = "NE"; 
+            stationRawData.value = standardLines[0].defaultStations;
+        }
+
+        // Parse Text Area String Manifest rows systematically into clear metadata objects
+        function parseStationInputManifest() {
+            const rawLines = stationRawData.value.split('\n');
+            const collection = [];
+            
+            rawLines.forEach((rowText) => {
+                const trimmed = rowText.trim();
+                if (!trimmed) return;
+
+                // Match layout formats splitting code sequences from trailing descriptions
+                // Formats accepted: "NE1 Harbourfront" or "NE1/CC29 Chinatown" or "NE1//DT19 Chinatown"
+                const spaceIdx = trimmed.indexOf(' ');
+                if (spaceIdx === -1) {
+                    // Fallback item layout
+                    collection.push({ codes: [trimmed], name: trimmed });
+                    return;
+                }
+
+                const codesPart = trimmed.substring(0, spaceIdx);
+                const namePart = trimmed.substring(spaceIdx + 1).trim();
                 
-                tr.querySelector('.data-passed').addEventListener('change', (e) => { 
-                    stationsState[index].passed = e.target.checked; 
-                    updateLiveCanvas(); 
+                // Segment split strings handling slash notation variants cleanly
+                const individualCodes = codesPart.split(/[\/\/]+|[\/]+/).map(c => c.trim()).filter(Boolean);
+                
+                collection.push({
+                    codes: individualCodes,
+                    name: namePart
                 });
-
-                tr.querySelector('.data-active').addEventListener('change', (e) => {
-                    stationsState.forEach((s, idx) => {
-                        s.active = (idx === index);
-                        if (idx < index) s.passed = true;
-                        if (idx === index) s.passed = false;
-                    });
-                    renderControlsTable();
-                    updateLiveCanvas();
-                });
-
-                tr.querySelector('.btn-delete').addEventListener('click', () => {
-                    stationsState.splice(index, 1);
-                    renderAll();
-                });
-
-                stationTableBody.appendChild(tr);
             });
-            addStationBtn.disabled = stationsState.length >= 50;
+            return collection.slice(0, 50); // Hard threshold check caps maximum system bounds
         }
 
-        function updateLiveCanvas() {
-            const orientation = mapOrientationSelect.value;
-            const length = mapLengthInput.value;
-            lengthVal.innerText = length + 'px';
-
-            // Extract working paint profile configuration
-            const systemColor = (lineSelect.value === '#custom') ? lineColorPicker.value : lineSelect.value;
+        // Sync and refresh dropdown dynamic list tracker index indices
+        function synchronizeActiveSelectorIndex(stationList, currentSelection) {
+            const savedValue = currentSelection;
+            activeStationIdx.innerHTML = '<option value="-1">None (All Sections Active)</option>';
             
-            // Format Framework Structure Layout Transforms
-            mrtMapCanvas.className = orientation;
-            if (orientation === 'horizontal') {
-                mrtMapCanvas.style.width = length + 'px';
-                mrtMapCanvas.style.height = '380px';
-            } else {
-                mrtMapCanvas.style.height = length + 'px';
-                mrtMapCanvas.style.width = '480px';
-            }
-
-            // Sync structural parameters on visual banner blocks
-            systemColorBand.style.backgroundColor = systemColor;
-            bandCaplet.innerText = lineAbbrInput.value.toUpperCase();
-            bandCaplet.style.color = systemColor;
-            bandName.innerText = lineNameInput.value;
-
-            // Purge and construct visual distribution workspace nodes
-            nodesDeliveryLayer.innerHTML = '';
-            const totalCount = stationsState.length;
-            if (totalCount === 0) return;
-
-            // Generate SVG path coordinates values relative to canvas sizing metrics
-            const workspaceWidth = orientation === 'horizontal' ? (length - 120) : 335;
-            const workspaceHeight = orientation === 'horizontal' ? 335 : (length - 120);
+            stationList.forEach((station, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = `[${station.codes.join('/')}] ${station.name}`;
+                activeStationIdx.appendChild(opt);
+            });
             
-            let bgPathD = '';
-            let activePathD = '';
-
-            if (orientation === 'horizontal') {
-                bgPathD = `M 60 190 L ${length - 60} 190`;
+            if (parseInt(savedValue) < stationList.length) {
+                activeStationIdx.value = savedValue;
             } else {
-                bgPathD = `M 100 60 L 100 ${length - 60}`;
+                activeStationIdx.value = "-1";
             }
+        }
 
-            // Track state segment calculation tracing splits logic loops
-            let activeStartIndex = stationsState.findIndex(s => s.active);
-            if (activeStartIndex === -1) activeStartIndex = 0;
+        // Core visual calculation rendering machine engine execution pipeline
+        function renderSystemTrackMap() {
+            const currentLineColor = getActiveSystemColor();
+            const stationsData = parseStationInputManifest();
+            const selectedFadeThresholdIndex = parseInt(activeStationIdx.value);
 
-            if (orientation === 'horizontal') {
-                const step = (length - 120) / Math.max(1, totalCount - 1);
-                const startX = 60 + (activeStartIndex * step);
-                activePathD = `M ${startX} 190 L ${length - 60} 190`;
+            // Dynamic Toggle Display Configuration Shifts
+            customColorGroup.style.display = (lineSelect.value === "CUSTOM") ? "block" : "none";
+
+            // Enforce layout container sizes dynamically 
+            canvasContainer.style.width = signageWidth.value + 'px';
+            canvasContainer.style.height = signageHeight.value + 'px';
+
+            // Calculate precise vertical offset adjustments for track baseline
+            const capH = parseInt(capletHeight.value);
+            const isStacked = (interchangeLayout.value === "stacked");
+            
+            // Adjust track height context dynamically based on design requirements
+            if (isStacked) {
+                baseRouteLine.style.top = Math.ceil(capH / 2) + 16 + 'px';
             } else {
-                const step = (length - 120) / Math.max(1, totalCount - 1);
-                const startY = 60 + (activeStartIndex * step);
-                activePathD = `M 100 ${startY} L 100 ${length - 60}`;
+                baseRouteLine.style.top = Math.ceil(capH / 2) + 6 + 'px';
             }
+            
+            baseRouteLine.style.backgroundColor = currentLineColor;
 
-            bgTrackPath.setAttribute('d', bgPathD);
-            activeTrackPath.setAttribute('d', activePathD);
-            activeTrackPath.setAttribute('stroke', systemColor);
+            // Clear previously rendered tracking items inside parent sub-nodes rows
+            const nodeElements = mapTrackContainer.querySelectorAll('.station-node');
+            nodeElements.forEach(el => el.remove());
 
-            // Populate DOM objects representing station elements nodes structures
-            stationsState.forEach((station, index) => {
-                const stationJunction = document.createElement('div');
-                stationJunction.className = 'station-junction';
-                if (station.passed) stationJunction.classList.add('faded-element');
+            // Build individual tracking elements 
+            stationsData.forEach((station, index) => {
+                const isFadedNode = (selectedFadeThresholdIndex !== -1 && index < selectedFadeThresholdIndex);
+                
+                const nodeCol = document.createElement('div');
+                nodeCol.className = "station-node";
+                if (isFadedNode) nodeCol.classList.add('faded-element');
 
-                // Generate primary marker node dot
-                const dot = document.createElement('div');
-                dot.className = 'node-dot';
-                dot.style.borderColor = systemColor;
-                if (station.active) dot.classList.add('active-node');
-                stationJunction.appendChild(dot);
+                // Build Node Enclosure Caplet Structure
+                const anchorWrap = document.createElement('div');
+                anchorWrap.className = "caplet-anchor-container";
 
-                // Direction Indicator Circle Trigger
-                if (station.active && index < totalCount - 1) {
-                    const arrowCircle = document.createElement('div');
-                    arrowCircle.className = 'direction-arrow-circle';
-                    arrowCircle.innerText = '➔';
-                    stationJunction.appendChild(arrowCircle);
+                station.codes.forEach((codeString) => {
+                    const caplet = document.createElement('div');
+                    caplet.className = "station-caplet-item";
+                    caplet.textContent = codeString.toUpperCase();
+
+                    // Apply internal calculations logic extracted from source mapping profiles
+                    const H = capH;
+                    const Vr = Math.ceil(H / 2);
+                    const Hr = parseInt(capletHRadius.value);
+                    const borderRadiusProfileValue = `${Hr}px / ${Vr}px`;
+
+                    caplet.style.height = H + 'px';
+                    caplet.style.borderRadius = borderRadiusProfileValue;
+                    caplet.style.fontSize = fsStationCode.value + 'px';
+                    
+                    // Padding sizing rules calculation logic
+                    caplet.style.paddingLeft = Math.ceil(Hr / 2.5) + 'px';
+                    caplet.style.paddingRight = Math.ceil(Hr / 2.5) + 'px';
+
+                    // Determine background branding colors for each subsegment node
+                    const targetBgColor = querySubCapletColor(codeString);
+                    caplet.style.backgroundColor = targetBgColor;
+                    caplet.style.color = getContrastColor(targetBgColor);
+
+                    anchorWrap.appendChild(caplet);
+                });
+
+                nodeCol.appendChild(anchorWrap);
+
+                // Build Text Label Blocks
+                const labelContainer = document.createElement('div');
+                labelContainer.className = `station-label-container text-orient-${textOrientation.value}`;
+                
+                const titleSpan = document.createElement('div');
+                titleSpan.className = "station-name-text";
+                titleSpan.textContent = station.name;
+                titleSpan.style.fontSize = fsStationName.value + 'px';
+                
+                labelContainer.appendChild(titleSpan);
+                nodeCol.appendChild(labelContainer);
+
+                // Render Location Indicator Circle Arrow directly under the selected station node
+                if (index === selectedFadeThresholdIndex) {
+                    const directionArrowCircle = document.createElement('div');
+                    directionArrowCircle.className = "active-direction-marker";
+                    directionArrowCircle.innerHTML = "&#9650;"; // Upward Black Pointer Triangle Vector Glyph Character
+                    
+                    // Compute absolute structural spacing offsets to prevent rotation collisions
+                    let distanceOffset = capH + 30;
+                    if (isStacked) {
+                        distanceOffset = (station.codes.length * (capH + 4)) + 20;
+                    }
+                    directionArrowCircle.style.top = distanceOffset + "px";
+                    nodeCol.appendChild(directionArrowCircle);
                 }
 
-                // Add text typography parameters labels blocks
-                const labelText = document.createElement('div');
-                labelText.className = 'station-label-text';
-                labelText.innerText = station.name;
-                if (station.passed) labelText.classList.add('passed-text');
-                stationJunction.appendChild(labelText);
-
-                // Compile layered group array lists mapping capsule codes configurations
-                const interchangeContainer = document.createElement('div');
-                interchangeContainer.className = 'interchange-container';
-
-                // First append internal track code primary element
-                const primaryCap = document.createElement('div');
-                primaryCap.className = 'mini-caplet';
-                primaryCap.style.backgroundColor = systemColor;
-                primaryCap.innerText = station.code.toUpperCase();
-                interchangeContainer.appendChild(primaryCap);
-
-                // Intersect comma values strings processing secondary connections codes
-                if (station.interchanges.trim().length > 0) {
-                    const codes = station.interchanges.split(',');
-                    codes.forEach(c => {
-                        if(c.trim() === '') return;
-                        const altCap = document.createElement('div');
-                        altCap.className = 'mini-caplet';
-                        altCap.style.backgroundColor = lookupColor(c);
-                        altCap.innerText = c.trim().toUpperCase();
-                        interchangeContainer.appendChild(altCap);
-                    });
-                }
-
-                stationJunction.appendChild(interchangeContainer);
-                nodesDeliveryLayer.appendChild(stationJunction);
+                mapTrackContainer.appendChild(nodeCol);
             });
-        }
 
-        function renderAll() {
-            renderControlsTable();
-            updateLiveCanvas();
-        }
-
-        // Global Interactive configuration inputs detection events triggers listeners
-        addStationBtn.addEventListener('click', () => {
-            if (stationsState.length < 50) {
-                stationsState.push({ code: "NE 7", name: "Potong Pasir", interchanges: "", passed: false, active: false });
-                renderAll();
+            // Re-render and calculate underlying path fading adjustments
+            if (selectedFadeThresholdIndex !== -1 && selectedFadeThresholdIndex < stationsData.length) {
+                // Calculate position coordinates for active segments
+                const allRenderedNodes = mapTrackContainer.querySelectorAll('.station-node');
+                if (allRenderedNodes.length > 0 && selectedFadeThresholdIndex > 0) {
+                    const targetActiveNode = allRenderedNodes[selectedFadeThresholdIndex];
+                    const offsetPctLeft = (targetActiveNode.offsetLeft / mapTrackContainer.offsetWidth) * 100;
+                    
+                    // Render split background color gradients
+                    baseRouteLine.style.background = `linear-gradient(to right, #cbd5e1 0%, #cbd5e1 ${offsetPctLeft}%, ${currentLineColor} ${offsetPctLeft}%, ${currentLineColor} 100%)`;
+                }
             }
+
+            // Configure layout metrics for the bottom identity branding band
+            bottomBrandingBand.style.height = bottomBandHeight.value + 'px';
+            bottomBrandingBand.style.backgroundColor = currentLineColor;
+
+            // Render hollow rounded signature line code caplet
+            bandHollowCaplet.textContent = lineShortCode.value.toUpperCase();
+            bandHollowCaplet.style.fontSize = fsBandCode.value + 'px';
+            bandHollowCaplet.style.color = getContrastColor(currentLineColor);
+            bandHollowCaplet.style.borderColor = getContrastColor(currentLineColor);
+            
+            const bH = Math.ceil(parseInt(fsBandCode.value) * 1.5);
+            const bVr = Math.ceil(bH / 2);
+            const bHr = Math.ceil(bH * 1.1);
+            
+            bandHollowCaplet.style.height = bH + 'px';
+            bandHollowCaplet.style.minWidth = bHr + 'px';
+            bandHollowCaplet.style.borderRadius = `${bHr}px / ${bVr}px`;
+            bandHollowCaplet.style.padding = `0 ${Math.ceil(bHr/4)}px`;
+
+            // Render full textual identity parameters
+            bandFullLineLabel.textContent = lineFullName.value;
+            bandFullLineLabel.style.fontSize = fsBandTitle.value + 'px';
+            bandFullLineLabel.style.color = getContrastColor(currentLineColor);
+
+            // Structure arrangement layout modifications
+            if (interchangeLayout.value === "stacked") {
+                mapTrackContainer.classList.add('layout-stacked');
+            } else {
+                mapTrackContainer.classList.remove('layout-stacked');
+            }
+        }
+
+        // Event listener bindings matching active line data configurations
+        lineSelect.addEventListener('change', () => {
+            const selectedID = lineSelect.value;
+            if (selectedID !== "CUSTOM") {
+                const configuration = standardLines.find(x => x.id === selectedID);
+                if (configuration) {
+                    lineShortCode.value = configuration.short;
+                    lineFullName.value = configuration.title;
+                    stationRawData.value = configuration.defaultStations;
+                }
+            }
+            const parsed = parseStationInputManifest();
+            synchronizeActiveSelectorIndex(parsed, "-1");
+            renderSystemTrackMap();
         });
 
-        lineColorPicker.addEventListener('input', updateLiveCanvas);
-        lineAbbrInput.addEventListener('input', updateLiveCanvas);
-        lineNameInput.addEventListener('input', updateLiveCanvas);
-        mapOrientationSelect.addEventListener('change', updateLiveCanvas);
-        mapLengthInput.addEventListener('input', updateLiveCanvas);
+        // Event listener hooks to update layout properties dynamically
+        stationRawData.addEventListener('input', () => {
+            const currentSelectionValue = activeStationIdx.value;
+            const parsed = parseStationInputManifest();
+            synchronizeActiveSelectorIndex(parsed, currentSelectionValue);
+            renderSystemTrackMap();
+        });
 
-        // Core compilation run triggers
-        renderAll();
+        const activeTrackingRebindTriggers = [
+            customColorInput, lineShortCode, lineFullName, textOrientation,
+            interchangeLayout, activeStationIdx, signageWidth, signageHeight,
+            bottomBandHeight, capletHeight, capletHRadius, fsStationCode,
+            fsStationName, fsBandCode, fsBandTitle
+        ];
 
-        // High-Quality image export execution handling processing pipeline logic blocks
+        activeTrackingRebindTriggers.forEach(element => {
+            element.addEventListener('input', renderSystemTrackMap);
+            element.addEventListener('change', renderSystemTrackMap);
+        });
+
+        // Setup Initial System App Environment Parameters
+        initDropdowns();
+        const initialParsedManifest = parseStationInputManifest();
+        synchronizeActiveSelectorIndex(initialParsedManifest, "-1");
+        renderSystemTrackMap();
+
+        // High-Quality image export processing capture module engine block
         document.getElementById('downloadBtn').addEventListener('click', () => {
-            const target = document.getElementById('mrt-map');
+            const targetDomSignageWorkspace = document.getElementById('line-map-signage');
+            
+            // Wait until the custom typography asset registry rendering vectors are ready
             document.fonts.ready.then(() => {
-                html2canvas(target, {
-                    scale: 2, 
+                html2canvas(targetDomSignageWorkspace, {
+                    scale: 2, // Double dimension density configuration matrix rules
                     logging: false,
                     useCORS: true,
-                    backgroundColor: null
-                }).then(canvas => {
-                    const downloadLink = document.createElement('a');
-                    downloadLink.download = `${lineAbbrInput.value.trim()}_route_map.png`;
-                    downloadLink.href = canvas.toDataURL('image/png');
-                    downloadLink.click();
+                    backgroundColor: "#f3f3f3"
+                }).then(canvasImageResultPayload => {
+                    const downloadLinkAnchorElement = document.createElement('a');
+                    const formattedFileNameString = lineFullName.value.trim().replace(/\s+/g, '_').toLowerCase();
+                    
+                    downloadLinkAnchorElement.download = `mrt_line_map_${formattedFileNameString}.png`;
+                    downloadLinkAnchorElement.href = canvasImageResultPayload.toDataURL('image/png');
+                    downloadLinkAnchorElement.click();
                 });
             });
         });
