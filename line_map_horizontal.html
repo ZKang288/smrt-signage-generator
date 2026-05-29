@@ -270,7 +270,7 @@
 
         /* Bottom Color Identification Ribbon */
         .bottom-identity-band {
-            height: 85px;
+            height: 75px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -304,7 +304,7 @@
             <div>
                 <div class="section-title">
                     <span>Route Stations Lineup (Max 50)</span>
-                    <span style="font-size:12px; color:#64748b;">Interchanges parsed as comma-separated entries</span>
+                    <span style="font-size:12px; color:#64748b;">Fictional lines format: Code (#HEXCODE) e.g. SE 12 (#ff0055)</span>
                 </div>
                 <div class="station-manager" id="stationManagerContainer">
                     </div>
@@ -374,6 +374,10 @@
                 <div class="control-group">
                     <label for="customBandLineName">Custom Line Name (Override)</label>
                     <input type="text" id="customBandLineName" placeholder="Leave blank for automatic assignment">
+                </div>
+                <div class="control-group">
+                    <label for="customBandLinePrefix">Custom Line Abbreviation (Override)</label>
+                    <input type="text" id="customBandLinePrefix" placeholder="Leave blank for automatic assignment">
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
@@ -492,6 +496,7 @@
         const bandCapVr     = document.getElementById('bandCapVr');
         const bandCapHr     = document.getElementById('bandCapHr');
         const customBandLineName = document.getElementById('customBandLineName');
+        const customBandLinePrefix = document.getElementById('customBandLinePrefix');
         
         const capP = document.getElementById('capP');
         const capH = document.getElementById('capH');
@@ -633,7 +638,7 @@
                     <span style="font-weight:bold; color:#64748b; font-size:12px;">#${idx+1}</span>
                     <input type="text" value="${station.code}" placeholder="Code" class="input-code" style="width:100%; box-sizing:border-box;">
                     <input type="text" value="${station.name}" placeholder="Station Name" class="input-name" style="width:100%; box-sizing:border-box;">
-                    <input type="text" value="${station.interchanges}" placeholder="e.g. EW 16, CC 29" class="input-interchanges" style="width:100%; box-sizing:border-box;">
+                    <input type="text" value="${station.interchanges}" placeholder="e.g. EW 16, SE 12 (#ff0055)" class="input-interchanges" style="width:100%; box-sizing:border-box;">
                     <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
                         <label style="font-size:9px; font-weight:bold; color:#64748b;">SPLIT</label>
                         <input type="checkbox" class="input-split" ${station.fadeSplit ? 'checked' : ''}>
@@ -684,6 +689,10 @@
             } else {
                 bandLineNameText.innerText = selectedLineObj.name.replace(/\s\([^)]*\)$/, ""); 
             }
+
+            // Check for manual line prefix text input override
+            const manualPrefixOverride = customBandLinePrefix.value.trim();
+            const finalPrefix = manualPrefixOverride ? manualPrefixOverride.toUpperCase() : selectedLineObj.prefix;
             
             bandLineNameText.style.fontSize = fsBandName.value + 'px';
             document.getElementById('fsBandNameVal').innerText   = fsBandName.value   + 'px';
@@ -700,7 +709,7 @@
             // Render Banner Caplet
             bandCapletWrapper.innerHTML = '';
             const bannerCap = buildBannerCapletStyleElement(
-                selectedLineObj.prefix,
+                finalPrefix,
                 parseInt(fsBandCaplet.value),
                 parseInt(bandCapH.value),
                 parseInt(bandCapP.value),
@@ -732,7 +741,6 @@
                 trackLineUnderlay.appendChild(seg);
             }
 
-            // Track blueprint height parameters to dynamically push the banner down safely
             let maxStructuralHeightCalculated = 480;
 
             stationsState.forEach((station, idx) => {
@@ -751,10 +759,8 @@
                 const actualCapletHeight = H + 4;
                 const icHeight = (H * currentScale) + 4;
 
-                // Alternate bottom positioning boolean verification metric
                 const isAlternateBottom = (textOrientation.value === 'horizontal-alternate' && idx % 2 === 1);
 
-                // Pre-count clean interchange entries to accurately map coordinate boundaries
                 let icTokensCount = 0;
                 if (station.interchanges.trim().length > 0) {
                     icTokensCount = station.interchanges.split(',').filter(t => t.trim()).length;
@@ -831,7 +837,7 @@
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // --- 3. Interchange Matrix Grid System ---
+                // --- 3. Interchange Matrix Grid System (With Smart Inline Color Processing Engine) ---
                 if (icTokensCount > 0) {
                     const icWrapper = document.createElement('div');
                     icWrapper.className = 'interchanges-wrapper';
@@ -849,10 +855,19 @@
                     const icTokens = station.interchanges.split(',');
                     icTokens.forEach(token => {
                         if(!token.trim()) return;
-                        const icBgColor = getAutoColor(token);
                         
-                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true, isFaded);
-                        icCaplet.inner.innerText = token.trim().toUpperCase();
+                        let displayToken = token.trim();
+                        let icBgColor = getAutoColor(displayToken);
+                        
+                        // Intelligent parenthetical color matching pattern parser
+                        const colorMatch = displayToken.match(/(.+?)\s*\((#[0-9A-Fa-f]{6})\)/);
+                        if (colorMatch) {
+                            displayToken = colorMatch[1].trim(); // Extracts display text: e.g. "SE 12"
+                            icBgColor = colorMatch[2];          // Extracts custom color string hex
+                        }
+                        
+                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true, false);
+                        icCaplet.inner.innerText = displayToken.toUpperCase();
                         icWrapper.appendChild(icCaplet.wrapper);
                     });
                     col.appendChild(icWrapper);
@@ -896,7 +911,6 @@
                     }
                 }
 
-                // Track extreme coordinates reached
                 if (totalStackNodeBottomPosition > maxStructuralHeightCalculated) {
                     maxStructuralHeightCalculated = totalStackNodeBottomPosition;
                 }
@@ -924,7 +938,7 @@
             updateMapRenderer();
         });
 
-        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName].forEach(ctrl => {
+        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName, customBandLinePrefix].forEach(ctrl => {
             ctrl.addEventListener('input', updateMapRenderer);
             ctrl.addEventListener('change', updateMapRenderer);
         });
