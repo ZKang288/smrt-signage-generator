@@ -524,11 +524,9 @@
             // ===============================
 
             const borderW = 4;
-            const H = parseInt(capsuleHeightInput.value);
-            const Vr = parseInt(capsuleRoundnessInput.value);
 
             // True MRT-style elongated capsule
-            const radius = Vr + 'px';
+            const radius = (H / 2) + 'px';
 
             // Outer white outline
             outerCapsule.style.display = 'inline-flex';
@@ -537,7 +535,7 @@
             outerCapsule.style.background = '#ffffff';
             outerCapsule.style.borderRadius = radius;
             outerCapsule.style.overflow = 'hidden';
-            outerCapsule.style.height = H + 'px';
+            outerCapsule.style.minHeight = H + 'px';
             outerCapsule.style.boxSizing = 'border-box';
             outerCapsule.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
             
