@@ -308,8 +308,12 @@
                     <input type="range" id="capsuleHeight" min="45" max="110" value="68">
                 </div>
                 <div class="control-group">
-                    <label for="capsuleRoundness">Vertical Radius (2:1 Ellipse): <span id="roundnessVal">40px</span></label>
-                    <input type="range" id="capsuleRoundness" min="0" max="80" value="40">
+                    <label for="capsuleRoundness">Vertical Radius (1:2 Ellipse): <span id="roundnessVal">28px</span></label>
+                    <input type="range" id="capsuleRoundness" min="0" max="80" value="28">
+                </div>
+                <div class="control-group">
+                    <label for="capsuleHRadius">Horizontal Radius: <span id="hradiusVal">56px</span></label>
+                    <input type="range" id="capsuleHRadius" min="0" max="160" value="56">
                 </div>
             </div>
 
@@ -385,8 +389,10 @@
         // Geometry Inputs
         const capsuleHeightInput = document.getElementById('capsuleHeight');
         const capsuleRoundnessInput = document.getElementById('capsuleRoundness');
+        const capsuleHRadiusInput = document.getElementById('capsuleHRadius');
         const heightVal = document.getElementById('heightVal');
         const roundnessVal = document.getElementById('roundnessVal');
+        const hradiusVal = document.getElementById('hradiusVal');
 
         // Intelligent relative luminance calculator for automatic text contrast styling
         function getContrastColor(hexColor) {
@@ -509,15 +515,18 @@
             }
 
             const Vr = parseInt(capsuleRoundnessInput.value);
-            const Hr = Vr * 2; // Strict 2:1 horizontal-to-vertical lock
+            // Hr is fully independent; clamp max slider to a reasonable range
+            capsuleHRadiusInput.max = Math.max(160, Vr * 4);
+            const Hr = parseInt(capsuleHRadiusInput.value);
 
             // Calculate the horizontal wing extension distance to pad the text perfectly
             const ratio = (H * H) / (4 * Vr * Vr);
-            const xCorner = Hr * (1 - Math.sqrt(1 - ratio));
+            const xCorner = (Vr > 0 && ratio <= 1) ? Hr * (1 - Math.sqrt(1 - ratio)) : 0;
 
             // Update Geometry Indicators
             heightVal.innerText = H + 'px';
-            roundnessVal.innerText = `${Hr}px / ${Vr}px`;
+            roundnessVal.innerText = Vr + 'px';
+            hradiusVal.innerText = Hr + 'px';
 
             // ===============================
             // CLEAN CAPSULE RENDERING ENGINE
@@ -525,8 +534,8 @@
 
             const borderW = 4;
 
-            // True MRT-style elongated capsule
-            const radius = (H / 2) + 'px';
+            // Elliptical border-radius using independent Hr / Vr
+            const radius = `${Hr}px / ${Vr}px`;
 
             // Outer white outline
             outerCapsule.style.display = 'inline-flex';
@@ -592,6 +601,7 @@
         signageWidthInput.addEventListener('input', updateSignagePreview);
         capsuleHeightInput.addEventListener('input', updateSignagePreview);
         capsuleRoundnessInput.addEventListener('input', updateSignagePreview);
+        capsuleHRadiusInput.addEventListener('input', updateSignagePreview);
 
         // Core initialization trigger
         renderAll();
