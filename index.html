@@ -535,14 +535,14 @@
             outerCapsule.style.background = '#ffffff';
             outerCapsule.style.borderRadius = radius;
             outerCapsule.style.overflow = 'hidden';
-            outerCapsule.style.minHeight = H + 'px';
+            outerCapsule.style.height = 'auto';
             outerCapsule.style.boxSizing = 'border-box';
             outerCapsule.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
             
             // Inner coloured segments container
-            innerCapsule.innerHTML = '';
             innerCapsule.style.display = 'inline-flex';
-            innerCapsule.style.height = '100%';
+            innerCapsule.style.alignItems = 'stretch';
+            innerCapsule.style.height = H + 'px';
             innerCapsule.style.borderRadius = radius;
             innerCapsule.style.overflow = 'hidden';
             innerCapsule.style.boxSizing = 'border-box';
