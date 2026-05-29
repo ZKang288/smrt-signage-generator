@@ -138,7 +138,6 @@
 
         #mrt-signage {
             height: 180px; 
-            background-color: #141517; /* Dark platform panel background */
             display: flex;
             align-items: center;
             justify-content: center; /* Centered alignment for components */
@@ -147,6 +146,7 @@
             box-sizing: border-box;
             user-select: none;
             white-space: nowrap;
+            transition: background-color 0.2s;
         }
 
         .code-segment {
@@ -169,11 +169,11 @@
         }
 
         .station-en {
-            color: #ffffff;
             font-size: 56px; 
             font-weight: 500;
             font-family: 'MRT-Identity', 'Arial', sans-serif;
             line-height: 1.1;
+            transition: color 0.2s;
         }
 
         .translations-row {
@@ -183,11 +183,11 @@
         }
 
         .station-translation {
-            color: #ffffff;
             font-size: 26px;
             font-family: 'MRT-Identity', 'Arial', sans-serif;
             font-weight: normal;
             opacity: 0.95;
+            transition: color 0.2s;
         }
     </style>
 </head>
@@ -199,7 +199,7 @@
     </nav>
 
     <h1>MRT Platform Signage Generator</h1>
-    <p class="subtitle">Generates accurate dark-panel platform signs with multi-language script support</p>
+    <p class="subtitle">Generates accurate platform signs with custom themes and multi-language script support</p>
 
     <div class="container">
         <div class="editor-regions">
@@ -219,6 +219,13 @@
                 </div>
                 
                 <div class="section-title" style="margin-top: 20px;">Signboard Framework</div>
+                <div class="control-group">
+                    <label for="panelTheme">Panel Aesthetic Theme</label>
+                    <select id="panelTheme">
+                        <option value="dark">Dark Panel (White Typography)</option>
+                        <option value="silver">Silver / Grey Panel (Black Typography)</option>
+                    </select>
+                </div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
                     <input type="checkbox" id="autoWidth" style="width: auto; cursor: pointer;">
                     <label for="autoWidth" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Auto Calculate Panel Width</label>
@@ -300,6 +307,7 @@
         // UI Element Selectors
         const lineSelect = document.getElementById('lineSelect');
         const lineColorPicker = document.getElementById('lineColorPicker');
+        const panelTheme = document.getElementById('panelTheme');
         const stationCodeInput = document.getElementById('stationCode');
         const stationEnInput = document.getElementById('stationEn');
         const stationZhInput = document.getElementById('stationZh');
@@ -352,6 +360,15 @@
         }
 
         function updateSignage() {
+            // Theme Style Engine Application
+            const isSilver = (panelTheme.value === 'silver');
+            const textColor = isSilver ? '#000000' : '#ffffff';
+            
+            mrtSignage.style.backgroundColor = isSilver ? '#cbd5e1' : '#141517';
+            signageEn.style.color = textColor;
+            signageZh.style.color = textColor;
+            signageTa.style.color = textColor;
+
             // Layout Framework Dimensions
             if (autoWidth.checked) {
                 mrtSignage.style.width = 'fit-content';
@@ -393,9 +410,9 @@
             const borderW = 4;
             const radius = `${Hr}px / ${Vr}px`;
 
-            // Style Outer Capsule Frame
+            // Style Outer Capsule Frame (Maintain white crisp boundary ring or adjust if silver blends)
             outerCapsule.style.padding = borderW + 'px';
-            outerCapsule.style.background = '#ffffff';
+            outerCapsule.style.background = isSilver ? '#ffffff' : '#ffffff'; 
             outerCapsule.style.borderRadius = radius;
             outerCapsule.style.overflow = 'hidden';
             outerCapsule.style.boxSizing = 'border-box';
@@ -435,6 +452,7 @@
         });
 
         // Configuration Event Bindings
+        panelTheme.addEventListener('change', updateSignage);
         lineColorPicker.addEventListener('input', updateSignage);
         stationEnInput.addEventListener('input', updateSignage);
         stationZhInput.addEventListener('input', updateSignage);
