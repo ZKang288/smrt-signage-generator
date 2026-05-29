@@ -134,8 +134,8 @@
             background-color: #141517; /* Dark platform panel background */
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            padding: 0 60px;
+            justify-content: center; /* Centered alignment for components */
+            padding: 0 40px;
             gap: 40px; 
             box-sizing: border-box;
             user-select: none;
@@ -214,12 +214,12 @@
                 
                 <div class="section-title" style="margin-top: 20px;">Signboard Framework</div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                    <input type="checkbox" id="autoWidth" checked style="width: auto; cursor: pointer;">
+                    <input type="checkbox" id="autoWidth" style="width: auto; cursor: pointer;">
                     <label for="autoWidth" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Auto Calculate Panel Width</label>
                 </div>
-                <div class="control-group" id="widthSliderGroup" style="display: none;">
-                    <label for="signageWidth">Custom Width: <span id="widthVal">1200px</span></label>
-                    <input type="range" id="signageWidth" min="800" max="2500" value="1200">
+                <div class="control-group" id="widthSliderGroup">
+                    <label for="signageWidth">Custom Width (600px - 1200px): <span id="widthVal">1000px</span></label>
+                    <input type="range" id="signageWidth" min="600" max="1200" value="1000">
                 </div>
             </div>
 
@@ -234,7 +234,11 @@
                     <input type="text" id="stationCode" value="NE 3">
                 </div>
 
-                <div class="section-title" style="margin-top: 25px;">Capsule Geometry (Derived Layout)</div>
+                <div class="section-title" style="margin-top: 25px;">Capsule Geometry & Length</div>
+                <div class="control-group">
+                    <label for="capsulePadding">Capsule Length (Horizontal Padding): <span id="paddingVal">24px</span></label>
+                    <input type="range" id="capsulePadding" min="10" max="100" value="24">
+                </div>
                 <div class="control-group">
                     <label for="capsuleHeight">Capsule Height: <span id="heightVal">66px</span></label>
                     <input type="range" id="capsuleHeight" min="50" max="110" value="66">
@@ -300,6 +304,8 @@
         const signageWidthInput = document.getElementById('signageWidth');
         const widthVal = document.getElementById('widthVal');
 
+        const capsulePaddingInput = document.getElementById('capsulePadding');
+        const paddingVal = document.getElementById('paddingVal');
         const capsuleHeightInput = document.getElementById('capsuleHeight');
         const capsuleRoundnessInput = document.getElementById('capsuleRoundness');
         const capsuleHRadiusInput = document.getElementById('capsuleHRadius');
@@ -322,10 +328,10 @@
         }
 
         function updateSignage() {
-            // Layout Framework
+            // Layout Framework Dimensions
             if (autoWidth.checked) {
                 mrtSignage.style.width = 'fit-content';
-                mrtSignage.style.minWidth = '1100px';
+                mrtSignage.style.minWidth = '600px';
                 widthSliderGroup.style.display = 'none';
             } else {
                 mrtSignage.style.width = signageWidthInput.value + 'px';
@@ -341,6 +347,7 @@
 
             // Geometry Configuration Math
             const H = parseInt(capsuleHeightInput.value);
+            const P = parseInt(capsulePaddingInput.value);
             const minVr = Math.ceil(H / 2);
             
             capsuleRoundnessInput.min = minVr;
@@ -352,6 +359,7 @@
             const Hr = parseInt(capsuleHRadiusInput.value);
 
             heightVal.innerText = H + 'px';
+            paddingVal.innerText = P + 'px';
             roundnessVal.innerText = Vr + 'px';
             hradiusVal.innerText = Hr + 'px';
 
@@ -372,14 +380,14 @@
             innerCapsule.style.boxSizing = 'border-box';
             innerCapsule.innerHTML = '';
 
-            // Generate Capsule Text Segment
+            // Generate Capsule Text Segment with Variable Length/Padding
             const segment = document.createElement('div');
             segment.className = 'code-segment';
             segment.innerText = stationCodeInput.value.toUpperCase();
             segment.style.backgroundColor = lineSelect.value;
             segment.style.color = getContrastColor(lineSelect.value);
-            segment.style.paddingLeft = '24px';
-            segment.style.paddingRight = '24px';
+            segment.style.paddingLeft = P + 'px';
+            segment.style.paddingRight = P + 'px';
             segment.style.height = '100%';
 
             innerCapsule.appendChild(segment);
@@ -393,6 +401,7 @@
         lineSelect.addEventListener('change', updateSignage);
         autoWidth.addEventListener('change', updateSignage);
         signageWidthInput.addEventListener('input', updateSignage);
+        capsulePaddingInput.addEventListener('input', updateSignage);
         capsuleHeightInput.addEventListener('input', updateSignage);
         capsuleRoundnessInput.addEventListener('input', updateSignage);
         capsuleHRadiusInput.addEventListener('input', updateSignage);
