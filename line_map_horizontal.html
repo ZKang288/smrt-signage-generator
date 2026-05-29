@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRT Route Horizontal Line Map Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* --- Font Setup --- */
+        @font-face {
+            font-family: 'MRT-Identity';
+            src: url('LTA_Identity-Medium.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #1e293b;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #0f172a;
+        }
+
+        p.subtitle {
+            margin: 0;
+            margin-bottom: 30px;
+            color: #64748b;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1150px;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            margin-bottom: 35px;
+            box-sizing: border-box;
+        }
+
+        .editor-regions {
+            display: grid;
+            grid-template-columns: 1.2fr 1.8fr;
+            gap: 30px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .editor-regions { grid-template-columns: 1fr; }
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 5px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .control-group input, .control-group select {
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            background-color: #fff;
+            color: #1e293b;
+            outline: none;
+        }
+
+        .control-group input[type="range"] {
+            padding: 5px 0;
+            cursor: pointer;
+        }
+
+        /* --- Station List Table Setup --- */
+        .station-table-container {
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8fafc;
+            padding: 10px;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .station-input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .btn-action {
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+
+        .btn-add { background-color: #004c54; color: white; width: 100%; margin-top: 5px;}
+        .btn-add:hover { background-color: #00333a; }
+        .btn-delete { background-color: #fee2e2; color: #ef4444; }
+        .btn-delete:hover { background-color: #fca5a5; }
+
+        .btn-download {
+            background-color: #1e293b;
+            color: white;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
+        }
+        .btn-download:hover { background-color: #0f172a; }
+
+        /* --- Map Rendering Canvas Shell --- */
+        .canvas-scroll-container {
+            overflow: auto;
+            width: 100%;
+            max-width: 100%;
+            padding: 20px 0;
+            background-color: #e2e8f0;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        #mrt-map {
+            background-color: #e8e9eb; /* Neutral architectural layout grey background */
+            position: relative;
+            box-sizing: border-box;
+            font-family: 'MRT-Identity', 'Arial', sans-serif;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* --- Orientation Style Layout Structures --- */
+        #mrt-map.horizontal {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 380px;
+        }
+
+        #mrt-map.vertical-left, #mrt-map.vertical-right {
+            display: flex;
+            width: 480px !important;
+        }
+        #mrt-map.vertical-left { flex-direction: row; }
+        #mrt-map.vertical-right { flex-direction: row-reverse; }
+
+        /* Color Bands */
+        .system-color-band {
+            display: flex;
+            align-items: center;
+            box-sizing: border-box;
+            background-color: #9900aa; /* Dynamic assignment fallback */
+            color: white;
+            font-family: 'MRT-Identity', sans-serif;
+            font-weight: bold;
+        }
+
+        .horizontal .system-color-band {
+            width: 100%;
+            height: 45px;
+            padding: 0 30px;
+            gap: 15px;
+            font-size: 20px;
+        }
+
+        .vertical-left .system-color-band, .vertical-right .system-color-band {
+            width: 45px;
+            height: 100%;
+            writing-mode: vertical-lr;
+            transform: rotate(180deg);
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            font-size: 20px;
+            padding: 30px 0;
+        }
+
+        .band-caplet {
+            background: white;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 900;
+            text-align: center;
+            writing-mode: horizontal-tb;
+        }
+
+        /* Tracks Container Framework */
+        .track-workspace {
+            position: relative;
+            flex-grow: 1;
+            box-sizing: border-box;
+        }
+
+        .horizontal .track-workspace { width: 100%; height: calc(100% - 45px); }
+        .vertical-left .track-workspace, .vertical-right .track-workspace { height: 100%; width: calc(100% - 45px); }
+
+        /* Dynamic SVG Track Lines */
+        .track-svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Stations Nodes Flex Box Distributor */
+        .nodes-delivery-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            z-index: 2;
+            box-sizing: border-box;
+        }
+
+        .horizontal .nodes-delivery-layer {
+            flex-direction: row;
+            justify-content: space-between;
+            padding: 0 60px;
+            align-items: center; /* Centered around central track projection line */
+        }
+
+        .vertical-left .nodes-delivery-layer, .vertical-right .nodes-delivery-layer {
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 60px 0;
+            align-items: center;
+        }
+
+        /* Individual Station Junction Element Layouts */
+        .station-junction {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .horizontal .station-junction { flex-direction: column; width: 0; height: 100%; }
+        .vertical-left .station-junction { flex-direction: row; height: 0; width: 100%; justify-content: flex-start; padding-left: 100px; }
+        .vertical-right .station-junction { flex-direction: row-reverse; height: 0; width: 100%; justify-content: flex-start; padding-right: 100px; }
+
+        /* Core Node Vector Point */
+        .node-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: white;
+            border: 4px solid #9900aa;
+            z-index: 5;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+
+        .node-dot.active-node {
+            width: 22px;
+            height: 22px;
+            border-width: 6px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        /* Direction Indicator Arrows Style Rules */
+        .direction-arrow-circle {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background-color: #ffffff;
+            border: 3px solid #141517;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 900;
+            color: #141517;
+            z-index: 6;
+        }
+        .horizontal .direction-arrow-circle { top: calc(50% - 11px); margin-left: 55px; }
+        .vertical-left .direction-arrow-circle { left: calc(100px - 11px); margin-top: 40px; transform: rotate(90deg); }
+        .vertical-right .direction-arrow-circle { right: calc(100px - 11px); margin-top: 40px; transform: rotate(90deg); }
+
+        /* Station Typography Settings */
+        .station-label-text {
+            font-size: 15px;
+            font-weight: bold;
+            color: #1e293b;
+            position: absolute;
+            white-space: nowrap;
+        }
+
+        /* Text positioning variations based on orientation */
+        .horizontal .station-label-text {
+            transform: rotate(-45deg);
+            transform-origin: bottom left;
+            bottom: calc(50% + 22px);
+            left: 5px;
+        }
+        .vertical-left .station-label-text { left: 140px; }
+        .vertical-right .station-label-text { right: 140px; text-align: right; }
+
+        /* Interchange Caplets Layout structures */
+        .interchange-container {
+            display: flex;
+            position: absolute;
+            gap: 4px;
+            z-index: 4;
+        }
+        .horizontal .interchange-container { flex-direction: column; top: calc(50% + 20px); align-items: center; }
+        .vertical-left .interchange-container { flex-direction: row; left: calc(100px - 65px); align-items: center; justify-content: flex-end; width: 100px; }
+        .vertical-right .interchange-container { flex-direction: row-reverse; right: calc(100px - 65px); align-items: center; justify-content: flex-end; width: 100px; }
+
+        .mini-caplet {
+            padding: 2px 6px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 800;
+            color: white;
+            min-width: 38px;
+            text-align: center;
+            box-sizing: border-box;
+            border: 1px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Status Styling Triggers for Map Fading System */
+        .faded-element { opacity: 0.22 !important; }
+        .passed-text { color: #8e949e !important; font-weight: normal; }
+</style>
+</head>
+<body>
+
+    <nav style="margin-bottom: 20px; display: flex; gap: 15px;">
+        <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Signage Generator</a>
+        <a href="map.html" style="color: #64748b; text-decoration: none;">🗺️ Platform Signage</a>
+        <a href="line_map_horizontal.html" style="font-weight: bold; color: #004c54; text-decoration: none;">🚇 Route Map Generator</a>
+    </nav>
+
+    <h1>MRT Route Track Map Generator</h1>
+    <p class="subtitle">Generates accurate linearly organized maps featuring multi-directional configurations and system fading variables</p>
+
+    <div class="container">
+        <div class="editor-regions">
+            <div>
+                <div class="section-title">Global Map Settings</div>
+                <div class="control-group">
+                    <label for="lineSelect">Primary System Track Line</label>
+                    <select id="lineSelect"></select>
+                    <input type="color" id="lineColorPicker" class="color-picker-box" value="#9900aa" style="display: none; width:100%; height:40px; padding:0; border:1px solid #cbd5e1; border-radius:8px; margin-top:8px;">
+                </div>
+                <div class="control-group">
+                    <label for="lineAbbr">Line System Abbreviation (Code)</label>
+                    <input type="text" id="lineAbbr" value="NEL">
+                </div>
+                <div class="control-group">
+                    <label for="lineName">Line Banner Name</label>
+                    <input type="text" id="lineName" value="North East Line">
+                </div>
+                <div class="control-group">
+                    <label for="mapOrientation">Canvas Layout Orientation</label>
+                    <select id="mapOrientation">
+                        <option value="horizontal">Horizontal (Bottom Banner)</option>
+                        <option value="vertical-left">Vertical (Left Banner / Right Text)</option>
+                        <option value="vertical-right">Vertical (Right Banner / Left Text)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="mapLength">Custom Map Stretch Length: <span id="lengthVal">1200px</span></label>
+                    <input type="range" id="mapLength" min="600" max="3000" value="1200">
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Route Station Configuration (Max 50)</div>
+                <div class="station-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 22%;">Primary Code</th>
+                                <th style="width: 32%;">Station Name</th>
+                                <th style="width: 26%;">Interchanges (CSV)</th>
+                                <th style="width: 10%; text-align:center;">Passed</th>
+                                <th style="width: 10%; text-align:center;">Active</th>
+                                <th style="width: 10%;">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stationTableBody"></tbody>
+                    </table>
+                </div>
+                <button id="addStationBtn" class="btn-action btn-add">+ Add Route Station Point</button>
+            </div>
+        </div>
+
+        <button class="btn-download" id="downloadBtn">Export Route Map Panel Asset as PNG</button>
+    </div>
+
+    <div class="canvas-scroll-container">
+        <div id="mrt-map" class="horizontal">
+            <div class="track-workspace">
+                <svg class="track-svg-layer">
+                    <path id="bgTrackPath" d="" fill="none" stroke="#b6babf" stroke-width="6" />
+                    <path id="activeTrackPath" d="" fill="none" stroke="#9900aa" stroke-width="6" />
+                </svg>
+                <div class="nodes-delivery-layer" id="nodesDeliveryLayer"></div>
+            </div>
+
+            <div class="system-color-band" id="systemColorBand">
+                <div class="band-caplet" id="bandCaplet">NEL</div>
+                <div id="bandName">North East Line</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const standardLines = [
+            { name: "North East Line (NE)", color: "#9900aa", abbr: "NEL", fullName: "North East Line" },
+            { name: "North–South Line (NS)", color: "#d42e12", abbr: "NSL", fullName: "North South Line" },
+            { name: "East–West Line (EW)", color: "#009645", abbr: "EWL", fullName: "East West Line" },
+            { name: "Circle Line (CC)", color: "#fa9e0d", abbr: "CCL", fullName: "Circle Line" },
+            { name: "Downtown Line (DT)", color: "#005ec4", abbr: "DTL", fullName: "Downtown Line" },
+            { name: "Thomson–East Coast Line (TE)", color: "#9D5B25", abbr: "TEL", fullName: "Thomson-East Coast Line" },
+            { name: "Cross Island Line (CR)", color: "#97C616", abbr: "CRL", fullName: "Cross Island Line" },
+            { name: "[ Custom Color Definition ]", color: "#custom", abbr: "CST", fullName: "Custom System Line" }
+        ];
+
+        // Seed data structures mimicking user specifications sample map
+        let stationsState = [
+            { code: "NE 1", name: "HarbourFront", interchanges: "CC 29", passed: true, active: false },
+            { code: "NE 3", name: "Outram Park", interchanges: "EW 16, TE 17", passed: false, active: true },
+            { code: "NE 4", name: "Chinatown", interchanges: "DT 19", passed: false, active: false },
+            { code: "NE 5", name: "Clarke Quay", interchanges: "", passed: false, active: false },
+            { code: "NE 6", name: "Dhoby Ghaut", interchanges: "NS 24, CC 1", passed: false, active: false }
+        ];
+
+        // Component select triggers
+        const lineSelect = document.getElementById('lineSelect');
+        const lineColorPicker = document.getElementById('lineColorPicker');
+        const lineAbbrInput = document.getElementById('lineAbbr');
+        const lineNameInput = document.getElementById('lineName');
+        const mapOrientationSelect = document.getElementById('mapOrientation');
+        const mapLengthInput = document.getElementById('mapLength');
+        const lengthVal = document.getElementById('lengthVal');
+        const stationTableBody = document.getElementById('stationTableBody');
+        const addStationBtn = document.getElementById('addStationBtn');
+        
+        const mrtMapCanvas = document.getElementById('mrt-map');
+        const systemColorBand = document.getElementById('systemColorBand');
+        const bandCaplet = document.getElementById('bandCaplet');
+        const bandName = document.getElementById('bandName');
+        const nodesDeliveryLayer = document.getElementById('nodesDeliveryLayer');
+        
+        const bgTrackPath = document.getElementById('bgTrackPath');
+        const activeTrackPath = document.getElementById('activeTrackPath');
+
+        // Populate system selectors
+        standardLines.forEach(line => {
+            const opt = document.createElement('option');
+            opt.value = line.color;
+            opt.text = line.name;
+            lineSelect.appendChild(opt);
+        });
+
+        // Event detection bindings for input automation syncs
+        lineSelect.addEventListener('change', (e) => {
+            if (e.target.value === '#custom') {
+                lineColorPicker.style.display = 'block';
+            } else {
+                lineColorPicker.style.display = 'none';
+                const found = standardLines.find(l => l.color === e.target.value);
+                if (found) {
+                    lineAbbrInput.value = found.abbr;
+                    lineNameInput.value = found.fullName;
+                }
+            }
+            renderAll();
+        });
+
+        function lookupColor(codeStr) {
+            const clean = codeStr.trim().toUpperCase();
+            if(clean.startsWith('NE')) return '#9900aa';
+            if(clean.startsWith('NS')) return '#d42e12';
+            if(clean.startsWith('EW')) return '#009645';
+            if(clean.startsWith('CC')) return '#fa9e0d';
+            if(clean.startsWith('DT')) return '#005ec4';
+            if(clean.startsWith('TE')) return '#9D5B25';
+            if(clean.startsWith('CR')) return '#97C616';
+            return '#64748b'; // Fallback systemic gray color code
+        }
+
+        function renderControlsTable() {
+            stationTableBody.innerHTML = '';
+            stationsState.forEach((station, index) => {
+                const tr = document.createElement('tr');
+
+                tr.innerHTML = `
+                    <td><input type="text" class="station-input data-code" value="${station.code}"></td>
+                    <td><input type="text" class="station-input data-name" value="${station.name}"></td>
+                    <td><input type="text" class="station-input data-interchanges" value="${station.interchanges}" placeholder="e.g. NS 24, CC 1"></td>
+                    <td style="text-align:center;"><input type="checkbox" class="data-passed" ${station.passed ? 'checked' : ''}></td>
+                    <td style="text-align:center;"><input type="radio" name="activeStationGroup" class="data-active" ${station.active ? 'checked' : ''}></td>
+                    <td><button class="btn-action btn-delete">✕</button></td>
+                `;
+
+                // Sub-component direct mutations mappings
+                tr.querySelector('.data-code').addEventListener('input', (e) => { stationsState[index].code = e.target.value; updateLiveCanvas(); });
+                tr.querySelector('.data-name').addEventListener('input', (e) => { stationsState[index].name = e.target.value; updateLiveCanvas(); });
+                tr.querySelector('.data-interchanges').addEventListener('input', (e) => { stationsState[index].interchanges = e.target.value; updateLiveCanvas(); });
+                
+                tr.querySelector('.data-passed').addEventListener('change', (e) => { 
+                    stationsState[index].passed = e.target.checked; 
+                    updateLiveCanvas(); 
+                });
+
+                tr.querySelector('.data-active').addEventListener('change', (e) => {
+                    stationsState.forEach((s, idx) => {
+                        s.active = (idx === index);
+                        if (idx < index) s.passed = true;
+                        if (idx === index) s.passed = false;
+                    });
+                    renderControlsTable();
+                    updateLiveCanvas();
+                });
+
+                tr.querySelector('.btn-delete').addEventListener('click', () => {
+                    stationsState.splice(index, 1);
+                    renderAll();
+                });
+
+                stationTableBody.appendChild(tr);
+            });
+            addStationBtn.disabled = stationsState.length >= 50;
+        }
+
+        function updateLiveCanvas() {
+            const orientation = mapOrientationSelect.value;
+            const length = mapLengthInput.value;
+            lengthVal.innerText = length + 'px';
+
+            // Extract working paint profile configuration
+            const systemColor = (lineSelect.value === '#custom') ? lineColorPicker.value : lineSelect.value;
+            
+            // Format Framework Structure Layout Transforms
+            mrtMapCanvas.className = orientation;
+            if (orientation === 'horizontal') {
+                mrtMapCanvas.style.width = length + 'px';
+                mrtMapCanvas.style.height = '380px';
+            } else {
+                mrtMapCanvas.style.height = length + 'px';
+                mrtMapCanvas.style.width = '480px';
+            }
+
+            // Sync structural parameters on visual banner blocks
+            systemColorBand.style.backgroundColor = systemColor;
+            bandCaplet.innerText = lineAbbrInput.value.toUpperCase();
+            bandCaplet.style.color = systemColor;
+            bandName.innerText = lineNameInput.value;
+
+            // Purge and construct visual distribution workspace nodes
+            nodesDeliveryLayer.innerHTML = '';
+            const totalCount = stationsState.length;
+            if (totalCount === 0) return;
+
+            // Generate SVG path coordinates values relative to canvas sizing metrics
+            const workspaceWidth = orientation === 'horizontal' ? (length - 120) : 335;
+            const workspaceHeight = orientation === 'horizontal' ? 335 : (length - 120);
+            
+            let bgPathD = '';
+            let activePathD = '';
+
+            if (orientation === 'horizontal') {
+                bgPathD = `M 60 190 L ${length - 60} 190`;
+            } else {
+                bgPathD = `M 100 60 L 100 ${length - 60}`;
+            }
+
+            // Track state segment calculation tracing splits logic loops
+            let activeStartIndex = stationsState.findIndex(s => s.active);
+            if (activeStartIndex === -1) activeStartIndex = 0;
+
+            if (orientation === 'horizontal') {
+                const step = (length - 120) / Math.max(1, totalCount - 1);
+                const startX = 60 + (activeStartIndex * step);
+                activePathD = `M ${startX} 190 L ${length - 60} 190`;
+            } else {
+                const step = (length - 120) / Math.max(1, totalCount - 1);
+                const startY = 60 + (activeStartIndex * step);
+                activePathD = `M 100 ${startY} L 100 ${length - 60}`;
+            }
+
+            bgTrackPath.setAttribute('d', bgPathD);
+            activeTrackPath.setAttribute('d', activePathD);
+            activeTrackPath.setAttribute('stroke', systemColor);
+
+            // Populate DOM objects representing station elements nodes structures
+            stationsState.forEach((station, index) => {
+                const stationJunction = document.createElement('div');
+                stationJunction.className = 'station-junction';
+                if (station.passed) stationJunction.classList.add('faded-element');
+
+                // Generate primary marker node dot
+                const dot = document.createElement('div');
+                dot.className = 'node-dot';
+                dot.style.borderColor = systemColor;
+                if (station.active) dot.classList.add('active-node');
+                stationJunction.appendChild(dot);
+
+                // Direction Indicator Circle Trigger
+                if (station.active && index < totalCount - 1) {
+                    const arrowCircle = document.createElement('div');
+                    arrowCircle.className = 'direction-arrow-circle';
+                    arrowCircle.innerText = '➔';
+                    stationJunction.appendChild(arrowCircle);
+                }
+
+                // Add text typography parameters labels blocks
+                const labelText = document.createElement('div');
+                labelText.className = 'station-label-text';
+                labelText.innerText = station.name;
+                if (station.passed) labelText.classList.add('passed-text');
+                stationJunction.appendChild(labelText);
+
+                // Compile layered group array lists mapping capsule codes configurations
+                const interchangeContainer = document.createElement('div');
+                interchangeContainer.className = 'interchange-container';
+
+                // First append internal track code primary element
+                const primaryCap = document.createElement('div');
+                primaryCap.className = 'mini-caplet';
+                primaryCap.style.backgroundColor = systemColor;
+                primaryCap.innerText = station.code.toUpperCase();
+                interchangeContainer.appendChild(primaryCap);
+
+                // Intersect comma values strings processing secondary connections codes
+                if (station.interchanges.trim().length > 0) {
+                    const codes = station.interchanges.split(',');
+                    codes.forEach(c => {
+                        if(c.trim() === '') return;
+                        const altCap = document.createElement('div');
+                        altCap.className = 'mini-caplet';
+                        altCap.style.backgroundColor = lookupColor(c);
+                        altCap.innerText = c.trim().toUpperCase();
+                        interchangeContainer.appendChild(altCap);
+                    });
+                }
+
+                stationJunction.appendChild(interchangeContainer);
+                nodesDeliveryLayer.appendChild(stationJunction);
+            });
+        }
+
+        function renderAll() {
+            renderControlsTable();
+            updateLiveCanvas();
+        }
+
+        // Global Interactive configuration inputs detection events triggers listeners
+        addStationBtn.addEventListener('click', () => {
+            if (stationsState.length < 50) {
+                stationsState.push({ code: "NE 7", name: "Potong Pasir", interchanges: "", passed: false, active: false });
+                renderAll();
+            }
+        });
+
+        lineColorPicker.addEventListener('input', updateLiveCanvas);
+        lineAbbrInput.addEventListener('input', updateLiveCanvas);
+        lineNameInput.addEventListener('input', updateLiveCanvas);
+        mapOrientationSelect.addEventListener('change', updateLiveCanvas);
+        mapLengthInput.addEventListener('input', updateLiveCanvas);
+
+        // Core compilation run triggers
+        renderAll();
+
+        // High-Quality image export execution handling processing pipeline logic blocks
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const target = document.getElementById('mrt-map');
+            document.fonts.ready.then(() => {
+                html2canvas(target, {
+                    scale: 2, 
+                    logging: false,
+                    useCORS: true,
+                    backgroundColor: null
+                }).then(canvas => {
+                    const downloadLink = document.createElement('a');
+                    downloadLink.download = `${lineAbbrInput.value.trim()}_route_map.png`;
+                    downloadLink.href = canvas.toDataURL('image/png');
+                    downloadLink.click();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
