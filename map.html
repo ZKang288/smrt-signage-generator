@@ -104,6 +104,13 @@
             border-color: #004c54;
         }
 
+        .color-picker-box {
+            padding: 0 !important;
+            height: 40px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
         .btn-download {
             background-color: #1e293b;
             color: white;
@@ -217,8 +224,8 @@
                     <label for="autoWidth" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Auto Calculate Panel Width</label>
                 </div>
                 <div class="control-group" id="widthSliderGroup">
-                    <label for="signageWidth">Custom Width (600px - 1200px): <span id="widthVal">1000px</span></label>
-                    <input type="range" id="signageWidth" min="600" max="1200" value="1000">
+                    <label for="signageWidth">Custom Width (500px - 1200px): <span id="widthVal">600px</span></label>
+                    <input type="range" id="signageWidth" min="500" max="1200" value="600">
                 </div>
             </div>
 
@@ -227,6 +234,7 @@
                 <div class="control-group">
                     <label for="lineSelect">Primary System Line</label>
                     <select id="lineSelect"></select>
+                    <input type="color" id="lineColorPicker" class="color-picker-box" value="#64748b" style="display: none;">
                 </div>
                 <div class="control-group">
                     <label for="stationCode">Station Numeric Code</label>
@@ -285,11 +293,13 @@
             { name: "Downtown Line (DT)", color: "#005ec4" },
             { name: "Thomson–East Coast Line (TE)", color: "#9D5B25" },
             { name: "Cross Island Line (CR)", color: "#97C616" },
-            { name: "Jurong Region Line (JW)", color: "#0099aa" }
+            { name: "Jurong Region Line (JW)", color: "#0099aa" },
+            { name: "[ Custom Color ]", color: "#custom" }
         ];
 
         // UI Element Selectors
         const lineSelect = document.getElementById('lineSelect');
+        const lineColorPicker = document.getElementById('lineColorPicker');
         const stationCodeInput = document.getElementById('stationCode');
         const stationEnInput = document.getElementById('stationEn');
         const stationZhInput = document.getElementById('stationZh');
@@ -329,6 +339,15 @@
         function getContrastColor(hexColor) {
             const darkTextLines = ["#FA9E0D", "#97C616", "#0099AA", "#FFCD00"];
             if (darkTextLines.includes(hexColor.toUpperCase())) return '#000000';
+            
+            const hex = hexColor.replace('#', '');
+            if (hex.length === 6) {
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+                return (yiq >= 140) ? '#000000' : '#ffffff';
+            }
             return '#ffffff';
         }
 
@@ -336,7 +355,7 @@
             // Layout Framework Dimensions
             if (autoWidth.checked) {
                 mrtSignage.style.width = 'fit-content';
-                mrtSignage.style.minWidth = '600px';
+                mrtSignage.style.minWidth = '500px';
                 widthSliderGroup.style.display = 'none';
             } else {
                 mrtSignage.style.width = signageWidthInput.value + 'px';
@@ -388,12 +407,15 @@
             innerCapsule.style.boxSizing = 'border-box';
             innerCapsule.innerHTML = '';
 
+            // Extract Active Color Configuration
+            const activeColor = (lineSelect.value === '#custom') ? lineColorPicker.value : lineSelect.value;
+
             // Generate Capsule Text Segment with Variable Padding and Font Size
             const segment = document.createElement('div');
             segment.className = 'code-segment';
             segment.innerText = stationCodeInput.value.toUpperCase();
-            segment.style.backgroundColor = lineSelect.value;
-            segment.style.color = getContrastColor(lineSelect.value);
+            segment.style.backgroundColor = activeColor;
+            segment.style.color = getContrastColor(activeColor);
             segment.style.fontSize = Fs + 'px';
             segment.style.paddingLeft = P + 'px';
             segment.style.paddingRight = P + 'px';
@@ -402,12 +424,22 @@
             innerCapsule.appendChild(segment);
         }
 
+        // Toggle Custom Color Picker Display Logic
+        lineSelect.addEventListener('change', (e) => {
+            if (e.target.value === '#custom') {
+                lineColorPicker.style.display = 'block';
+            } else {
+                lineColorPicker.style.display = 'none';
+            }
+            updateSignage();
+        });
+
         // Configuration Event Bindings
+        lineColorPicker.addEventListener('input', updateSignage);
         stationEnInput.addEventListener('input', updateSignage);
         stationZhInput.addEventListener('input', updateSignage);
         stationTaInput.addEventListener('input', updateSignage);
         stationCodeInput.addEventListener('input', updateSignage);
-        lineSelect.addEventListener('change', updateSignage);
         autoWidth.addEventListener('change', updateSignage);
         signageWidthInput.addEventListener('input', updateSignage);
         capsuleFontSizeInput.addEventListener('input', updateSignage);
