@@ -153,7 +153,6 @@
             background-color: #ffffff;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             position: relative;
             box-sizing: border-box;
             user-select: none;
@@ -187,7 +186,6 @@
             z-index: 2;
             box-sizing: border-box;
             height: 100%;
-            transition: opacity 0.2s;
         }
 
         /* High Precision Label Anchor Framework */
@@ -208,6 +206,7 @@
             color: #1c1d1f;
             white-space: nowrap;
             position: absolute;
+            transition: opacity 0.2s;
         }
 
         .node-container {
@@ -237,6 +236,7 @@
             box-sizing: border-box;
             overflow: hidden;
             width: 100%;
+            transition: opacity 0.2s;
         }
 
         .interchanges-wrapper {
@@ -246,6 +246,7 @@
             display: flex;
             align-items: center;
             z-index: 2;
+            transition: opacity 0.2s;
         }
 
         .direction-arrow-box {
@@ -275,6 +276,7 @@
             gap: 20px;
             box-sizing: border-box;
             width: 100%;
+            flex-shrink: 0;
         }
 
         .band-text {
@@ -356,40 +358,40 @@
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="fsStationName">Station Label Font (12px - 60px): <span id="fsStationNameVal">22px</span></label>
-                        <input type="range" id="fsStationName" min="12" max="60" value="22">
+                        <label for="fsStationName">Station Label Font (12px - 60px): <span id="fsStationNameVal">40px</span></label>
+                        <input type="range" id="fsStationName" min="12" max="60" value="40">
                     </div>
                     <div class="control-group">
-                        <label for="fsCapletCode">Caplet Text Font: <span id="fsCapletCodeVal">14px</span></label>
-                        <input type="range" id="fsCapletCode" min="10" max="30" value="14">
+                        <label for="fsCapletCode">Caplet Text Font: <span id="fsCapletCodeVal">30px</span></label>
+                        <input type="range" id="fsCapletCode" min="10" max="60" value="30">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="fsBandName">Ribbon Banner Font: <span id="fsBandNameVal">24px</span></label>
-                        <input type="range" id="fsBandName" min="16" max="36" value="24">
+                        <label for="fsBandName">Ribbon Banner Font: <span id="fsBandNameVal">36px</span></label>
+                        <input type="range" id="fsBandName" min="16" max="60" value="36">
                     </div>
                 </div>
 
                 <div class="section-title" style="margin-top:20px;">Caplet Core Geometry Formula</div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="capP">Horiz. Padding: <span id="capPVal">12px</span></label>
-                        <input type="range" id="capP" min="5" max="60" value="12">
+                        <label for="capP">Horiz. Padding: <span id="capPVal">18px</span></label>
+                        <input type="range" id="capP" min="5" max="60" value="18">
                     </div>
                     <div class="control-group">
-                        <label for="capH">Caplet Height: <span id="capHVal">32px</span></label>
-                        <input type="range" id="capH" min="20" max="130" value="32">
+                        <label for="capH">Caplet Height: <span id="capHVal">45px</span></label>
+                        <input type="range" id="capH" min="20" max="130" value="45">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="capVr">Vert. Radius (Vr): <span id="capVrVal">16px</span></label>
-                        <input type="range" id="capVr" min="0" max="100" value="16">
+                        <label for="capVr">Vert. Radius (Vr): <span id="capVrVal">28px</span></label>
+                        <input type="range" id="capVr" min="0" max="100" value="28">
                     </div>
                     <div class="control-group">
-                        <label for="capHr">Horiz. Radius (Hr): <span id="capHrVal">16px</span></label>
-                        <input type="range" id="capHr" min="0" max="100" value="16">
+                        <label for="capHr">Horiz. Radius (Hr): <span id="capHrVal">13px</span></label>
+                        <input type="range" id="capHr" min="0" max="160" value="13">
                     </div>
                 </div>
             </div>
@@ -495,11 +497,11 @@
         }
 
         // Track Caplet Generation Factory
-        function buildCapletStyleElement(bg, textHex, fs, h, p, vr, hr, isInterchange = false) {
+        function buildCapletStyleElement(bg, textHex, fs, h, p, vr, hr, isInterchange = false, isFaded = false) {
             const wrapper = document.createElement('div');
             wrapper.className = 'outer-capsule';
             wrapper.style.padding = '2px';
-            wrapper.style.background = '#ffffff';
+            wrapper.style.background = '#ffffff'; 
             wrapper.style.display = 'inline-flex';
             wrapper.style.alignItems = 'center';
             wrapper.style.justifyContent = 'center';
@@ -509,7 +511,6 @@
             const inner = document.createElement('div');
             inner.className = 'inner-capsule';
             
-            // Proportional scaling parameters
             const currentScale = isInterchange ? parseFloat(icScale.value) : 1.0;
             const finalH = h * currentScale;
             const finalP = p * currentScale;
@@ -520,8 +521,6 @@
             wrapper.style.borderRadius = `${finalHr}px / ${finalVr}px`;
             
             inner.style.height = `${finalH}px`;
-            inner.style.paddingLeft = `${finalP}px`;
-            inner.style.paddingRight = `${finalP}px`;
             inner.style.backgroundColor = bg;
             inner.style.color = textHex;
             inner.style.fontSize = `${finalFs}px`;
@@ -532,11 +531,24 @@
             inner.style.alignItems = 'center';
             inner.style.justifyContent = 'center';
             inner.style.boxSizing = 'border-box';
-            inner.style.whiteSpace = 'nowrap'; // Blocks wrapping mechanics permanently
+            inner.style.whiteSpace = 'nowrap';
             
-            // Locks layout symmetry for shorter codes (e.g. "CC 1" matches "NS 24")
-            inner.style.minWidth = `${finalH * 1.5}px`; 
+            if (isInterchange) {
+                inner.style.width = '100%';
+                inner.style.paddingLeft = '0px';
+                inner.style.paddingRight = '0px';
+                const basePillRatio = 2.5; 
+                wrapper.style.width = `${finalH * basePillRatio}px`; 
+            } else {
+                inner.style.paddingLeft = `${finalP}px`;
+                inner.style.paddingRight = `${finalP}px`;
+                wrapper.style.width = 'auto';
+            }
 
+            if (isFaded) {
+                inner.style.opacity = '0.35';
+            }
+            
             wrapper.appendChild(inner);
             return { wrapper, inner };
         }
@@ -665,7 +677,6 @@
                 const col = document.createElement('div');
                 col.className = 'station-column';
                 col.style.width = `${horizontalStepDistance}px`;
-                col.style.opacity = isFaded ? '0.35' : '1';
 
                 // Geometry Variables Setup
                 const H = parseInt(capH.value);
@@ -685,6 +696,7 @@
                 labelTxt.className = 'station-label-text';
                 labelTxt.innerText = station.name;
                 labelTxt.style.fontSize = fsStationName.value + 'px';
+                labelTxt.style.opacity = isFaded ? '0.35' : '1';
 
                 if (textOrientation.value === 'tilt-right') {
                     labelTxt.style.transform = 'rotate(-45deg)';
@@ -718,8 +730,7 @@
                 nodeContainer.className = 'node-container';
                 nodeContainer.style.top = Y + 'px';
                 
-                const mainCaplet = buildCapletStyleElement(activeLineColor, getContrastColor(activeLineColor), Fs, H, P, Vr, Hr, false);
-                mainCaplet.inner.innerText = station.code.toUpperCase();
+                const mainCaplet = buildCapletStyleElement(activeLineColor, getContrastColor(activeLineColor), Fs, H, P, Vr, Hr, false, isFaded);
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
@@ -729,6 +740,7 @@
                     const icWrapper = document.createElement('div');
                     icWrapper.className = 'interchanges-wrapper';
                     icWrapper.style.top = `${Y + (actualCapletHeight / 2) + G}px`;
+                    icWrapper.style.opacity = isFaded ? '0.35' : '1';
                     
                     if (interchangeLayout.value === 'stacked') {
                         icWrapper.style.flexDirection = 'column';
@@ -744,9 +756,7 @@
                         icTokensCount++;
                         const icBgColor = getAutoColor(token);
                         
-                        // isInterchange = true scales horizontally and dynamically without layout constraint
-                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true);
-                        icCaplet.inner.innerText = token.trim().toUpperCase();
+                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true, false);
                         icWrapper.appendChild(icCaplet.wrapper);
                     });
                     col.appendChild(icWrapper);
