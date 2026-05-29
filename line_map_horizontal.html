@@ -138,20 +138,6 @@
         .btn-delete { background-color: #fee2e2; color: #ef4444; }
         .btn-delete:hover { background-color: #fca5a5; }
 
-        .btn-download {
-            background-color: #1e293b;
-            color: white;
-            width: 100%;
-            padding: 14px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
-        }
-        .btn-download:hover { background-color: #0f172a; }
-
         /* --- Map Preview Screen Canvas --- */
         .map-viewport {
             width: 100%;
@@ -177,21 +163,22 @@
             display: flex;
             align-items: flex-start;
             position: relative;
-            height: 380px; /* Fixed height container to prevent clipping */
             padding: 0 50px;
             flex-grow: 1;
+            min-height: 440px; /* Secure height to safely map long interchange stacks */
         }
 
-        /* Continuous Track Line (Anchor Point) */
+        /* Continuous Track Line */
         .track-line-underlay {
             position: absolute;
             left: 0;
             right: 0;
             height: 14px;
             background-color: #9900aa;
-            top: 180px; /* Unified horizontal baseline anchor */
+            top: 190px; /* Grounded horizontal baseline anchor */
             z-index: 1;
             transition: all 0.2s;
+            transform: translateY(-50%);
         }
 
         .station-column {
@@ -205,13 +192,12 @@
         }
 
         .station-label-wrapper {
-            position: absolute;
-            top: 20px;
-            height: 135px;
+            height: 150px;
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            width: 200px;
+            width: 100%;
+            margin-bottom: 15px;
         }
 
         .station-label-text {
@@ -227,10 +213,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: absolute;
-            top: 187px; /* Center-aligned perfectly with the 14px track line */
-            transform: translateY(-50%);
             z-index: 3;
+            margin-bottom: 15px;
         }
 
         /* Base Caplet Engine Styles */
@@ -253,17 +237,14 @@
         }
 
         .interchanges-wrapper {
-            position: absolute;
-            top: 230px; /* Anchored safely below the main track line */
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             z-index: 2;
+            margin-bottom: 15px;
         }
 
         .direction-arrow-box {
-            position: absolute;
-            top: 320px; /* Adjusted to sit comfortably at the lowest layout track tier */
             width: 26px;
             height: 26px;
             background-color: #000000;
@@ -272,6 +253,8 @@
             align-items: center;
             justify-content: center;
             z-index: 4;
+            margin-top: auto;
+            margin-bottom: 10px;
         }
 
         .direction-arrow-box::before {
@@ -287,7 +270,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 20px;
             box-sizing: border-box;
             width: 100%;
         }
@@ -359,8 +342,8 @@
                         <input type="range" id="fsStationName" min="12" max="28" value="16">
                     </div>
                     <div class="control-group">
-                        <label for="fsCapletCode">Caplet Text Font: <span id="fsCapletCodeVal">13px</span></label>
-                        <input type="range" id="fsCapletCode" min="10" max="24" value="13">
+                        <label for="fsCapletCode">Caplet Text Font: <span id="fsCapletCodeVal">40px</span></label>
+                        <input type="range" id="fsCapletCode" min="16" max="60" value="40">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -377,8 +360,8 @@
                         <input type="range" id="capP" min="5" max="60" value="25">
                     </div>
                     <div class="control-group">
-                        <label for="capH">Caplet Height: <span id="capHVal">32px</span></label>
-                        <input type="range" id="capH" min="20" max="80" value="32">
+                        <label for="capH">Caplet Height: <span id="capHVal">78px</span></label>
+                        <input type="range" id="capH" min="30" max="130" value="78">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -394,7 +377,7 @@
             </div>
         </div>
 
-        <button class="btn-download" id="downloadMapBtn">Export Complete Horizontal Route Map Template</button>
+        <button class="btn-download" id="downloadMapBtn" style="background-color: #1e293b; color: white; width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);">Export Complete Horizontal Route Map Template</button>
     </div>
 
     <div class="map-viewport">
@@ -411,14 +394,14 @@
 
     <script>
         const standardLines = [
-            { name: "North East Line (NEL)", prefix: "NE", color: "#9900aa" },
-            { name: "North–South Line (NSL)", prefix: "NS", color: "#d42e12" },
-            { name: "East–West Line (EWL)", prefix: "EW", color: "#009645" },
-            { name: "Circle Line (CCL)", prefix: "CC", color: "#fa9e0d" },
-            { name: "Downtown Line (DTL)", prefix: "DT", color: "#005ec4" },
-            { name: "Thomson–East Coast Line (TEL)", prefix: "TE", color: "#9D5B25" },
-            { name: "Cross Island Line (CRL)", prefix: "CR", color: "#97C616" },
-            { name: "Jurong Region Line (JRL)", prefix: "JW", color: "#0099aa" },
+            { name: "North East Line (NEL)", prefix: "NEL", color: "#9900aa" },
+            { name: "North–South Line (NSL)", prefix: "NSL", color: "#d42e12" },
+            { name: "East–West Line (EWL)", prefix: "EWL", color: "#009645" },
+            { name: "Circle Line (CCL)", prefix: "CCL", color: "#fa9e0d" },
+            { name: "Downtown Line (DTL)", prefix: "DTL", color: "#005ec4" },
+            { name: "Thomson–East Coast Line (TEL)", prefix: "TEL", color: "#9D5B25" },
+            { name: "Cross Island Line (CRL)", prefix: "CRL", color: "#97C616" },
+            { name: "Jurong Region Line (JRL)", prefix: "JRL", color: "#0099aa" },
             { name: "[ Create Custom Profile ]", prefix: "CUST", color: "#custom" }
         ];
 
@@ -488,6 +471,7 @@
             return '#ffffff';
         }
 
+        // Standard Track Caplet Builder Element
         function buildCapletStyleElement(bg, textHex, fs, h, p, vr, hr) {
             const wrapper = document.createElement('div');
             wrapper.className = 'outer-capsule';
@@ -503,10 +487,47 @@
             inner.style.backgroundColor = bg;
             inner.style.color = textHex;
             inner.style.fontSize = `${fs}px`;
+            inner.style.fontFamily = "'MRT-Identity', Arial, sans-serif"; /* Global Font Enforcement */
+            inner.style.fontWeight = '700';
             inner.style.borderRadius = `${hr}px / ${vr}px`;
+            inner.style.display = 'flex';
+            inner.style.alignItems = 'center';
+            inner.style.justifyContent = 'center';
             
             wrapper.appendChild(inner);
             return { wrapper, inner };
+        }
+
+        // Distinct Ribbon Banner Caplet Builder (Hollow White Border Configuration)
+        function buildBannerCapletStyleElement(text, fs, h, p, vr, hr) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'outer-capsule-banner';
+            wrapper.style.display = 'inline-flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.style.justifyContent = 'center';
+            wrapper.style.boxSizing = 'border-box';
+            wrapper.style.overflow = 'hidden';
+            wrapper.style.border = '3px solid #ffffff'; 
+            wrapper.style.borderRadius = `${hr}px / ${vr}px`;
+            
+            const inner = document.createElement('div');
+            inner.className = 'inner-capsule-banner';
+            inner.style.display = 'inline-flex';
+            inner.style.alignItems = 'center';
+            inner.style.justifyContent = 'center';
+            inner.style.boxSizing = 'border-box';
+            inner.style.height = `${h}px`;
+            inner.style.paddingLeft = `${p}px`;
+            inner.style.paddingRight = `${p}px`;
+            inner.style.color = '#ffffff'; 
+            inner.style.fontSize = `${fs}px`;
+            inner.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
+            inner.style.fontWeight = '700';
+            inner.style.borderRadius = `${hr}px / ${vr}px`;
+            inner.innerText = text;
+            
+            wrapper.appendChild(inner);
+            return wrapper;
         }
 
         function renderControlsRows() {
@@ -527,7 +548,6 @@
                     <button class="btn-action btn-delete">✕</button>
                 `;
 
-                // Event Listeners for Matrix Fields
                 row.querySelector('.input-code').addEventListener('input', (e) => { stationsState[idx].code = e.target.value; updateMapRenderer(); });
                 row.querySelector('.input-name').addEventListener('input', (e) => { stationsState[idx].name = e.target.value; updateMapRenderer(); });
                 row.querySelector('.input-interchanges').addEventListener('input', (e) => { stationsState[idx].interchanges = e.target.value; updateMapRenderer(); });
@@ -548,7 +568,6 @@
         }
 
         function updateMapRenderer() {
-            // Read State Metrics
             const totalW = parseInt(mapWidth.value);
             mapWidthVal.innerText = totalW + 'px';
             lineMapContainer.style.width = totalW + 'px';
@@ -557,36 +576,28 @@
             trackLineUnderlay.style.backgroundColor = activeLineColor;
             bottomIdentityBand.style.backgroundColor = activeLineColor;
 
-            // Labels Text Matrix Update
-            const selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value) || {name: "Custom Route Line", prefix: "SYS"};
+            const selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value) || {name: "Custom Route Line", prefix: "CUST"};
             bandLineNameText.innerText = selectedLineObj.name.replace(/\s\([^)]*\)$/, ""); 
             bandLineNameText.style.fontSize = fsBandName.value + 'px';
 
-            // Clear out existing dynamic nodes safely
             const dynamicNodes = routeVisualArea.querySelectorAll('.station-column');
             dynamicNodes.forEach(node => node.remove());
 
-            // Build Ribbon Line Banner Label Configs
+            // Render Banner Caplet
             bandCapletWrapper.innerHTML = '';
-            const bannerCapConfig = buildCapletStyleElement(
-                '#ffffff', 
-                activeLineColor, 
-                parseInt(fsCapletCode.value) + 2, 
-                parseInt(capH.value), 
+            const bannerCap = buildBannerCapletStyleElement(
+                selectedLineObj.prefix,
+                parseInt(fsCapletCode.value), 
+                parseInt(capH.value) * 0.9, 
                 parseInt(capP.value), 
                 parseInt(capVr.value), 
                 parseInt(capHr.value)
             );
-            bannerCapConfig.inner.innerText = selectedLineObj.prefix;
-            bannerCapConfig.inner.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
-            bannerCapConfig.inner.style.fontWeight = '900';
-            bandCapletWrapper.appendChild(bannerCapConfig.wrapper);
+            bandCapletWrapper.appendChild(bannerCap);
 
-            // Calculate Station Plotting Distances
             const nodeCount = stationsState.length;
             const horizontalStepDistance = (totalW - 100) / (nodeCount > 1 ? nodeCount : 1);
             
-            // Track Splitting Detection Logic Variable
             let globalFadingActive = false;
 
             stationsState.forEach((station, idx) => {
@@ -601,7 +612,7 @@
                 
                 if (station.fadeSplit) col.style.opacity = '1'; 
 
-                // --- 1. Typography Handling System ---
+                // --- 1. Typography Structural Matrix ---
                 const labelWrap = document.createElement('div');
                 labelWrap.className = 'station-label-wrapper';
                 
@@ -610,7 +621,6 @@
                 labelTxt.innerText = station.name;
                 labelTxt.style.fontSize = fsStationName.value + 'px';
 
-                // Handle Orientation Vector Settings
                 if (textOrientation.value === 'tilt-right') {
                     labelTxt.style.transform = 'rotate(-45deg)';
                 } else if (textOrientation.value === 'tilt-left') {
@@ -624,7 +634,7 @@
                 labelWrap.appendChild(labelTxt);
                 col.appendChild(labelWrap);
 
-                // --- 2. Station Main Track Node Generation ---
+                // --- 2. Track Node (Main System Caplet) ---
                 const nodeContainer = document.createElement('div');
                 nodeContainer.className = 'node-container';
                 
@@ -641,7 +651,7 @@
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // --- 3. Interchange Matrix Parsing Layer ---
+                // --- 3. Interchange Matrix (Uniform Dimensions) ---
                 if (station.interchanges.trim().length > 0) {
                     const icWrapper = document.createElement('div');
                     icWrapper.className = 'interchanges-wrapper';
@@ -656,12 +666,14 @@
                     icTokens.forEach(token => {
                         if(!token.trim()) return;
                         const icBgColor = getAutoColor(token);
+                        
+                        // Exact duplicate dimensions matching main track configs
                         const icCaplet = buildCapletStyleElement(
                             icBgColor,
                             getContrastColor(icBgColor),
-                            parseInt(fsCapletCode.value) - 1,
-                            parseInt(capH.value) * 0.85, 
-                            parseInt(capP.value) * 0.7,
+                            parseInt(fsCapletCode.value), 
+                            parseInt(capH.value), 
+                            parseInt(capP.value), 
                             parseInt(capVr.value),
                             parseInt(capHr.value)
                         );
@@ -671,7 +683,7 @@
                     col.appendChild(icWrapper);
                 }
 
-                // --- 4. Render Split Direction Target Arrow Asset ---
+                // --- 4. Render Active Split Point Direction Arrow ---
                 if (station.fadeSplit) {
                     const arrowBox = document.createElement('div');
                     arrowBox.className = 'direction-arrow-box';
@@ -681,7 +693,7 @@
                 routeVisualArea.appendChild(col);
             });
 
-            // Display Value Indicator Sliders text mapping updates
+            // Sync Value Indicators
             document.getElementById('fsStationNameVal').innerText = fsStationName.value + 'px';
             document.getElementById('fsCapletCodeVal').innerText = fsCapletCode.value + 'px';
             document.getElementById('fsBandNameVal').innerText = fsBandName.value + 'px';
@@ -691,13 +703,11 @@
             document.getElementById('capHrVal').innerText = capHr.value + 'px';
         }
 
-        // Toggle visibility triggers
         systemLineSelect.addEventListener('change', (e) => {
             customLineColor.style.display = (e.target.value === '#custom') ? 'block' : 'none';
             updateMapRenderer();
         });
 
-        // Setup Control Event Listeners array maps
         [customLineColor, mapWidth, textOrientation, interchangeLayout, fsStationName, fsCapletCode, fsBandName, capP, capH, capVr, capHr].forEach(ctrl => {
             ctrl.addEventListener('input', updateMapRenderer);
             ctrl.addEventListener('change', updateMapRenderer);
@@ -705,13 +715,12 @@
 
         addStationBtn.addEventListener('click', () => {
             if(stationsState.length < 50) {
-                stationsState.push({ code: "NE 18", name: "New Station Spec", interchanges: "" });
+                stationsState.push({ code: "NE 18", name: "New Station Node", interchanges: "" });
                 renderControlsRows();
                 updateMapRenderer();
             }
         });
 
-        // Initialize App Engine
         renderControlsRows();
         updateMapRenderer();
 
