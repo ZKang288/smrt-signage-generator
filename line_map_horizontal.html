@@ -392,6 +392,32 @@
                     </div>
                 </div>
 
+                <div class="section-title" style="margin-top:20px;">Destination Numbers (Optional)</div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                    <input type="checkbox" id="showDestNumbers" checked style="width: auto; cursor: pointer;">
+                    <label for="showDestNumbers" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Enable Destination Numbers</label>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="destStartInput">Start Terminal Number</label>
+                        <input type="text" id="destStartInput" value="7">
+                    </div>
+                    <div class="control-group">
+                        <label for="destEndInput">End Terminal Number</label>
+                        <input type="text" id="destEndInput" value="6">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="destSizeSlider">Circle Diameter: <span id="destSizeVal">32px</span></label>
+                        <input type="range" id="destSizeSlider" min="16" max="64" value="32">
+                    </div>
+                    <div class="control-group">
+                        <label for="destFontSizeSlider">Font Size: <span id="destFontSizeVal">16px</span></label>
+                        <input type="range" id="destFontSizeSlider" min="10" max="36" value="16">
+                    </div>
+                </div>
+
                 <div class="section-title" style="margin-top:20px;">Line Banner (Bottom Ribbon)</div>
                 <div class="control-group">
                     <label for="customBandLineName">Custom Line Name (Override)</label>
@@ -552,6 +578,12 @@
         const arrowSize           = document.getElementById('arrowSize');
         const arrowFontSize       = document.getElementById('arrowFontSize');
 
+        const showDestNumbers     = document.getElementById('showDestNumbers');
+        const destStartInput      = document.getElementById('destStartInput');
+        const destEndInput        = document.getElementById('destEndInput');
+        const destSizeSlider      = document.getElementById('destSizeSlider');
+        const destFontSizeSlider  = document.getElementById('destFontSizeSlider');
+
         // Populate Options
         standardLines.forEach(line => {
             const opt = document.createElement('option');
@@ -707,7 +739,8 @@
 
         function renderOneMap({
             stations, visualArea, trackUnderlay, bandEl, capletWrapperEl, nameTextEl,
-            activeLineColor, totalW, arrowRight, selectedLineObj, finalPrefix
+            activeLineColor, totalW, arrowRight, selectedLineObj, finalPrefix,
+            showDest, destLeft, destRight, destSize, destFS
         }) {
             const Y = parseInt(trackLineY.value);
             const G = parseInt(interchangeGap.value);
@@ -726,10 +759,9 @@
             // Set label tilt based on arrow direction
             const effectiveTilt = arrowRight ? 'tilt-left' : 'tilt-right';
             const orientVal = textOrientation.value;
-            // Only auto-override tilt if user picked a tilt mode, not horizontal/vertical
             const useTilt = (orientVal === 'tilt-left' || orientVal === 'tilt-right')
-                ? effectiveTilt   // override with direction
-                : orientVal;      // honour horizontal / vertical / alternate as-is
+                ? effectiveTilt   
+                : orientVal;      
 
             // Band
             nameTextEl.innerText = customBandLineName.value.trim()
@@ -830,7 +862,7 @@
                 labelWrap.appendChild(labelTxt);
                 col.appendChild(labelWrap);
 
-                // Node
+                // Node Container
                 const nodeContainer = document.createElement('div');
                 nodeContainer.className = 'node-container';
                 nodeContainer.style.top = Y + 'px';
@@ -839,19 +871,70 @@
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
+                // Optional Destination Numbers Placement
+                if (showDest) {
+                    if (idx === 0 && destLeft && destLeft !== "") {
+                        const destCircle = document.createElement('div');
+                        destCircle.style.cssText = `
+                            position: absolute;
+                            right: calc(100% + 16px);
+                            width: ${destSize}px;
+                            height: ${destSize}px;
+                            border-radius: 50%;
+                            background-color: ${activeLineColor};
+                            border: 2px solid #ffffff;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: #ffffff;
+                            font-family: 'MRT-Identity', Arial, sans-serif;
+                            font-size: ${destFS}px;
+                            font-weight: 700;
+                            box-sizing: border-box;
+                            box-shadow: 0 0 4px rgba(0,0,0,0.15);
+                            transition: opacity 0.2s;
+                        `;
+                        if (isFaded) destCircle.style.opacity = '0.35';
+                        destCircle.innerText = destLeft;
+                        nodeContainer.appendChild(destCircle);
+                    }
+                    if (idx === nodeCount - 1 && destRight && destRight !== "") {
+                        const destCircle = document.createElement('div');
+                        destCircle.style.cssText = `
+                            position: absolute;
+                            left: calc(100% + 16px);
+                            width: ${destSize}px;
+                            height: ${destSize}px;
+                            border-radius: 50%;
+                            background-color: ${activeLineColor};
+                            border: 2px solid #ffffff;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: #ffffff;
+                            font-family: 'MRT-Identity', Arial, sans-serif;
+                            font-size: ${destFS}px;
+                            font-weight: 700;
+                            box-sizing: border-box;
+                            box-shadow: 0 0 4px rgba(0,0,0,0.15);
+                            transition: opacity 0.2s;
+                        `;
+                        if (isFaded) destCircle.style.opacity = '0.35';
+                        destCircle.innerText = destRight;
+                        nodeContainer.appendChild(destCircle);
+                    }
+                }
+
                 // Interchanges
                 if (icTokensCount > 0) {
                     const icWrapper = document.createElement('div');
                     icWrapper.className = 'interchanges-wrapper';
-                    // Side-by-side: unified caplet centres on track (replaces main node)
-                    // Stacked: sits below the main caplet
                     icWrapper.style.top = interchangeLayout.value === 'side-by-side'
                         ? `${Y - (H * parseFloat(icScale.value)) / 2}px`
                         : `${Y + (actualCapletHeight / 2) + G}px`;
                     icWrapper.style.opacity = '1';
                     icWrapper.style.zIndex = '4';
 
-                    // Parse interchange tokens
                     const icTokensParsed = station.interchanges.split(',').filter(t => t.trim()).map(token => {
                         let displayToken = token.trim();
                         let icBgColor = getAutoColor(displayToken);
@@ -861,14 +944,12 @@
                     });
 
                     if (interchangeLayout.value === 'side-by-side') {
-                        // ── Unified multi-segment caplet ──────────────────────────────
-                        // All codes in one pill: main station first, then interchanges
                         const scale = parseFloat(icScale.value);
                         const uH  = H * scale;
                         const uFs = Fs * scale;
                         const uVr = Vr * scale;
                         const uHr = Hr * scale;
-                        const bw  = 2; // border width
+                        const bw  = 2; 
 
                         const allSegments = [
                             { code: station.code.toUpperCase(), color: activeLineColor },
@@ -897,7 +978,7 @@
                         `;
 
                         if (isFaded) {
-                            innerRow.style.opacity = '0.35';
+                            innerRow.style.backgroundColor = '#ffffff';
                         }
 
                         allSegments.forEach((seg, i) => {
@@ -921,6 +1002,9 @@
                                 box-sizing: border-box;
                                 height: 100%;
                             `;
+                            if (isFaded) {
+                                segEl.style.opacity = '0.35';
+                            }
                             segEl.textContent = seg.code;
                             innerRow.appendChild(segEl);
                         });
@@ -928,12 +1012,9 @@
                         outer.appendChild(innerRow);
                         icWrapper.style.flexDirection = 'row';
                         icWrapper.appendChild(outer);
-
-                        // Hide the original main caplet node since it's now in the unified pill
                         nodeContainer.style.display = 'none';
 
                     } else {
-                        // ── Stacked: individual caplets as before ─────────────────────
                         icWrapper.style.flexDirection = 'column';
                         icWrapper.style.gap = `${G}px`;
                         icTokensParsed.forEach(({ code, color }) => {
@@ -960,7 +1041,6 @@
                     } else { aTop += G + 10; }
                     arrowBox.style.top = aTop + 'px';
 
-                    // Arrow circle — SVG arrow for reliable rendering in export
                     const circle = document.createElement('div');
                     circle.style.cssText = `
                         width:${aSize}px; height:${aSize}px; border-radius:50%;
@@ -1009,7 +1089,6 @@
             const mode = directionMode.value;
             const isDual = mode.startsWith('dual');
 
-            // Show/hide dual note
             document.getElementById('dualModeNote').style.display = isDual ? 'block' : 'none';
 
             const activeLineColor = (systemLineSelect.value === '#custom') ? customLineColor.value : systemLineSelect.value;
@@ -1022,7 +1101,7 @@
             lineMapContainerB.style.width = totalW + 'px';
             lineMapContainerB.style.display = isDual ? 'block' : 'none';
 
-            // Arrow direction per mode
+            // Arrow direction configuration
             let arrowRightA, arrowRightB;
             if (mode === 'single-right')        { arrowRightA = true;  arrowRightB = false; }
             else if (mode === 'single-left')    { arrowRightA = false; arrowRightB = false; }
@@ -1031,6 +1110,24 @@
             else if (mode === 'dual-both-right'){ arrowRightA = true;  arrowRightB = true;  }
             else if (mode === 'dual-both-left') { arrowRightA = false; arrowRightB = false; }
             else                                { arrowRightA = true;  arrowRightB = false; }
+
+            // Dynamic Terminal Destination Configurations
+            const showDest = showDestNumbers.checked;
+            const destStart = destStartInput.value.trim();
+            const destEnd = destEndInput.value.trim();
+            const destSize = parseInt(destSizeSlider.value);
+            const destFS = parseInt(destFontSizeSlider.value);
+
+            let destLeftA = destStart;
+            let destRightA = destEnd;
+            let destLeftB = destStart;
+            let destRightB = destEnd;
+
+            const sameDirection = (mode === 'dual-both-right' || mode === 'dual-both-left');
+            if (isDual && sameDirection) {
+                destLeftB = destEnd;
+                destRightB = destStart;
+            }
 
             // Map A
             renderOneMap({
@@ -1042,24 +1139,20 @@
                 nameTextEl: bandLineNameText,
                 activeLineColor, totalW,
                 arrowRight: arrowRightA,
-                selectedLineObj, finalPrefix
+                selectedLineObj, finalPrefix,
+                showDest, destLeft: destLeftA, destRight: destRightA, destSize, destFS
             });
 
-            // Map B:
-            //   Opposite directions → same station order, fade flips (arrow conveys direction)
-            //   Same direction      → reversed station order, so terminals differ
+            // Map B
             if (isDual) {
-                const sameDirection = (mode === 'dual-both-right' || mode === 'dual-both-left');
                 let stationsB;
                 if (sameDirection) {
-                    // Reverse order and remap fadeSplit to mirrored index
                     const origSplitIdx = stationsState.findIndex(s => s.fadeSplit);
                     stationsB = [...stationsState].reverse().map((s, i) => ({
                         ...s,
                         fadeSplit: origSplitIdx !== -1 && i === (stationsState.length - 1 - origSplitIdx)
                     }));
                 } else {
-                    // Same order — arrow direction + fade flip conveys which way you're going
                     stationsB = stationsState;
                 }
                 renderOneMap({
@@ -1071,11 +1164,12 @@
                     nameTextEl: bandLineNameTextB,
                     activeLineColor, totalW,
                     arrowRight: arrowRightB,
-                    selectedLineObj, finalPrefix
+                    selectedLineObj, finalPrefix,
+                    showDest, destLeft: destLeftB, destRight: destRightB, destSize, destFS
                 });
             }
 
-            // Sync value indicators
+            // Sync structural values text indicators
             document.getElementById('trackLineYVal').innerText      = trackLineY.value + 'px';
             document.getElementById('interchangeGapVal').innerText  = interchangeGap.value + 'px';
             document.getElementById('icScaleVal').innerText         = Math.round(parseFloat(icScale.value) * 100) + '%';
@@ -1094,6 +1188,8 @@
             document.getElementById('capHrVal').innerText           = capHr.value + 'px';
             document.getElementById('arrowSizeVal').innerText       = arrowSize.value + 'px';
             document.getElementById('arrowFontSizeVal').innerText   = arrowFontSize.value + 'px';
+            document.getElementById('destSizeVal').innerText        = destSizeSlider.value + 'px';
+            document.getElementById('destFontSizeVal').innerText    = destFontSizeSlider.value + 'px';
         }
 
         systemLineSelect.addEventListener('change', (e) => {
@@ -1101,7 +1197,7 @@
             updateMapRenderer();
         });
 
-        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName, customBandLinePrefix, directionMode, arrowSize, arrowFontSize].forEach(ctrl => {
+        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName, customBandLinePrefix, directionMode, arrowSize, arrowFontSize, showDestNumbers, destStartInput, destEndInput, destSizeSlider, destFontSizeSlider].forEach(ctrl => {
             ctrl.addEventListener('input', updateMapRenderer);
             ctrl.addEventListener('change', updateMapRenderer);
         });
@@ -1122,10 +1218,9 @@
             const isDual = directionMode.value.startsWith('dual');
             document.fonts.ready.then(async () => {
                 if (isDual) {
-                    // Capture both maps and stitch vertically
                     const canvasA = await html2canvas(lineMapContainer,  { scale:2, logging:false, useCORS:true, backgroundColor:'#ffffff' });
                     const canvasB = await html2canvas(lineMapContainerB, { scale:2, logging:false, useCORS:true, backgroundColor:'#ffffff' });
-                    const gap = 8 * 2; // 8px gap at scale 2
+                    const gap = 8 * 2; 
                     const stitched = document.createElement('canvas');
                     stitched.width  = Math.max(canvasA.width, canvasB.width);
                     stitched.height = canvasA.height + gap + canvasB.height;
