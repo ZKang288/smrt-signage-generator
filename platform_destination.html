@@ -3,10 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MRT Platform Signage Generator - Route Map</title>
+    <title>MRT Platform Destination Signage Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        /* --- Font Setup --- */
+        /* --- Core Animations & Enhanced Effects --- */
+        .outer-capsule {
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+        .outer-capsule:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.02);
+        }
+        .inner-capsule {
+            transition: background-color 0.2s ease, opacity 0.2s ease;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        }
+        .caplet-compact .outer-capsule { transform: scale(0.85); }
+        .caplet-expanded .outer-capsule { transform: scale(1.15); }
+        .caplet-glow .inner-capsule {
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.5), 0 0 0 4px currentColor;
+        }
+        @keyframes capletPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.02); }
+        }
+        .interchanges-wrapper .outer-capsule {
+            animation: capletPulse 2s ease-in-out infinite;
+        }
+
+        /* --- UI Styling --- */
         @font-face {
             font-family: 'MRT-Identity';
             src: url('LTA_Identity-Medium.ttf') format('truetype');
@@ -14,7 +40,6 @@
             font-style: normal;
             font-display: swap;
         }
-
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background-color: #f0f4f8;
@@ -25,20 +50,9 @@
             align-items: center;
             color: #1e293b;
         }
-
-        h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            color: #0f172a;
-        }
-
-        p.subtitle {
-            margin: 0;
-            margin-bottom: 30px;
-            color: #64748b;
-        }
-
+        h1 { font-size: 28px; font-weight: 700; margin-bottom: 5px; color: #0f172a; }
+        p.subtitle { margin: 0 zero 30px; margin-bottom: 30px; color: #64748b; }
+        
         .container {
             width: 100%;
             max-width: 1200px;
@@ -49,18 +63,15 @@
             margin-bottom: 35px;
             box-sizing: border-box;
         }
-
         .editor-regions {
             display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
+            grid-template-columns: 1fr 1fr;
             gap: 30px;
             margin-bottom: 25px;
         }
-
         @media (max-width: 992px) {
             .editor-regions { grid-template-columns: 1fr; }
         }
-
         .section-title {
             font-size: 16px;
             font-weight: 600;
@@ -68,24 +79,18 @@
             margin-bottom: 15px;
             border-bottom: 2px solid #f1f5f9;
             padding-bottom: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-
         .control-group {
             display: flex;
             flex-direction: column;
             margin-bottom: 15px;
         }
-
         .control-group label {
             font-size: 13px;
             font-weight: 600;
             color: #475569;
             margin-bottom: 6px;
         }
-
         .control-group input, .control-group select {
             padding: 10px 14px;
             border: 1px solid #cbd5e1;
@@ -95,538 +100,360 @@
             color: #1e293b;
             outline: none;
         }
+        .control-group input[type="range"] { padding: 5px 0; cursor: pointer; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
+        .checkbox-group input { cursor: pointer; width: auto; }
 
-        .control-group input[type="range"] {
-            padding: 5px 0;
-            cursor: pointer;
-        }
-
-        /* --- Stations List Table --- */
-        .station-manager {
-            max-height: 450px;
-            overflow-y: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 10px;
-            background: #f8fafc;
-        }
-
-        .station-row {
-            display: grid;
-            grid-template-columns: auto 80px 140px 140px 50px 40px;
-            gap: 8px;
-            align-items: center;
-            padding: 8px;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            margin-bottom: 6px;
-        }
-
-        .btn-action {
-            padding: 8px 12px;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 6px;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-
-        .btn-add { background-color: #004c54; color: white; width: 100%; margin-top: 10px; font-size: 14px; padding: 12px;}
-        .btn-add:hover { background-color: #00333a; }
-        .btn-delete { background-color: #fee2e2; color: #ef4444; }
-        .btn-delete:hover { background-color: #fca5a5; }
-
-        /* --- Map Preview Screen Canvas --- */
+        /* --- Canvas Framework Viewport --- */
         .map-viewport {
             width: 100%;
             overflow-x: auto;
             background: #cbd5e1;
-            padding: 40px 0;
+            padding: 60px 0;
             border-radius: 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 16px;
         }
-
-        #line-map-container {
+        #signage-canvas {
             background-color: #ffffff;
+            border: 1px solid #94a3b8;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            position: relative;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            position: relative;
-            box-sizing: border-box;
+            justify-content: space-between;
+            overflow: hidden;
             user-select: none;
-            height: auto;
         }
-
-        .route-visual-area {
-            display: flex;
-            align-items: flex-start;
-            position: relative;
-            min-height: 480px; 
-            padding: 0 50px;
-            flex-grow: 1;
-        }
-
-        /* Continuous Track Line */
-        .track-line-underlay {
-            position: absolute;
-            left: 0;
-            right: 0;
-            z-index: 1;
-            transition: all 0.1s;
-        }
-
-        .track-segment {
-            transition: opacity 0.2s, background-color 0.2s;
-            transform: translateY(-50%);
-        }
-
-        .station-column {
-            position: relative;
-            z-index: 3;
-            box-sizing: border-box;
-            height: 100%;
-            isolation: isolate;
-        }
-
-        /* High Precision Label Anchor Framework */
-        .station-label-wrapper {
-            position: absolute;
-            left: 50%;
-            width: 0px;
-            height: 0px;
+        
+        /* --- Signage Internal Components Layout --- */
+        .signage-main-body {
             display: flex;
             align-items: center;
-            justify-content: center;
-            z-index: 5;
+            justify-content: space-between;
+            flex-grow: 1;
+            padding: 0 40px;
+            position: relative;
         }
-
-        .station-label-text {
+        .platform-indicator-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: 'MRT-Identity', Arial, sans-serif;
+            font-weight: 700;
+            text-align: center;
+        }
+        .platform-underline {
+            width: 70%;
+            height: 6px;
+            background-color: #000000;
+            margin-top: 2px;
+        }
+        
+        .signage-center-content {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-grow: 1;
+            justify-content: center;
+        }
+        .content-text-group {
+            display: flex;
             font-family: 'MRT-Identity', Arial, sans-serif;
             font-weight: 700;
             color: #1c1d1f;
+            align-items: center;
+            gap: 16px;
+        }
+        .layout-vertical {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .layout-vertical .caplets-inline-container {
+            margin-top: 4px;
+        }
+        .prefix-text {
+            color: #64748b;
+            font-weight: 500;
+            margin-right: 4px;
+        }
+        .destination-name {
             white-space: nowrap;
-            position: absolute;
-            transition: opacity 0.2s;
         }
-
-        .node-container {
-            position: absolute;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: flex;
+        .caplets-inline-container {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            z-index: 3;
+            gap: 8px;
         }
-
-        /* Enhanced Caplet Animations and Effects */
-        .outer-capsule {
-            transition: all 0.2s ease;
-            cursor: default;
-        }
-
-        .outer-capsule:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.02);
-        }
-
-        .inner-capsule {
-            transition: background-color 0.2s ease, opacity 0.2s ease;
-            text-shadow: 0 1px 1px rgba(0,0,0,0.1);
-        }
-
-        /* Pulse animation for interchange stations */
-        @keyframes capletPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.9; transform: scale(1.02); }
-        }
-
-        .interchanges-wrapper .outer-capsule {
-            animation: capletPulse 2s ease-in-out infinite;
-        }
-
-        .interchanges-wrapper {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            z-index: 4;
-            transition: opacity 0.2s;
-        }
-
-        .direction-arrow-box {
-            width: 26px;
-            height: 26px;
-            background-color: #000000;
+        
+        .arrow-circle-container {
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 4;
+            flex-shrink: 0;
         }
 
-        /* Bottom Color Identification Ribbon */
+        /* Bottom Ribbon Accent */
         .bottom-identity-band {
-            height: 75px;
+            height: 45px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 20px;
+            padding: 0 30px;
             box-sizing: border-box;
             width: 100%;
-            flex-shrink: 0; 
-            z-index: 10;
+            flex-shrink: 0;
         }
-
         .band-text {
             color: #ffffff;
             font-family: 'MRT-Identity', Arial, sans-serif;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 18px;
         }
+        
+        .btn-download {
+            background-color: #1e293b;
+            color: white;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
+            transition: background-color 0.2s;
+        }
+        .btn-download:hover { background-color: #0f172a; }
     </style>
 </head>
 <body>
 
     <nav style="margin-bottom: 20px; display: flex; gap: 15px;">
         <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Signage Generator</a>
-        <a href="map.html" style="color: #64748b; text-decoration: none;">🗺️ Platform Signage Generator</a>
-        <a href="line_map_horizontal.html" style="font-weight: bold; color: #004c54; text-decoration: none;">🚇 Route Map Generator</a>
+        <a href="line_map_horizontal.html" style="color: #64748b; text-decoration: none;">🚇 Route Map Generator</a>
+        <a href="#" style="font-weight: bold; color: #004c54; text-decoration: none;">🚏 Platform Destination Generator</a>
     </nav>
 
-    <h1>MRT Horizontal Route Map Generator</h1>
-    <p class="subtitle">Supports precision name layouts, dynamic track snapping, and scaling tools</p>
+    <h1>MRT Platform Destination Signage Generator</h1>
+    <p class="subtitle">Supports dynamic layout positioning, custom caplet stacking, and high fidelity color tokens</p>
 
     <div class="container">
         <div class="editor-regions">
             <div>
-                <div class="section-title">
-                    <span>Route Stations Lineup (Max 50)</span>
-                    <span style="font-size:12px; color:#64748b;">Fictional lines format: Code (#HEXCODE) e.g. SE 12 (#ff0055)</span>
-                </div>
-                <div class="station-manager" id="stationManagerContainer">
-                    </div>
-                <button class="btn-action btn-add" id="addStationBtn">+ Append New Station Node</button>
-            </div>
-
-            <div>
-                <div class="section-title">Global Map Settings</div>
+                <div class="section-title">System Line & Dimensions Settings</div>
                 <div class="control-group">
                     <label for="systemLineSelect">System Line Profile</label>
                     <select id="systemLineSelect"></select>
-                    <input type="color" id="customLineColor" class="color-picker-box" value="#9900aa" style="display:none; width:100%; height:40px; border-radius:8px; border:1px solid #cbd5e1; margin-top:8px; padding:0;">
+                    <input type="color" id="customLineColor" value="#fa9e0d" style="display:none; width:100%; height:40px; border-radius:8px; border:1px solid #cbd5e1; margin-top:8px; padding:0;">
                 </div>
-                
-                <div class="control-group">
-                    <label for="mapWidth">Canvas Width Dimensions: <span id="mapWidthVal">1800px</span></label>
-                    <input type="range" id="mapWidth" min="800" max="4000" value="1800">
-                </div>
-
-                <div class="section-title" style="margin-top:20px;">Dynamic Alignment Layouts</div>
-                <div class="control-group">
-                    <label for="trackLineY">Track Line Position (Vertical Alignment Y): <span id="trackLineYVal">300px</span></label>
-                    <input type="range" id="trackLineY" min="140" max="380" value="300">
-                </div>
-                <div class="control-group">
-                    <label for="interchangeGap">Interchange Spacing Gap: <span id="interchangeGapVal">2px</span></label>
-                    <input type="range" id="interchangeGap" min="1" max="10" value="2">
-                </div>
-                <div class="control-group">
-                    <label for="icScale">Interchange Caplet Scale (50% - 100%): <span id="icScaleVal">85%</span></label>
-                    <input type="range" id="icScale" min="0.5" max="1.0" value="0.85" step="0.05">
-                </div>
-                <div class="control-group">
-                    <label for="labelOffset">Station Label Clearance Offset: <span id="labelOffsetVal">20px</span></label>
-                    <input type="range" id="labelOffset" min="0" max="60" value="20">
-                </div>
-                <div class="control-group">
-                    <label for="textOrientation">Station Label Alignment Orientation</label>
-                    <select id="textOrientation">
-                        <option value="tilt-right">Tilted Upward Right (45°)</option>
-                        <option value="tilt-left">Tilted Upward Left (-45°)</option>
-                        <option value="horizontal">Flat Horizontal (0°)</option>
-                        <option value="horizontal-alternate">Flat Horizontal (Alternating Top/Bottom)</option>
-                        <option value="vertical">Strict Vertical (-90°)</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label for="interchangeLayout">Interchange Node Arrangement Alignment</label>
-                    <select id="interchangeLayout">
-                        <option value="stacked">Stacked Layout (Vertical Column)</option>
-                        <option value="side-by-side">Side-by-Side Layout (Horizontal Row)</option>
-                    </select>
-                </div>
-
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="fsStationName">Station Label Font (12px - 60px): <span id="fsStationNameVal">40px</span></label>
-                        <input type="range" id="fsStationName" min="12" max="60" value="40">
+                        <label for="canvasWidth">Canvas Width: <span id="canvasWidthVal">1200px</span></label>
+                        <input type="range" id="canvasWidth" min="800" max="2000" value="1200">
                     </div>
                     <div class="control-group">
-                        <label for="fsCapletCode">Caplet Text Font: <span id="fsCapletCodeVal">30px</span></label>
-                        <input type="range" id="fsCapletCode" min="10" max="60" value="30">
+                        <label for="canvasHeight">Canvas Height: <span id="canvasHeightVal">260px</span></label>
+                        <input type="range" id="canvasHeight" min="180" max="450" value="260">
                     </div>
                 </div>
 
-                <div class="section-title" style="margin-top:20px;">Direction Mode</div>
-                <div class="control-group">
-                    <label for="directionMode">Map Mode</label>
-                    <select id="directionMode">
-                        <option value="single-right">Single Map →</option>
-                        <option value="single-left">Single Map ←</option>
-                        <option value="dual-right-left">Dual Map: Top → Bottom ←</option>
-                        <option value="dual-left-right">Dual Map: Top ← Bottom →</option>
-                        <option value="dual-both-right">Dual Map: Both →</option>
-                        <option value="dual-both-left">Dual Map: Both ←</option>
-                    </select>
-                </div>
-                <div id="dualModeNote" style="display:none; font-size:12px; color:#64748b; margin-bottom:10px;">
-                    ℹ️ Dual mode stacks two maps. Station order is automatically reversed for the second map.
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="section-title" style="margin-top:20px;">Content & Typographic Engine</div>
+                <div style="display:grid; grid-template-columns:0.6fr 1.4fr; gap:10px;">
                     <div class="control-group">
-                        <label for="arrowSize">Arrow Circle Size: <span id="arrowSizeVal">36px</span></label>
-                        <input type="range" id="arrowSize" min="20" max="80" value="36">
-                    </div>
-                    <div class="control-group">
-                        <label for="arrowFontSize">Arrow Icon Size: <span id="arrowFontSizeVal">18px</span></label>
-                        <input type="range" id="arrowFontSize" min="10" max="48" value="18">
-                    </div>
-                </div>
-
-                <div class="section-title" style="margin-top:20px;">Destination Numbers (Optional)</div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                    <input type="checkbox" id="showDestNumbers" checked style="width: auto; cursor: pointer;">
-                    <label for="showDestNumbers" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Enable Destination Numbers</label>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="destStartInput">Start Terminal Number</label>
-                        <input type="text" id="destStartInput" value="7">
-                    </div>
-                    <div class="control-group">
-                        <label for="destEndInput">End Terminal Number</label>
-                        <input type="text" id="destEndInput" value="6">
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="destSizeSlider">Circle Diameter: <span id="destSizeVal">40px</span></label>
-                        <input type="range" id="destSizeSlider" min="16" max="64" value="40">
-                    </div>
-                    <div class="control-group">
-                        <label for="destFontSizeSlider">Font Size: <span id="destFontSizeVal">20px</span></label>
-                        <input type="range" id="destFontSizeSlider" min="10" max="36" value="20">
-                    </div>
-                </div>
-                <div class="control-group">
-                    <label for="destOffsetSlider">Destination Distance Offset: <span id="destOffsetVal">80px</span></label>
-                    <input type="range" id="destOffsetSlider" min="20" max="400" value="80">
-                </div>
-
-                <div class="section-title" style="margin-top:20px;">Line Banner (Bottom Ribbon)</div>
-                <div class="control-group">
-                    <label for="customBandLineName">Custom Line Name (Override)</label>
-                    <input type="text" id="customBandLineName" placeholder="Leave blank for automatic assignment">
-                </div>
-                <div class="control-group">
-                    <label for="customBandLinePrefix">Custom Line Abbreviation (Override)</label>
-                    <input type="text" id="customBandLinePrefix" placeholder="Leave blank for automatic assignment">
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="fsBandName">Line Name Font: <span id="fsBandNameVal">43px</span></label>
-                        <input type="range" id="fsBandName" min="16" max="72" value="43">
-                    </div>
-                    <div class="control-group">
-                        <label for="fsBandCaplet">Caplet Font: <span id="fsBandCapletVal">37px</span></label>
-                        <input type="range" id="fsBandCaplet" min="10" max="60" value="37">
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="bandCapH">Caplet Height: <span id="bandCapHVal">45px</span></label>
-                        <input type="range" id="bandCapH" min="20" max="100" value="45">
-                    </div>
-                    <div class="control-group">
-                        <label for="bandCapP">Caplet H. Padding: <span id="bandCapPVal">28px</span></label>
-                        <input type="range" id="bandCapP" min="5" max="60" value="28">
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="bandCapVr">Caplet Vert. Radius: <span id="bandCapVrVal">28px</span></label>
-                        <input type="range" id="bandCapVr" min="0" max="100" value="28">
-                    </div>
-                    <div class="control-group">
-                        <label for="bandCapHr">Caplet Horiz. Radius: <span id="bandCapHrVal">13px</span></label>
-                        <input type="range" id="bandCapHr" min="0" max="160" value="13">
-                    </div>
-                </div>
-
-                <div class="section-title" style="margin-top:20px;">Caplet Core Geometry Formula</div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="capletShape">Caplet Shape Style</label>
-                        <select id="capletShape">
-                            <option value="pill">Pill Shape (Standard)</option>
-                            <option value="rounded">Rounded Rectangle</option>
-                            <option value="circle">Circular (Square Caplets)</option>
-                            <option value="semi-rounded">Semi-rounded</option>
+                        <label for="textPrefixMode">Text Prefix Toggle</label>
+                        <select id="textPrefixMode">
+                            <option value="via">via</option>
+                            <option value="to">to</option>
+                            <option value="towards">towards</option>
+                            <option value="none">[ None ]</option>
                         </select>
                     </div>
                     <div class="control-group">
-                        <label for="capletMinWidth">Minimum Width: <span id="capletMinWidthVal">auto</span></label>
-                        <input type="range" id="capletMinWidth" min="40" max="200" value="40" step="5">
-                        <small style="font-size:10px; color:#64748b;">Set to 40 for auto-sizing</small>
+                        <label for="terminusName">Destination / Terminus Name</label>
+                        <input type="text" id="terminusName" value="Promenade">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="capP">Horizontal Padding: <span id="capPVal">18px</span></label>
-                        <input type="range" id="capP" min="5" max="60" value="18">
+                        <label for="fsTerminus">Terminus Font Size: <span id="fsTerminusVal">48px</span></label>
+                        <input type="range" id="fsTerminus" min="24" max="80" value="48">
                     </div>
                     <div class="control-group">
-                        <label for="capH">Caplet Height: <span id="capHVal">45px</span></label>
-                        <input type="range" id="capH" min="20" max="130" value="45">
+                        <label for="fsPrefix">Prefix Font Size: <span id="fsPrefixVal">36px</span></label>
+                        <input type="range" id="fsPrefix" min="16" max="60" value="36">
                     </div>
+                </div>
+
+                <div class="section-title" style="margin-top:20px;">Platform Identity Tokens</div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showPlatformLeft" checked>
+                    <label for="showPlatformLeft">Enable Left Side Platform Marker</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showPlatformRight" checked>
+                    <label for="showPlatformRight">Enable Right Side Platform Marker</label>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="capVr">Vertical Radius (Vr): <span id="capVrVal">28px</span></label>
-                        <input type="range" id="capVr" min="0" max="100" value="28">
+                        <label for="platformText">Platform Code Value</label>
+                        <input type="text" id="platformText" value="A">
                     </div>
                     <div class="control-group">
-                        <label for="capHr">Horizontal Radius (Hr): <span id="capHrVal">13px</span></label>
-                        <input type="range" id="capHr" min="0" max="160" value="13">
+                        <label for="platformBoxSize">Box Layout Size: <span id="platformBoxSizeVal">80px</span></label>
+                        <input type="range" id="platformBoxSize" min="50" max="130" value="80">
                     </div>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="capBorderWidth">Border Width: <span id="capBorderWidthVal">0px</span></label>
-                        <input type="range" id="capBorderWidth" min="0" max="8" value="0">
-                    </div>
-                    <div class="control-group">
-                        <label for="capBorderColor">Border Color</label>
-                        <input type="color" id="capBorderColor" value="#ffffff">
-                    </div>
+            </div>
+
+            <div>
+                <div class="section-title">Interchange Station Caplets Matrix</div>
+                <div class="control-group">
+                    <label for="capletCodesInput">Station Code Caplets (Comma separated for multiples)</label>
+                    <input type="text" id="capletCodesInput" value="CC4, DT15">
                 </div>
                 <div class="control-group">
-                    <label for="capLetterSpacing">Letter Spacing: <span id="capLetterSpacingVal">0px</span></label>
-                    <input type="range" id="capLetterSpacing" min="-2" max="8" value="0" step="0.5">
+                    <label for="capletLayoutPosition">Caplet Framework Placement Orientation</label>
+                    <select id="capletLayoutPosition">
+                        <option value="before">Position BEFORE Terminus Name (Horizontal Row)</option>
+                        <option value="below">Position BELOW Terminus Name (Stacked Column Layout)</option>
+                    </select>
                 </div>
+
+                <div class="section-title" style="margin-top:20px;">Direction Arrow Structural Alignment</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="arrowDirection">Arrow Sign Orientation</label>
+                        <select id="arrowDirection">
+                            <option value="right">Point Right (→)</option>
+                            <option value="left">Point Left (←)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="arrowFlowPlacement">Arrow Structural Position</label>
+                        <select id="arrowFlowPlacement">
+                            <option value="left">Position Left of Terminus Group</option>
+                            <option value="right">Position Right of Terminus Group</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="arrowCircleColorMode">Circle Background Fill</label>
+                        <select id="arrowCircleColorMode">
+                            <option value="line">Match System Line Profile Color</option>
+                            <option value="black">Default Solid Black Token</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="arrowCircleSize">Circle Outer Diameter: <span id="arrowCircleSizeVal">65px</span></label>
+                        <input type="range" id="arrowCircleSize" min="40" max="110" value="65">
+                    </div>
+                </div>
+
+                <div class="section-title" style="margin-top:20px;">Bottom Identity Banner Ribbon (Optional)</div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showBottomBanner" checked>
+                    <label for="showBottomBanner">Enable Structural Bottom Accent Ribbon</label>
+                </div>
+                <div class="control-group">
+                    <label for="bottomBannerText">Ribbon Custom Label Name (Override)</label>
+                    <input type="text" id="bottomBannerText" placeholder="Leave blank to match system line profile name">
+                </div>
+
+                <input type="hidden" id="icScale" value="1.0">
+                <input type="hidden" id="capletShape" value="pill">
+                <input type="hidden" id="capletMinWidth" value="40">
+                <input type="hidden" id="capBorderWidth" value="0">
+                <input type="hidden" id="capBorderColor" value="#ffffff">
+                <input type="hidden" id="capLetterSpacing" value="0">
+                <input type="hidden" id="fsCapletCode" value="28">
+                <input type="hidden" id="capH" value="42">
+                <input type="hidden" id="capP" value="16">
+                <input type="hidden" id="capVr" value="21">
+                <input type="hidden" id="capHr" value="12">
             </div>
         </div>
 
-        <button class="btn-download" id="downloadMapBtn" style="background-color: #1e293b; color: white; width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);">Export Complete Horizontal Route Map Template</button>
+        <button class="btn-download" id="exportSignageBtn">Export High-Resolution Platform Destination Template</button>
     </div>
 
-    <div class="map-viewport" id="mapViewportWrapper">
-        <div id="line-map-container" style="margin-bottom:0;">
-            <div class="route-visual-area" id="routeVisualArea">
-                <div class="track-line-underlay" id="trackLineUnderlay"></div>
-            </div>
+    <div class="map-viewport">
+        <div id="signage-canvas">
+            <div class="signage-main-body" id="signageMainBody">
+                </div>
             <div class="bottom-identity-band" id="bottomIdentityBand">
-                <div id="bandCapletWrapper"></div>
-                <span class="band-text" id="bandLineNameText">North East Line</span>
-            </div>
-        </div>
-        <div id="line-map-container-b" style="display:none; margin-top:8px;">
-            <div class="route-visual-area" id="routeVisualAreaB">
-                <div class="track-line-underlay" id="trackLineUnderlayB"></div>
-            </div>
-            <div class="bottom-identity-band" id="bottomIdentityBandB">
-                <div id="bandCapletWrapperB"></div>
-                <span class="band-text" id="bandLineNameTextB">North East Line</span>
+                <span class="band-text" id="bandLineNameText">Circle Line</span>
             </div>
         </div>
     </div>
 
     <script>
-        const standardLines = [
-            { name: "North East Line (NEL)", prefix: "NEL", color: "#9900aa" },
-            { name: "North–South Line (NSL)", prefix: "NSL", color: "#d42e12" },
-            { name: "East–West Line (EWL)", prefix: "EWL", color: "#009645" },
+        const systemLines = [
             { name: "Circle Line (CCL)", prefix: "CCL", color: "#fa9e0d" },
             { name: "Downtown Line (DTL)", prefix: "DTL", color: "#005ec4" },
+            { name: "North–South Line (NSL)", prefix: "NSL", color: "#d42e12" },
+            { name: "East–West Line (EWL)", prefix: "EWL", color: "#009645" },
+            { name: "North East Line (NEL)", prefix: "NEL", color: "#9900aa" },
             { name: "Thomson–East Coast Line (TEL)", prefix: "TEL", color: "#9D5B25" },
             { name: "Cross Island Line (CRL)", prefix: "CRL", color: "#97C616" },
             { name: "Jurong Region Line (JRL)", prefix: "JRL", color: "#0099aa" },
-            { name: "[ Create Custom Profile ]", prefix: "CUST", color: "#custom" }
+            { name: "[ Custom Identity Profile ]", prefix: "CUST", color: "#custom" }
         ];
 
-        let stationsState = [
-            { code: "NE 3", name: "Outram Park", interchanges: "EW 16, TE 12" },
-            { code: "NE 1", name: "HarbourFront", interchanges: "CC 29", fadeSplit: true }
-        ];
-
-        // UI Element Selectors
+        // UI Target Selectors
         const systemLineSelect = document.getElementById('systemLineSelect');
         const customLineColor = document.getElementById('customLineColor');
-        const mapWidth = document.getElementById('mapWidth');
-        const mapWidthVal = document.getElementById('mapWidthVal');
-        const textOrientation = document.getElementById('textOrientation');
-        const interchangeLayout = document.getElementById('interchangeLayout');
+        const canvasWidth = document.getElementById('canvasWidth');
+        const canvasWidthVal = document.getElementById('canvasWidthVal');
+        const canvasHeight = document.getElementById('canvasHeight');
+        const canvasHeightVal = document.getElementById('canvasHeightVal');
         
-        const trackLineY = document.getElementById('trackLineY');
-        const interchangeGap = document.getElementById('interchangeGap');
-        const icScale = document.getElementById('icScale');
-        const icScaleVal = document.getElementById('icScaleVal');
-        const labelOffset = document.getElementById('labelOffset');
-        
-        const fsStationName = document.getElementById('fsStationName');
-        const fsCapletCode = document.getElementById('fsCapletCode');
-        const fsBandName    = document.getElementById('fsBandName');
-        const fsBandCaplet  = document.getElementById('fsBandCaplet');
-        const bandCapH      = document.getElementById('bandCapH');
-        const bandCapP      = document.getElementById('bandCapP');
-        const bandCapVr     = document.getElementById('bandCapVr');
-        const bandCapHr     = document.getElementById('bandCapHr');
-        const customBandLineName = document.getElementById('customBandLineName');
-        const customBandLinePrefix = document.getElementById('customBandLinePrefix');
-        
-        const capP = document.getElementById('capP');
-        const capH = document.getElementById('capH');
-        const capVr = document.getElementById('capVr');
-        const capHr = document.getElementById('capHr');
-        
-        const stationManagerContainer = document.getElementById('stationManagerContainer');
-        const addStationBtn = document.getElementById('addStationBtn');
-        const routeVisualArea = document.getElementById('routeVisualArea');
-        const trackLineUnderlay = document.getElementById('trackLineUnderlay');
+        const textPrefixMode = document.getElementById('textPrefixMode');
+        const terminusName = document.getElementById('terminusName');
+        const fsTerminus = document.getElementById('fsTerminus');
+        const fsTerminusVal = document.getElementById('fsTerminusVal');
+        const fsPrefix = document.getElementById('fsPrefix');
+        const fsPrefixVal = document.getElementById('fsPrefixVal');
+
+        const showPlatformLeft = document.getElementById('showPlatformLeft');
+        const showPlatformRight = document.getElementById('showPlatformRight');
+        const platformText = document.getElementById('platformText');
+        const platformBoxSize = document.getElementById('platformBoxSize');
+        const platformBoxSizeVal = document.getElementById('platformBoxSizeVal');
+
+        const capletCodesInput = document.getElementById('capletCodesInput');
+        const capletLayoutPosition = document.getElementById('capletLayoutPosition');
+
+        const arrowDirection = document.getElementById('arrowDirection');
+        const arrowFlowPlacement = document.getElementById('arrowFlowPlacement');
+        const arrowCircleColorMode = document.getElementById('arrowCircleColorMode');
+        const arrowCircleSize = document.getElementById('arrowCircleSize');
+        const arrowCircleSizeVal = document.getElementById('arrowCircleSizeVal');
+
+        const showBottomBanner = document.getElementById('showBottomBanner');
+        const bottomBannerText = document.getElementById('bottomBannerText');
+
+        const signageCanvas = document.getElementById('signage-canvas');
+        const signageMainBody = document.getElementById('signageMainBody');
         const bottomIdentityBand = document.getElementById('bottomIdentityBand');
-        const bandCapletWrapper = document.getElementById('bandCapletWrapper');
         const bandLineNameText = document.getElementById('bandLineNameText');
-        const lineMapContainer    = document.getElementById('line-map-container');
-        const lineMapContainerB   = document.getElementById('line-map-container-b');
-        const routeVisualAreaB    = document.getElementById('routeVisualAreaB');
-        const trackLineUnderlayB  = document.getElementById('trackLineUnderlayB');
-        const bottomIdentityBandB = document.getElementById('bottomIdentityBandB');
-        const bandCapletWrapperB  = document.getElementById('bandCapletWrapperB');
-        const bandLineNameTextB   = document.getElementById('bandLineNameTextB');
-        const directionMode       = document.getElementById('directionMode');
-        const arrowSize           = document.getElementById('arrowSize');
-        const arrowFontSize       = document.getElementById('arrowFontSize');
 
-        const showDestNumbers     = document.getElementById('showDestNumbers');
-        const destStartInput      = document.getElementById('destStartInput');
-        const destEndInput        = document.getElementById('destEndInput');
-        const destSizeSlider      = document.getElementById('destSizeSlider');
-        const destFontSizeSlider  = document.getElementById('destFontSizeSlider');
-        const destOffsetSlider    = document.getElementById('destOffsetSlider');
-
-        // Populate Options
-        standardLines.forEach(line => {
+        // Populate system line profiles drop-down option tree
+        systemLines.forEach(line => {
             const opt = document.createElement('option');
             opt.value = line.color;
             opt.text = line.name;
             systemLineSelect.appendChild(opt);
         });
 
+        // Color extraction engine for parsed sub-tokens mapping transit standards
         function getAutoColor(codeStr) {
             const clean = codeStr.trim().toUpperCase();
             if (clean.startsWith("NS")) return "#d42e12";
@@ -636,18 +463,18 @@
             if (clean.startsWith("DT")) return "#005ec4";
             if (clean.startsWith("TE")) return "#9D5B25";
             if (clean.startsWith("CR")) return "#97C616";
-            if (clean.startsWith("JW")) return "#0099aa";
+            if (clean.startsWith("JW") || clean.startsWith("JR")) return "#0099aa";
             if (clean.startsWith("PTC") || clean.startsWith("STC")) return "#708090";
-            return "#64748b";
+            return null;
         }
 
         function getContrastColor(hexColor) {
-            const darkTextLines = ["#FA9E0D", "#97C616", "#0099AA", "#FFCD00", "#cbd5e1"];
+            const darkTextLines = ["#FA9E0D", "#97C616", "#0099AA", "#FFCD00", "#CBD5E1"];
             if (darkTextLines.includes(hexColor.toUpperCase())) return '#000000';
             return '#ffffff';
         }
 
-        // Enhanced Track Caplet Generation Factory
+        // Integrated Caplet Style Construction Blueprint Formula Engine
         function buildCapletStyleElement(bg, textHex, fs, h, p, vr, hr, isInterchange = false, isFaded = false) {
             const wrapper = document.createElement('div');
             wrapper.className = 'outer-capsule';
@@ -662,41 +489,31 @@
             const inner = document.createElement('div');
             inner.className = 'inner-capsule';
             
-            const currentScale = isInterchange ? parseFloat(icScale.value) : 1.0;
+            const currentScale = isInterchange ? parseFloat(document.getElementById('icScale').value) : 1.0;
             let finalH = h * currentScale;
             let finalP = p * currentScale;
             let finalFs = fs * currentScale;
             let finalVr = vr * currentScale;
             let finalHr = hr * currentScale;
             
-            // Get additional styling options
             const capletShape = document.getElementById('capletShape')?.value || 'pill';
             const minWidth = parseInt(document.getElementById('capletMinWidth')?.value || 40);
             const borderWidth = parseInt(document.getElementById('capBorderWidth')?.value || 0);
             const borderColor = document.getElementById('capBorderColor')?.value || '#ffffff';
             const letterSpacing = parseFloat(document.getElementById('capLetterSpacing')?.value || 0);
             
-            // Apply shape-specific radius adjustments
             switch(capletShape) {
                 case 'circle':
-                    finalHr = finalH / 2;
-                    finalVr = finalH / 2;
-                    break;
+                    finalHr = finalH / 2; finalVr = finalH / 2; break;
                 case 'rounded':
-                    finalHr = Math.min(finalHr, finalH / 2);
-                    finalVr = Math.min(finalVr, finalH / 2);
-                    break;
+                    finalHr = Math.min(finalHr, finalH / 2); finalVr = Math.min(finalVr, finalH / 2); break;
                 case 'semi-rounded':
-                    finalVr = finalH / 4;
-                    finalHr = Math.min(finalHr, finalH / 2);
-                    break;
+                    finalVr = finalH / 4; finalHr = Math.min(finalHr, finalH / 2); break;
                 case 'pill':
                 default:
-                    // Keep original values for pill shape
                     break;
             }
             
-            // Apply border
             if (borderWidth > 0) {
                 wrapper.style.border = `${borderWidth}px solid ${borderColor}`;
                 wrapper.style.borderRadius = `${finalHr + borderWidth}px / ${finalVr + borderWidth}px`;
@@ -719,7 +536,6 @@
             inner.style.whiteSpace = 'nowrap';
             inner.style.letterSpacing = `${letterSpacing}px`;
             
-            // Apply minimum width constraint
             if (minWidth > 40 && !isInterchange) {
                 const currentText = inner.innerText || '';
                 const estimatedWidth = currentText.length * finalFs * 0.6 + finalP * 2;
@@ -731,34 +547,229 @@
             
             if (isInterchange) {
                 inner.style.width = '100%';
-                inner.style.paddingLeft = '0px';
-                inner.style.paddingRight = '0px';
+                inner.style.paddingLeft = '0px'; inner.style.paddingRight = '0px';
                 const basePillRatio = 2.5; 
                 wrapper.style.width = `${finalH * basePillRatio}px`; 
             } else {
-                inner.style.paddingLeft = `${finalP}px`;
-                inner.style.paddingRight = `${finalP}px`;
+                inner.style.paddingLeft = `${finalP}px`; inner.style.paddingRight = `${finalP}px`;
                 wrapper.style.width = 'auto';
             }
             
-            if (isFaded) {
-                inner.style.opacity = '0.35';
-            }
+            if (isFaded) { inner.style.opacity = '0.35'; }
             
             wrapper.appendChild(inner);
             return { wrapper, inner };
         }
 
-        function buildBannerCapletStyleElement(text, fs, h, p, vr, hr) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'outer-capsule-banner';
-            wrapper.style.display = 'inline-flex';
-            wrapper.style.alignItems = 'center';
-            wrapper.style.justifyContent = 'center';
-            wrapper.style.boxSizing = 'border-box';
-            wrapper.style.overflow = 'hidden';
-            wrapper.style.border = '3px solid #ffffff'; 
-            wrapper.style.borderRadius = `${hr}px / ${vr}px`;
+        // Unified Renderer Assembly Core Engine
+        function renderPlatformSignage() {
+            // Process core dimensions metrics updates
+            const W = parseInt(canvasWidth.value);
+            const H = parseInt(canvasHeight.value);
+            canvasWidthVal.innerText = W + 'px';
+            canvasHeightVal.innerText = H + 'px';
+            signageCanvas.style.width = W + 'px';
+            signageCanvas.style.height = H + 'px';
+
+            // Extract working active system baseline colors
+            const activeLineColor = (systemLineSelect.value === '#custom') ? customLineColor.value : systemLineSelect.value;
+            const fallbackLineName = systemLines.find(l => l.color === systemLineSelect.value)?.name.replace(/\s\([^)]*\)$/, "") || "Custom Transit Line";
             
-            const inner = document.createElement('div');
-           
+            // Render Bottom Identification Band Ribbon Configuration
+            if (showBottomBanner.checked) {
+                bottomIdentityBand.style.display = 'flex';
+                bottomIdentityBand.style.backgroundColor = activeLineColor;
+                bandLineNameText.style.color = getContrastColor(activeLineColor);
+                bandLineNameText.innerText = bottomBannerText.value.trim() ? bottomBannerText.value.trim() : fallbackLineName;
+            } else {
+                bottomIdentityBand.style.display = 'none';
+            }
+
+            // Flush out visual structure in the canvas viewport zone
+            signageMainBody.innerHTML = '';
+
+            // 1. Build Left Side Platform Token Box if toggle flag evaluated true
+            if (showPlatformLeft.checked) {
+                const pBoxLeft = document.createElement('div');
+                const pSize = parseInt(platformBoxSize.value);
+                pBoxLeft.className = 'platform-indicator-box';
+                pBoxLeft.style.width = pSize + 'px';
+                pBoxLeft.style.height = pSize + 'px';
+                pBoxLeft.style.backgroundColor = activeLineColor;
+                pBoxLeft.style.color = getContrastColor(activeLineColor);
+                pBoxLeft.style.fontSize = (pSize * 0.52) + 'px';
+                pBoxLeft.innerHTML = `<div>${platformText.value}</div><div class="platform-underline" style="background-color: ${getContrastColor(activeLineColor)}"></div>`;
+                signageMainBody.appendChild(pBoxLeft);
+                platformBoxSizeVal.innerText = pSize + 'px';
+            }
+
+            // 2. Formulate central signage block content pipeline
+            const centerContentWrapper = document.createElement('div');
+            centerContentWrapper.className = 'signage-center-content';
+
+            // Generate directional navigation arrow node element block framework
+            const arrowWrapper = document.createElement('div');
+            const circleD = parseInt(arrowCircleSize.value);
+            arrowCircleSizeVal.innerText = circleD + 'px';
+            arrowWrapper.className = 'arrow-circle-container';
+            arrowWrapper.style.width = circleD + 'px';
+            arrowWrapper.style.height = circleD + 'px';
+            arrowWrapper.style.backgroundColor = (arrowCircleColorMode.value === 'line') ? activeLineColor : '#000000';
+            
+            // Build absolute precision responsive SVG vector path arrow configuration matrix
+            const svgNS = 'http://www.w3.org/2000/svg';
+            const arrowSvg = document.createElementNS(svgNS, 'svg');
+            const iconSize = Math.round(circleD * 0.55);
+            arrowSvg.setAttribute('width', iconSize);
+            arrowSvg.setAttribute('height', iconSize);
+            arrowSvg.setAttribute('viewBox', '0 0 24 24');
+            const arrowPath = document.createElementNS(svgNS, 'path');
+            arrowPath.setAttribute('fill', getContrastColor(arrowWrapper.style.backgroundColor));
+            
+            if (arrowDirection.value === 'right') {
+                arrowPath.setAttribute('d', 'M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.42L16.17 13H4z');
+            } else {
+                arrowPath.setAttribute('d', 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.42L7.83 13H20z');
+            }
+            arrowSvg.appendChild(arrowPath);
+            arrowWrapper.appendChild(arrowSvg);
+
+            // Construct typography destination content container wrappers
+            const textGroup = document.createElement('div');
+            textGroup.className = 'content-text-group';
+            if (capletLayoutPosition.value === 'below') {
+                textGroup.classList.add('layout-vertical');
+            }
+
+            // Build structural inline caplet array generator mapping loop framework
+            const capletsContainer = document.createElement('div');
+            capletsContainer.className = 'caplets-inline-container';
+            
+            const rawCodesInput = capletCodesInput.value.split(',');
+            rawCodesInput.forEach(token => {
+                const trimmedToken = token.trim();
+                if (!trimmedToken) return;
+
+                // Handle manual inline hex overrides formatting rule mapping: Code (#HEX)
+                let capletText = trimmedToken;
+                let capletBgColor = getAutoColor(trimmedToken) || activeLineColor;
+                const hexMatch = trimmedToken.match(/(.+?)\s*\((#[0-9A-Fa-f]{6})\)/);
+                if (hexMatch) {
+                    capletText = hexMatch[1].trim();
+                    capletBgColor = hexMatch[2];
+                }
+
+                const capletObj = buildCapletStyleElement(
+                    capletBgColor, 
+                    getContrastColor(capletBgColor), 
+                    parseInt(document.getElementById('fsCapletCode').value),
+                    parseInt(document.getElementById('capH').value),
+                    parseInt(document.getElementById('capP').value),
+                    parseInt(document.getElementById('capVr').value),
+                    parseInt(document.getElementById('capHr').value),
+                    false, false
+                );
+                capletObj.inner.innerText = capletText.toUpperCase();
+                capletsContainer.appendChild(capletObj.wrapper);
+            });
+
+            // Formulate prefix string parameters
+            const innerTextMainBlock = document.createElement('div');
+            innerTextMainBlock.style.display = 'inline-flex';
+            innerTextMainBlock.style.alignItems = 'baseline';
+
+            if (textPrefixMode.value !== 'none') {
+                const pFX = document.createElement('span');
+                pFX.className = 'prefix-text';
+                pFX.innerText = textPrefixMode.value + ' ';
+                pFX.style.fontSize = fsPrefix.value + 'px';
+                innerTextMainBlock.appendChild(pFX);
+            }
+            fsPrefixVal.innerText = fsPrefix.value + 'px';
+
+            const termNameSpan = document.createElement('span');
+            termNameSpan.className = 'destination-name';
+            termNameSpan.innerText = terminusName.value;
+            termNameSpan.style.fontSize = fsTerminus.value + 'px';
+            innerTextMainBlock.appendChild(termNameSpan);
+            fsTerminusVal.innerText = fsTerminus.value + 'px';
+
+            // Wire up internal architecture structural layers according to user layout option selection
+            if (capletLayoutPosition.value === 'before') {
+                if (capletsContainer.children.length > 0) {
+                    textGroup.appendChild(capletsContainer);
+                }
+                textGroup.appendChild(innerTextMainBlock);
+            } else {
+                // Stacked below layout option pipeline
+                textGroup.appendChild(innerTextMainBlock);
+                if (capletsContainer.children.length > 0) {
+                    textGroup.appendChild(capletsContainer);
+                }
+            }
+
+            // Assemble flow alignment sequences according to spatial settings rules
+            if (arrowFlowPlacement.value === 'left') {
+                centerContentWrapper.appendChild(arrowWrapper);
+                centerContentWrapper.appendChild(textGroup);
+            } else {
+                centerContentWrapper.appendChild(textGroup);
+                centerContentWrapper.appendChild(arrowWrapper);
+            }
+
+            signageMainBody.appendChild(centerContentWrapper);
+
+            // 3. Build Right Side Platform Token Box if toggle flag evaluated true
+            if (showPlatformRight.checked) {
+                const pBoxRight = document.createElement('div');
+                const pSize = parseInt(platformBoxSize.value);
+                pBoxRight.className = 'platform-indicator-box';
+                pBoxRight.style.width = pSize + 'px';
+                pBoxRight.style.height = pSize + 'px';
+                pBoxRight.style.backgroundColor = activeLineColor;
+                pBoxRight.style.color = getContrastColor(activeLineColor);
+                pBoxRight.style.fontSize = (pSize * 0.52) + 'px';
+                pBoxRight.innerHTML = `<div>${platformText.value}</div><div class="platform-underline" style="background-color: ${getContrastColor(activeLineColor)}"></div>`;
+                signageMainBody.appendChild(pBoxRight);
+            }
+        }
+
+        // Interactive Interface Event Listener Binding Triggers
+        systemLineSelect.addEventListener('change', (e) => {
+            customLineColor.style.display = (e.target.value === '#custom') ? 'block' : 'none';
+            renderPlatformSignage();
+        });
+
+        const controlSelectorsArray = [
+            customLineColor, canvasWidth, canvasHeight, textPrefixMode, terminusName,
+            fsTerminus, fsPrefix, showPlatformLeft, showPlatformRight, platformText,
+            platformBoxSize, capletCodesInput, capletLayoutPosition, arrowDirection,
+            arrowFlowPlacement, arrowCircleColorMode, arrowCircleSize, showBottomBanner, bottomBannerText
+        ];
+
+        controlSelectorsArray.forEach(control => {
+            control.addEventListener('input', renderPlatformSignage);
+            control.addEventListener('change', renderPlatformSignage);
+        });
+
+        // Initialize Render Sequence on Framework Mount Boot sequence
+        renderPlatformSignage();
+
+        // High-Fidelity Canvas Capture and Export Storage Processor Matrix
+        document.getElementById('exportSignageBtn').addEventListener('click', () => {
+            document.fonts.ready.then(async () => {
+                const canvas = await html2canvas(signageCanvas, {
+                    scale: 2, 
+                    logging: false, 
+                    useCORS: true, 
+                    backgroundColor: '#ffffff'
+                });
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.download = `platform_destination_signage_${terminusName.value.toLowerCase().replace(/\s+/g, '_')}.png`;
+                downloadAnchor.href = canvas.toDataURL('image/png');
+                downloadAnchor.click();
+            });
+        });
+    </script>
+</body>
+</html>
