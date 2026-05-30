@@ -53,11 +53,11 @@
         }
         .editor-regions {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1.1fr 0.9fr;
             gap: 30px;
             margin-bottom: 25px;
         }
-        @media (max-width: 992px) {
+        @media (max-width: 1100px) {
             .editor-regions { grid-template-columns: 1fr; }
         }
         .section-title {
@@ -67,6 +67,9 @@
             margin-bottom: 15px;
             border-bottom: 2px solid #f1f5f9;
             padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .control-group {
             display: flex;
@@ -91,6 +94,43 @@
         .control-group input[type="range"] { padding: 5px 0; cursor: pointer; }
         .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
         .checkbox-group input { cursor: pointer; width: auto; }
+
+        /* --- Dynamic Destination Rows Manager Layout --- */
+        .destinations-manager-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8fafc;
+        }
+        .dest-row-item {
+            display: grid;
+            grid-template-columns: 40px 90px 140px 180px 180px 100px 40px;
+            gap: 8px;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        @media (max-width: 1400px) {
+            .dest-row-item { grid-template-columns: auto auto auto auto; }
+        }
+        .btn-action {
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-add { background-color: #004c54; color: white; width: 100%; margin-top: 10px; font-size: 14px; padding: 12px;}
+        .btn-add:hover { background-color: #00333a; }
+        .btn-delete { background-color: #fee2e2; color: #ef4444; }
+        .btn-delete:hover { background-color: #fca5a5; }
 
         /* --- Canvas Viewport Frame --- */
         .map-viewport {
@@ -155,7 +195,7 @@
             margin-top: 4px;
         }
         
-        /* Center Terminus Content Region */
+        /* Center Content Output Stack Layout */
         .signage-center-content {
             display: flex;
             align-items: center;
@@ -163,36 +203,49 @@
             flex-grow: 1;
             justify-content: center;
             box-sizing: border-box;
-            padding: 0 20px;
+            padding: 0 30px;
         }
-        .content-text-group {
+        .destinations-vertical-stack {
             display: flex;
+            flex-direction: column;
+            gap: 14px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .destination-row-line {
+            display: inline-flex;
+            align-items: center;
             font-family: 'MRT-Identity', Arial, sans-serif;
             font-weight: 700;
             color: #1c1d1f;
-            align-items: center;
-            gap: 16px;
-        }
-        .layout-vertical {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
+            white-space: nowrap;
         }
         .prefix-text {
             color: #64748b;
             font-weight: 500;
-            margin-right: 6px;
+            margin-right: 12px;
         }
         .destination-name {
+            margin-left: 12px;
             white-space: nowrap;
         }
+        .suffix-inline-area {
+            margin-left: 10px;
+            color: #475569;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
         
-        /* Combined Shared Capsule Layout */
+        /* Combined Shared Capsule Layout (Elliptical Formula Integration) */
         .combined-capsule-wrapper {
             display: inline-flex;
             align-items: stretch;
-            padding: 3px;
+            padding: 2.5px;
             background: #ffffff;
+            border: 2.5px solid #ffffff;
+            box-shadow: 0 0 0 2.5px #ffffff;
+            overflow: hidden;
             box-sizing: border-box;
         }
         .combined-inner-row {
@@ -212,7 +265,7 @@
             height: 100%;
         }
         .combined-divider {
-            width: 3px;
+            width: 2.5px;
             background-color: #ffffff;
             flex-shrink: 0;
         }
@@ -269,29 +322,20 @@
     </nav>
 
     <h1>MRT Platform Destination Signage Generator</h1>
-    <p class="subtitle">Supports modular region sizing, unified interchange capsules, and adaptive layout distribution</p>
+    <p class="subtitle">Supports multi-tiered stacked destinations, precision inline code injection, and advanced elliptical rendering</p>
 
     <div class="container">
         <div class="editor-regions">
             <div>
-                <div class="section-title">System Line & Dimensions Profile</div>
-                <div class="control-group">
-                    <label for="systemLineSelect">System Line Profile</label>
-                    <select id="systemLineSelect"></select>
-                    <input type="color" id="customLineColor" value="#fa9e0d" style="display:none; width:100%; height:40px; border-radius:8px; border:1px solid #cbd5e1; margin-top:8px; padding:0;">
+                <div class="section-title">
+                    <span>Stacked Destinations Lineup Manager (Max 5)</span>
+                    <span style="font-size: 11px; color:#64748b;">Wrap secondary code items in brackets, e.g. <code>via [EW4] Tanah Merah</code></span>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="canvasWidth">Signage Total Width: <span id="canvasWidthVal">3000px</span></label>
-                        <input type="range" id="canvasWidth" min="800" max="5000" value="3000">
+                <div class="destinations-manager-list" id="destRowsContainer">
                     </div>
-                    <div class="control-group">
-                        <label for="canvasHeight">Signage Total Height: <span id="canvasHeightVal">270px</span></label>
-                        <input type="range" id="canvasHeight" min="180" max="500" value="270">
-                    </div>
-                </div>
+                <button class="btn-action btn-add" id="appendDestRowBtn">+ Append New Terminus Target Row</button>
 
-                <div class="section-title" style="margin-top:20px;">Platform Structural Boundary Panels</div>
+                <div class="section-title" style="margin-top:25px;">Platform Structural Boundary Panels</div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="checkbox-group">
                         <input type="checkbox" id="showPlatformLeft" checked>
@@ -304,8 +348,8 @@
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="platformPanelWidth">Panel Zone Width: <span id="platformPanelWidthVal">600px</span></label>
-                        <input type="range" id="platformPanelWidth" min="100" max="1000" value="600">
+                        <label for="platformPanelWidth">Panel Zone Width: <span id="platformPanelWidthVal">350px</span></label>
+                        <input type="range" id="platformPanelWidth" min="100" max="1000" value="350">
                     </div>
                     <div class="control-group">
                         <label for="platformText">Platform Number / Code</label>
@@ -325,70 +369,59 @@
             </div>
 
             <div>
-                <div class="section-title">Content & Text Typography Settings</div>
-                <div style="display:grid; grid-template-columns:0.6fr 1.4fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="textPrefixMode">Text Linker Prefix</label>
-                        <select id="textPrefixMode">
-                            <option value="via">via</option>
-                            <option value="to">to</option>
-                            <option value="towards">towards</option>
-                            <option value="none">[ None ]</option>
-                        </select>
-                    </div>
-                    <div class="control-group">
-                        <label for="terminusName">Terminus Destination Name</label>
-                        <input type="text" id="terminusName" value="Promenade">
-                    </div>
+                <div class="section-title">System Profile & General Dimensions</div>
+                <div class="control-group">
+                    <label for="systemLineSelect">System Line Profile</label>
+                    <select id="systemLineSelect"></select>
+                    <input type="color" id="customLineColor" value="#fa9e0d" style="display:none; width:100%; height:40px; border-radius:8px; border:1px solid #cbd5e1; margin-top:8px; padding:0;">
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="fsTerminus">Terminus Font Size: <span id="fsTerminusVal">48px</span></label>
-                        <input type="range" id="fsTerminus" min="24" max="80" value="48">
+                        <label for="canvasWidth">Signage Total Width: <span id="canvasWidthVal">1400px</span></label>
+                        <input type="range" id="canvasWidth" min="800" max="5000" value="1400">
                     </div>
                     <div class="control-group">
-                        <label for="fsPrefix">Prefix Font Size: <span id="fsPrefixVal">34px</span></label>
-                        <input type="range" id="fsPrefix" min="16" max="60" value="34">
+                        <label for="canvasHeight">Signage Total Height: <span id="canvasHeightVal">290px</span></label>
+                        <input type="range" id="canvasHeight" min="180" max="700" value="290">
                     </div>
                 </div>
 
-                <div class="section-title" style="margin-top:20px;">Combined Interchange Capsules Engine (Side-by-Side Pill)</div>
-                <div class="control-group">
-                    <label for="capletCodesInput">Station System Codes (Comma separated tokens)</label>
-                    <input type="text" id="capletCodesInput" value="CC4, DT15">
+                <div class="section-title" style="margin-top:20px;">Global Typography Metrics</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="fsTerminus">Base Terminus Font: <span id="fsTerminusVal">46px</span></label>
+                        <input type="range" id="fsTerminus" min="20" max="80" value="46">
+                    </div>
+                    <div class="control-group">
+                        <label for="fsPrefix">Base Prefix Font: <span id="fsPrefixVal">32px</span></label>
+                        <input type="range" id="fsPrefix" min="14" max="60" value="32">
+                    </div>
+                </div>
+
+                <div class="section-title" style="margin-top:20px;">Combined Interchange Capsules Engine</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="fsCapletCode">Capsule Font Size: <span id="fsCapletCodeVal">24px</span></label>
+                        <input type="range" id="fsCapletCode" min="12" max="45" value="24">
+                    </div>
+                    <div class="control-group">
+                        <label for="capH">Capsule System Height: <span id="capHVal">44px</span></label>
+                        <input type="range" id="capH" min="20" max="80" value="44">
+                    </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="capletLayoutPosition">Capsule Placement Rules</label>
-                        <select id="capletLayoutPosition">
-                            <option value="before">Before Destination Text Name</option>
-                            <option value="below">Below Destination Text Name (Stacked Column)</option>
-                        </select>
+                        <label for="capP">Capsule Internal Padding: <span id="capPVal">16px</span></label>
+                        <input type="range" id="capP" min="5" max="45" value="16">
                     </div>
-                    <div class="control-group">
-                        <label for="fsCapletCode">Capsule Font Size: <span id="fsCapletCodeVal">26px</span></label>
-                        <input type="range" id="fsCapletCode" min="14" max="45" value="26">
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div class="control-group">
-                        <label for="capH">Capsule System Height: <span id="capHVal">45px</span></label>
-                        <input type="range" id="capH" min="25" max="80" value="45">
-                    </div>
-                    <div class="control-group">
-                        <label for="capP">Capsule Internal Padding: <span id="capPVal">18px</span></label>
-                        <input type="range" id="capP" min="5" max="45" value="18">
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
                         <label for="capVr">Vert. Radius (Vr): <span id="capVrVal">28px</span></label>
                         <input type="range" id="capVr" min="0" max="100" value="28">
                     </div>
-                    <div class="control-group">
-                        <label for="capHr">Horiz. Radius (Hr): <span id="capHrVal">13px</span></label>
-                        <input type="range" id="capHr" min="0" max="160" value="13">
-                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="capHr">Horiz. Radius (Hr): <span id="capHrVal">13px</span></label>
+                    <input type="range" id="capHr" min="0" max="160" value="13">
                 </div>
 
                 <div class="section-title" style="margin-top:20px;">Direction Indicator Arrow Configuration</div>
@@ -412,7 +445,7 @@
                     <div class="control-group">
                         <label for="arrowCircleColorMode">Circle Housing Fill Background</label>
                         <select id="arrowCircleColorMode">
-                            <option value="line">Match System Line Profile color</option>
+                            <option value="line">Match System Line Profile Color</option>
                             <option value="black">Default Solid Black Housing</option>
                         </select>
                     </div>
@@ -470,7 +503,13 @@
             { name: "[ Fictional / Custom Profile ]", prefix: "CUST", color: "#custom" }
         ];
 
-        // UI Core Query Element Interceptors
+        // State machine containing default illustrative items mirroring multi-case samples
+        let destinationRows = [
+            { prefix: 'via', codes: 'CC4, DT15', name: 'Promenade', suffix: '', scale: 1.0 },
+            { prefix: 'via', codes: 'CC9, EW8', name: 'Paya Lebar', suffix: '', scale: 1.0 }
+        ];
+
+        // Core Interceptor Handles
         const systemLineSelect = document.getElementById('systemLineSelect');
         const customLineColor = document.getElementById('customLineColor');
         const canvasWidth = document.getElementById('canvasWidth');
@@ -488,15 +527,14 @@
         const platformBoxHeight = document.getElementById('platformBoxHeight');
         const platformBoxHeightVal = document.getElementById('platformBoxHeightVal');
 
-        const textPrefixMode = document.getElementById('textPrefixMode');
-        const terminusName = document.getElementById('terminusName');
         const fsTerminus = document.getElementById('fsTerminus');
         const fsTerminusVal = document.getElementById('fsTerminusVal');
         const fsPrefix = document.getElementById('fsPrefix');
         const fsPrefixVal = document.getElementById('fsPrefixVal');
 
-        const capletCodesInput = document.getElementById('capletCodesInput');
-        const capletLayoutPosition = document.getElementById('capletLayoutPosition');
+        const destRowsContainer = document.getElementById('destRowsContainer');
+        const appendDestRowBtn = document.getElementById('appendDestRowBtn');
+
         const fsCapletCode = document.getElementById('fsCapletCode');
         const fsCapletCodeVal = document.getElementById('fsCapletCodeVal');
         const capH = document.getElementById('capH');
@@ -525,7 +563,7 @@
         const bottomIdentityBand = document.getElementById('bottomIdentityBand');
         const bandLineNameText = document.getElementById('bandLineNameText');
 
-        // Mount Selection Option Lists
+        // Populate system profiles
         systemLines.forEach(line => {
             const opt = document.createElement('option');
             opt.value = line.color;
@@ -533,7 +571,6 @@
             systemLineSelect.appendChild(opt);
         });
 
-        // Color Mapping Standard Utilities
         function getAutoColor(codeStr) {
             const clean = codeStr.trim().toUpperCase();
             if (clean.startsWith("NS")) return "#d42e12";
@@ -543,8 +580,8 @@
             if (clean.startsWith("DT")) return "#005ec4";
             if (clean.startsWith("TE")) return "#9D5B25";
             if (clean.startsWith("CR")) return "#97C616";
+            if (clean.startsWith("CG")) return "#009645";
             if (clean.startsWith("JW") || clean.startsWith("JR") || clean.startsWith("J")) return "#0099aa";
-            if (clean.startsWith("PTC") || clean.startsWith("STC")) return "#708090";
             return null;
         }
 
@@ -554,21 +591,67 @@
             return '#ffffff';
         }
 
-        // Unified High-Precision Capsule Generation Factory (Ellipse radius integration formula)
-        function buildCombinedCapsule(tokensString, activeLineColor) {
+        // Draws the interactive inputs fields control framework for the dynamic destination items
+        function renderDestControlsRows() {
+            destRowsContainer.innerHTML = '';
+            destinationRows.forEach((row, idx) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'dest-row-item';
+
+                rowDiv.innerHTML = `
+                    <span style="font-weight:bold; color:#64748b;">#${idx+1}</span>
+                    <select class="input-prefix" style="width:100%;">
+                        <option value="via" ${row.prefix === 'via' ? 'selected' : ''}>via</option>
+                        <option value="to" ${row.prefix === 'to' ? 'selected' : ''}>to</option>
+                        <option value="towards" ${row.prefix === 'towards' ? 'selected' : ''}>towards</option>
+                        <option value="none" ${row.prefix === 'none' ? 'selected' : ''}>[ None ]</option>
+                    </select>
+                    <input type="text" value="${row.codes}" placeholder="Codes (e.g. CC4, DT15)" class="input-codes" style="width:100%; box-sizing:border-box;">
+                    <input type="text" value="${row.name}" placeholder="Terminus Name" class="input-name" style="width:100%; box-sizing:border-box;">
+                    <input type="text" value="${row.suffix}" placeholder="Suffix (e.g. via [EW4] Tanah Merah)" class="input-suffix" style="width:100%; box-sizing:border-box;">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <label style="font-size:10px; font-weight:bold;">Scale: ${Math.round(row.scale*100)}%</label>
+                        <input type="range" min="0.4" max="1.3" step="0.05" value="${row.scale}" class="input-scale" style="width:100%;">
+                    </div>
+                    <button class="btn-action btn-delete">✕</button>
+                `;
+
+                // Setup live updating listeners across the matrix
+                rowDiv.querySelector('.input-prefix').addEventListener('change', (e) => { destinationRows[idx].prefix = e.target.value; renderPlatformSignage(); });
+                rowDiv.querySelector('.input-codes').addEventListener('input', (e) => { destinationRows[idx].codes = e.target.value; renderPlatformSignage(); });
+                rowDiv.querySelector('.input-name').addEventListener('input', (e) => { destinationRows[idx].name = e.target.value; renderPlatformSignage(); });
+                rowDiv.querySelector('.input-suffix').addEventListener('input', (e) => { destinationRows[idx].suffix = e.target.value; renderPlatformSignage(); });
+                rowDiv.querySelector('.input-scale').addEventListener('input', (e) => { 
+                    destinationRows[idx].scale = parseFloat(e.target.value); 
+                    rowDiv.querySelector('label').innerText = `Scale: ${Math.round(parseFloat(e.target.value)*100)}%`;
+                    renderPlatformSignage(); 
+                });
+                rowDiv.querySelector('.btn-delete').addEventListener('click', () => {
+                    destinationRows.splice(idx, 1);
+                    renderDestControlsRows();
+                    renderPlatformSignage();
+                });
+
+                destRowsContainer.appendChild(rowDiv);
+            });
+            appendDestRowBtn.disabled = destinationRows.length >= 5;
+        }
+
+        // Elliptical Shared Capsule Generation Factory
+        function buildCombinedCapsule(tokensString, activeLineColor, scaleMultiplier = 1.0) {
             const tokens = tokensString.split(',').map(t => t.trim()).filter(t => t.length > 0);
             if (tokens.length === 0) return null;
 
-            const hValue = parseInt(capH.value);
-            const pValue = parseInt(capP.value);
-            const fsValue = parseInt(fsCapletCode.value);
-            const vrValue = parseInt(capVr.value);
-            const hrValue = parseInt(capHr.value);
+            const hValue = parseInt(capH.value) * scaleMultiplier;
+            const pValue = parseInt(capP.value) * scaleMultiplier;
+            const fsValue = parseInt(fsCapletCode.value) * scaleMultiplier;
+            const vrValue = parseInt(capVr.value) * scaleMultiplier;
+            const hrValue = parseInt(capHr.value) * scaleMultiplier;
 
-            // Construct seamless outer boundary wrapper capsule box using variable elliptical radius formula
             const outer = document.createElement('div');
             outer.className = 'combined-capsule-wrapper';
             outer.style.borderRadius = `${hrValue}px / ${vrValue}px`;
+            outer.style.margin = `0 ${6 * scaleMultiplier}px`;
 
             const innerRow = document.createElement('div');
             innerRow.className = 'combined-inner-row';
@@ -607,9 +690,38 @@
             return outer;
         }
 
-        // Core Layout Assembly Processing Pipeline Engine
+        // Advanced Regex Suffix Parser Engine for converting bracket syntax like [EW4] into custom capsules
+        function renderTextWithInlineCapsules(container, mixedText, activeLineColor, scaleMultiplier) {
+            const regex = /\[(.*?)\]/g;
+            let lastIndex = 0;
+            let match;
+            
+            while ((match = regex.exec(mixedText)) !== null) {
+                if (match.index > lastIndex) {
+                    const textNode = document.createElement('span');
+                    textNode.innerText = mixedText.substring(lastIndex, match.index);
+                    container.appendChild(textNode);
+                }
+                
+                const token = match[1].trim();
+                if (token) {
+                    const singleCapsule = buildCombinedCapsule(token, activeLineColor, scaleMultiplier * 0.9);
+                    if (singleCapsule) {
+                        container.appendChild(singleCapsule);
+                    }
+                }
+                lastIndex = regex.lastIndex;
+            }
+            
+            if (lastIndex < mixedText.length) {
+                const textNode = document.createElement('span');
+                textNode.innerText = mixedText.substring(lastIndex);
+                container.appendChild(textNode);
+            }
+        }
+
+        // Main Layout Assembly Canvas Pipeline Engine
         function renderPlatformSignage() {
-            // Update Canvas Dimensions Output Metrics
             const W = parseInt(canvasWidth.value);
             const H = parseInt(canvasHeight.value);
             canvasWidthVal.innerText = W + 'px';
@@ -617,7 +729,6 @@
             signageCanvas.style.width = W + 'px';
             signageCanvas.style.height = H + 'px';
 
-            // Synchronize Numerical Indicators text readouts
             platformPanelWidthVal.innerText = platformPanelWidth.value + 'px';
             platformBoxWidthVal.innerText = platformBoxWidth.value + 'px';
             platformBoxHeightVal.innerText = platformBoxHeight.value + 'px';
@@ -634,11 +745,9 @@
             const activeLineColor = (systemLineSelect.value === '#custom') ? customLineColor.value : systemLineSelect.value;
             const fallbackLineName = systemLines.find(l => l.color === systemLineSelect.value)?.name.replace(/\s\([^)]*\)$/, "") || "Custom Line Route";
 
-            // Process Bottom Ribbon Alignment Sequence
             if (showBottomBanner.checked) {
                 bottomIdentityBand.style.display = 'flex';
                 bottomIdentityBand.style.backgroundColor = activeLineColor;
-                
                 if (showBottomText.checked) {
                     bandLineNameText.style.display = 'inline';
                     bandLineNameText.style.color = getContrastColor(activeLineColor);
@@ -650,14 +759,12 @@
                 bottomIdentityBand.style.display = 'none';
             }
 
-            // Flush out visual structure in the canvas viewport zone
             signageMainBody.innerHTML = '';
 
             const pPanelW = parseInt(platformPanelWidth.value);
             const pBoxW = parseInt(platformBoxWidth.value);
             const pBoxH = parseInt(platformBoxHeight.value);
 
-            // Helper Utility to construct platform sign boxes inside panels
             function createPlatformPanelNode() {
                 const panel = document.createElement('div');
                 panel.className = 'platform-panel';
@@ -684,18 +791,15 @@
                 return panel;
             }
 
-            // 1. Append Left Panel Block component if enabled
             if (showPlatformLeft.checked) {
                 const leftNode = createPlatformPanelNode();
                 leftNode.classList.add('border-right');
                 signageMainBody.appendChild(leftNode);
             }
 
-            // 2. Append Center Terminus Display Layout Area
             const centerContentWrapper = document.createElement('div');
             centerContentWrapper.className = 'signage-center-content';
 
-            // Assemble Directional Arrow housing
             const arrowWrapper = document.createElement('div');
             const circleSizeValue = parseInt(arrowCircleSize.value);
             const iconSizeValue = parseInt(arrowIconSize.value);
@@ -720,59 +824,62 @@
             arrowSvg.appendChild(arrowPath);
             arrowWrapper.appendChild(arrowSvg);
 
-            // Build out text string layouts
-            const textGroup = document.createElement('div');
-            textGroup.className = 'content-text-group';
-            if (capletLayoutPosition.value === 'below') {
-                textGroup.classList.add('layout-vertical');
-            }
+            // Generate the stacked vertical layout block container
+            const destinationsVerticalStack = document.createElement('div');
+            destinationsVerticalStack.className = 'destinations-vertical-stack';
 
-            const innerTextMainBlock = document.createElement('div');
-            innerTextMainBlock.style.display = 'inline-flex';
-            innerTextMainBlock.style.alignItems = 'baseline';
+            // Loop and draw user configurations across lines
+            destinationRows.forEach(row => {
+                const rowLine = document.createElement('div');
+                rowLine.className = 'destination-row-line';
+                
+                const baseTermFs = parseInt(fsTerminus.value);
+                const basePrefixFs = parseInt(fsPrefix.value);
 
-            if (textPrefixMode.value !== 'none') {
-                const prefixSpan = document.createElement('span');
-                prefixSpan.className = 'prefix-text';
-                prefixSpan.innerText = textPrefixMode.value;
-                prefixSpan.style.fontSize = fsPrefix.value + 'px';
-                innerTextMainBlock.appendChild(prefixSpan);
-            }
-
-            const destinationTextSpan = document.createElement('span');
-            destinationTextSpan.className = 'destination-name';
-            destinationTextSpan.innerText = terminusName.value;
-            destinationTextSpan.style.fontSize = fsTerminus.value + 'px';
-            innerTextMainBlock.appendChild(destinationTextSpan);
-
-            // Fetch compiled interchange side-by-side unified pill capsule element
-            const fusedCapsuleNode = buildCombinedCapsule(capletCodesInput.value, activeLineColor);
-
-            // Distribute architectural layers matching alignment options logic rules matrix
-            if (capletLayoutPosition.value === 'before') {
-                if (fusedCapsuleNode) {
-                    textGroup.appendChild(fusedCapsuleNode);
+                // Apply linker text attributes prefix
+                if (row.prefix !== 'none') {
+                    const prefixSpan = document.createElement('span');
+                    prefixSpan.className = 'prefix-text';
+                    prefixSpan.innerText = row.prefix;
+                    prefixSpan.style.fontSize = (basePrefixFs * row.scale) + 'px';
+                    rowLine.appendChild(prefixSpan);
                 }
-                textGroup.appendChild(innerTextMainBlock);
-            } else {
-                textGroup.appendChild(innerTextMainBlock);
-                if (fusedCapsuleNode) {
-                    textGroup.appendChild(fusedCapsuleNode);
-                }
-            }
 
-            // Arrange Arrow Housing tracking relative to text elements flow layout order 
+                // Append the unified side-by-side capsule token system block
+                const mainCapsuleNode = buildCombinedCapsule(row.codes, activeLineColor, row.scale);
+                if (mainCapsuleNode) {
+                    rowLine.appendChild(mainCapsuleNode);
+                }
+
+                // Append principal terminus description label
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'destination-name';
+                nameSpan.innerText = row.name;
+                nameSpan.style.fontSize = (baseTermFs * row.scale) + 'px';
+                rowLine.appendChild(nameSpan);
+
+                // Parse and inject auxiliary tracking variables (Case 3 inline structures)
+                if (row.suffix.trim().length > 0) {
+                    const suffixArea = document.createElement('div');
+                    suffixArea.className = 'suffix-inline-area';
+                    suffixArea.style.fontSize = (basePrefixFs * row.scale * 0.9) + 'px';
+                    renderTextWithInlineCapsules(suffixArea, row.suffix, activeLineColor, row.scale);
+                    rowLine.appendChild(suffixArea);
+                }
+
+                destinationsVerticalStack.appendChild(rowLine);
+            });
+
             if (arrowFlowPlacement.value === 'left') {
                 centerContentWrapper.appendChild(arrowWrapper);
-                centerContentWrapper.appendChild(textGroup);
+                centerContentWrapper.appendChild(destinationsVerticalStack);
             } else {
-                centerContentWrapper.appendChild(textGroup);
+                centerContentWrapper.appendChild(destinationsVerticalStack);
                 centerContentWrapper.appendChild(arrowWrapper);
             }
 
             signageMainBody.appendChild(centerContentWrapper);
 
-            // 3. Append Right Panel Block component if enabled
             if (showPlatformRight.checked) {
                 const rightNode = createPlatformPanelNode();
                 rightNode.classList.add('border-left');
@@ -780,7 +887,6 @@
             }
         }
 
-        // Interactive Interface Event Listener Binding Matrix
         systemLineSelect.addEventListener('change', (e) => {
             customLineColor.style.display = (e.target.value === '#custom') ? 'block' : 'none';
             renderPlatformSignage();
@@ -789,8 +895,7 @@
         const inputsInterceptionSuite = [
             customLineColor, canvasWidth, canvasHeight, showPlatformLeft, showPlatformRight,
             platformPanelWidth, platformText, platformBoxWidth, platformBoxHeight,
-            textPrefixMode, terminusName, fsTerminus, fsPrefix, capletCodesInput,
-            capletLayoutPosition, fsCapletCode, capH, capP, capVr, capHr, arrowDirection,
+            fsTerminus, fsPrefix, fsCapletCode, capH, capP, capVr, capHr, arrowDirection,
             arrowFlowPlacement, arrowCircleColorMode, arrowCircleSize, arrowIconSize,
             showBottomBanner, showBottomText, bottomBannerText
         ];
@@ -800,10 +905,18 @@
             elementInput.addEventListener('change', renderPlatformSignage);
         });
 
-        // Initialize display configuration on mount
+        appendDestRowBtn.addEventListener('click', () => {
+            if (destinationRows.length < 5) {
+                destinationRows.push({ prefix: 'to', codes: 'NS1', name: 'New Terminus Destination', suffix: '', scale: 0.8 });
+                renderDestControlsRows();
+                renderPlatformSignage();
+            }
+        });
+
+        // Initialize view matrices
+        renderDestControlsRows();
         renderPlatformSignage();
 
-        // High-Fidelity Capture and Frame Storage Processing Engine
         document.getElementById('exportSignageBtn').addEventListener('click', () => {
             document.fonts.ready.then(async () => {
                 const canvas = await html2canvas(signageCanvas, {
@@ -813,7 +926,7 @@
                     backgroundColor: '#ffffff'
                 });
                 const downloadAnchorLink = document.createElement('a');
-                downloadAnchorLink.download = `platform_terminus_signage_${terminusName.value.toLowerCase().replace(/\s+/g, '_')}.png`;
+                downloadAnchorLink.download = `multi_destination_platform_signage.png`;
                 downloadAnchorLink.href = canvas.toDataURL('image/png');
                 downloadAnchorLink.click();
             });
