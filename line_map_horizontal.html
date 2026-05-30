@@ -862,7 +862,7 @@
                 labelWrap.appendChild(labelTxt);
                 col.appendChild(labelWrap);
 
-                // Node Container
+                // Node
                 const nodeContainer = document.createElement('div');
                 nodeContainer.className = 'node-container';
                 nodeContainer.style.top = Y + 'px';
@@ -871,13 +871,15 @@
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // Optional Destination Numbers Placement
+                // Global Column Level Destination Placement (Maintains layout alignment under absolute side-by-side mode)
                 if (showDest) {
+                    const innerPillOffsetDistance = Math.max(H, P * 2);
                     if (idx === 0 && destLeft && destLeft !== "") {
                         const destCircle = document.createElement('div');
                         destCircle.style.cssText = `
                             position: absolute;
-                            right: calc(100% + 16px);
+                            top: ${Y}px;
+                            right: calc(50% + ${innerPillOffsetDistance + 14}px);
                             width: ${destSize}px;
                             height: ${destSize}px;
                             border-radius: 50%;
@@ -892,17 +894,20 @@
                             font-weight: 700;
                             box-sizing: border-box;
                             box-shadow: 0 0 4px rgba(0,0,0,0.15);
+                            transform: translateY(-50%);
+                            z-index: 6;
                             transition: opacity 0.2s;
                         `;
                         if (isFaded) destCircle.style.opacity = '0.35';
                         destCircle.innerText = destLeft;
-                        nodeContainer.appendChild(destCircle);
+                        col.appendChild(destCircle);
                     }
                     if (idx === nodeCount - 1 && destRight && destRight !== "") {
                         const destCircle = document.createElement('div');
                         destCircle.style.cssText = `
                             position: absolute;
-                            left: calc(100% + 16px);
+                            top: ${Y}px;
+                            left: calc(50% + ${innerPillOffsetDistance + 14}px);
                             width: ${destSize}px;
                             height: ${destSize}px;
                             border-radius: 50%;
@@ -917,11 +922,13 @@
                             font-weight: 700;
                             box-sizing: border-box;
                             box-shadow: 0 0 4px rgba(0,0,0,0.15);
+                            transform: translateY(-50%);
+                            z-index: 6;
                             transition: opacity 0.2s;
                         `;
                         if (isFaded) destCircle.style.opacity = '0.35';
                         destCircle.innerText = destRight;
-                        nodeContainer.appendChild(destCircle);
+                        col.appendChild(destCircle);
                     }
                 }
 
@@ -1101,7 +1108,6 @@
             lineMapContainerB.style.width = totalW + 'px';
             lineMapContainerB.style.display = isDual ? 'block' : 'none';
 
-            // Arrow direction configuration
             let arrowRightA, arrowRightB;
             if (mode === 'single-right')        { arrowRightA = true;  arrowRightB = false; }
             else if (mode === 'single-left')    { arrowRightA = false; arrowRightB = false; }
@@ -1111,7 +1117,6 @@
             else if (mode === 'dual-both-left') { arrowRightA = false; arrowRightB = false; }
             else                                { arrowRightA = true;  arrowRightB = false; }
 
-            // Dynamic Terminal Destination Configurations
             const showDest = showDestNumbers.checked;
             const destStart = destStartInput.value.trim();
             const destEnd = destEndInput.value.trim();
@@ -1169,7 +1174,7 @@
                 });
             }
 
-            // Sync structural values text indicators
+            // Sync structural indicator values
             document.getElementById('trackLineYVal').innerText      = trackLineY.value + 'px';
             document.getElementById('interchangeGapVal').innerText  = interchangeGap.value + 'px';
             document.getElementById('icScaleVal').innerText         = Math.round(parseFloat(icScale.value) * 100) + '%';
