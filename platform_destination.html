@@ -115,7 +115,7 @@
             border-radius: 6px;
             margin-bottom: 8px;
         }
-        @media (max-width: 1400px) {
+        @media (max-width: 5000px) {
             .dest-row-item { grid-template-columns: auto auto auto auto; }
         }
         .btn-action {
@@ -224,17 +224,23 @@
             color: #64748b;
             font-weight: 500;
             margin-right: 12px;
+            display: inline-block;
         }
         .destination-name {
             margin-left: 12px;
             white-space: nowrap;
         }
         .suffix-inline-area {
-            margin-left: 10px;
-            color: #475569;
-            font-weight: 500;
+            margin-left: 14px;
+            color: #1c1d1f;
+            font-weight: 700;
             display: inline-flex;
             align-items: center;
+        }
+        .suffix-text-node {
+            color: #64748b;
+            font-weight: 500;
+            margin: 0 6px;
         }
         
         /* Combined Shared Capsule Layout (Elliptical Formula Integration) */
@@ -329,7 +335,7 @@
             <div>
                 <div class="section-title">
                     <span>Stacked Destinations Lineup Manager (Max 5)</span>
-                    <span style="font-size: 11px; color:#64748b;">Wrap secondary code items in brackets, e.g. <code>via [EW4] Tanah Merah</code></span>
+                    <span style="font-size: 11px; color:#64748b;">Wrap secondary code items in brackets, e.g. <code>via [NS9] Woodlands</code></span>
                 </div>
                 <div class="destinations-manager-list" id="destRowsContainer">
                     </div>
@@ -348,7 +354,7 @@
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="platformPanelWidth">Panel Zone Width: <span id="platformPanelWidthVal">500px</span></label>
+                        <label for="platformPanelWidth">Panel Zone Width: <span id="platformPanelWidthVal">350px</span></label>
                         <input type="range" id="platformPanelWidth" min="100" max="1000" value="500">
                     </div>
                     <div class="control-group">
@@ -397,8 +403,16 @@
                         <input type="range" id="fsPrefix" min="14" max="60" value="32">
                     </div>
                 </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="hideDuplicatePrefixes" checked>
+                    <label for="hideDuplicatePrefixes" style="font-size: 13px; font-weight: 600; color: #475569; cursor: pointer;">Auto-hide duplicate consecutive row prefixes (via / to)</label>
+                </div>
 
                 <div class="section-title" style="margin-top:20px;">Combined Interchange Capsules Engine</div>
+                <div class="control-group">
+                    <label for="fictionalLinesMap">Fictional Lines Color Registry Matrix (Prefix:Hex)</label>
+                    <input type="text" id="fictionalLinesMap" value="WL:#fa9e0d, HP:#00ffaa" placeholder="e.g. WL:#fa9e0d, PE:#ff0055">
+                </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
                         <label for="fsCapletCode">Capsule Font Size: <span id="fsCapletCodeVal">24px</span></label>
@@ -503,13 +517,13 @@
             { name: "[ Fictional / Custom Profile ]", prefix: "CUST", color: "#custom" }
         ];
 
-        // State machine containing default illustrative items mirroring multi-case samples
+        // Default layout configurations mirroring multi-case samples
         let destinationRows = [
-            { prefix: 'via', codes: 'CC4, DT15', name: 'Promenade', suffix: '', scale: 1.0 },
-            { prefix: 'via', codes: 'CC9, EW8', name: 'Paya Lebar', suffix: '', scale: 1.0 }
+            { prefix: 'to', codes: 'NS1, EW24', name: 'Jurong East', suffix: '', scale: 1.0 },
+            { prefix: 'to', codes: 'WL9', name: 'Woodlands North', suffix: 'via [NS9] Woodlands', scale: 1.0 }
         ];
 
-        // Core Interceptor Handles
+        // UI Core Interceptors Handles
         const systemLineSelect = document.getElementById('systemLineSelect');
         const customLineColor = document.getElementById('customLineColor');
         const canvasWidth = document.getElementById('canvasWidth');
@@ -531,6 +545,7 @@
         const fsTerminusVal = document.getElementById('fsTerminusVal');
         const fsPrefix = document.getElementById('fsPrefix');
         const fsPrefixVal = document.getElementById('fsPrefixVal');
+        const hideDuplicatePrefixes = document.getElementById('hideDuplicatePrefixes');
 
         const destRowsContainer = document.getElementById('destRowsContainer');
         const appendDestRowBtn = document.getElementById('appendDestRowBtn');
@@ -545,6 +560,7 @@
         const capVrVal = document.getElementById('capVrVal');
         const capHr = document.getElementById('capHr');
         const capHrVal = document.getElementById('capHrVal');
+        const fictionalLinesMap = document.getElementById('fictionalLinesMap');
 
         const arrowDirection = document.getElementById('arrowDirection');
         const arrowFlowPlacement = document.getElementById('arrowFlowPlacement');
@@ -563,7 +579,6 @@
         const bottomIdentityBand = document.getElementById('bottomIdentityBand');
         const bandLineNameText = document.getElementById('bandLineNameText');
 
-        // Populate system profiles
         systemLines.forEach(line => {
             const opt = document.createElement('option');
             opt.value = line.color;
@@ -571,8 +586,25 @@
             systemLineSelect.appendChild(opt);
         });
 
+        // Color Mapping Standard Utilities + User Customizable Fictional Lookups Registry
         function getAutoColor(codeStr) {
             const clean = codeStr.trim().toUpperCase();
+
+            // Check customizable fictional lines registry input map registry first
+            const fictionalInput = fictionalLinesMap?.value || '';
+            const pairs = fictionalInput.split(',');
+            for (let pair of pairs) {
+                const parts = pair.split(':');
+                if (parts.length === 2) {
+                    const pfx = parts[0].trim().toUpperCase();
+                    const col = parts[1].trim();
+                    if (pfx && col && clean.startsWith(pfx)) {
+                        return col;
+                    }
+                }
+            }
+
+            // Core rapid transit line defaults fallback registry 
             if (clean.startsWith("NS")) return "#d42e12";
             if (clean.startsWith("EW")) return "#009645";
             if (clean.startsWith("NE")) return "#9900aa";
@@ -591,7 +623,6 @@
             return '#ffffff';
         }
 
-        // Draws the interactive inputs fields control framework for the dynamic destination items
         function renderDestControlsRows() {
             destRowsContainer.innerHTML = '';
             destinationRows.forEach((row, idx) => {
@@ -608,7 +639,7 @@
                     </select>
                     <input type="text" value="${row.codes}" placeholder="Codes (e.g. CC4, DT15)" class="input-codes" style="width:100%; box-sizing:border-box;">
                     <input type="text" value="${row.name}" placeholder="Terminus Name" class="input-name" style="width:100%; box-sizing:border-box;">
-                    <input type="text" value="${row.suffix}" placeholder="Suffix (e.g. via [EW4] Tanah Merah)" class="input-suffix" style="width:100%; box-sizing:border-box;">
+                    <input type="text" value="${row.suffix}" placeholder="Suffix (e.g. via [NS9] Woodlands)" class="input-suffix" style="width:100%; box-sizing:border-box;">
                     <div style="display:flex; flex-direction:column; gap:2px;">
                         <label style="font-size:10px; font-weight:bold;">Scale: ${Math.round(row.scale*100)}%</label>
                         <input type="range" min="0.4" max="1.3" step="0.05" value="${row.scale}" class="input-scale" style="width:100%;">
@@ -616,7 +647,6 @@
                     <button class="btn-action btn-delete">✕</button>
                 `;
 
-                // Setup live updating listeners across the matrix
                 rowDiv.querySelector('.input-prefix').addEventListener('change', (e) => { destinationRows[idx].prefix = e.target.value; renderPlatformSignage(); });
                 rowDiv.querySelector('.input-codes').addEventListener('input', (e) => { destinationRows[idx].codes = e.target.value; renderPlatformSignage(); });
                 rowDiv.querySelector('.input-name').addEventListener('input', (e) => { destinationRows[idx].name = e.target.value; renderPlatformSignage(); });
@@ -637,7 +667,6 @@
             appendDestRowBtn.disabled = destinationRows.length >= 5;
         }
 
-        // Elliptical Shared Capsule Generation Factory
         function buildCombinedCapsule(tokensString, activeLineColor, scaleMultiplier = 1.0) {
             const tokens = tokensString.split(',').map(t => t.trim()).filter(t => t.length > 0);
             if (tokens.length === 0) return null;
@@ -690,22 +719,28 @@
             return outer;
         }
 
-        // Advanced Regex Suffix Parser Engine for converting bracket syntax like [EW4] into custom capsules
-        function renderTextWithInlineCapsules(container, mixedText, activeLineColor, scaleMultiplier) {
+        // Advanced Suffix Parser: Segregates literal strings and formats linkers (e.g., via) to be significantly downscaled
+        function renderTextWithInlineCapsules(container, mixedText, activeLineColor, scaleMultiplier, basePrefixFs) {
             const regex = /\[(.*?)\]/g;
             let lastIndex = 0;
             let match;
             
+            // Calculates a balanced subordinate size multiplier specifically for the plain suffix strings
+            const stringFontSize = (basePrefixFs * scaleMultiplier * 0.72) + 'px';
+            
             while ((match = regex.exec(mixedText)) !== null) {
                 if (match.index > lastIndex) {
+                    const plainTextStr = mixedText.substring(lastIndex, match.index);
                     const textNode = document.createElement('span');
-                    textNode.innerText = mixedText.substring(lastIndex, match.index);
+                    textNode.className = 'suffix-text-node';
+                    textNode.style.fontSize = stringFontSize;
+                    textNode.innerText = plainTextStr;
                     container.appendChild(textNode);
                 }
                 
                 const token = match[1].trim();
                 if (token) {
-                    const singleCapsule = buildCombinedCapsule(token, activeLineColor, scaleMultiplier * 0.9);
+                    const singleCapsule = buildCombinedCapsule(token, activeLineColor, scaleMultiplier * 0.85);
                     if (singleCapsule) {
                         container.appendChild(singleCapsule);
                     }
@@ -714,20 +749,22 @@
             }
             
             if (lastIndex < mixedText.length) {
+                const plainTextStr = mixedText.substring(lastIndex);
                 const textNode = document.createElement('span');
-                textNode.innerText = mixedText.substring(lastIndex);
+                textNode.className = 'suffix-text-node';
+                textNode.style.fontSize = stringFontSize;
+                textNode.innerText = plainTextStr;
                 container.appendChild(textNode);
             }
         }
 
-        // Main Layout Assembly Canvas Pipeline Engine
         function renderPlatformSignage() {
             const W = parseInt(canvasWidth.value);
             const H = parseInt(canvasHeight.value);
-            canvasWidthVal.innerText = W + 'px';
-            canvasHeightVal.innerText = H + 'px';
             signageCanvas.style.width = W + 'px';
             signageCanvas.style.height = H + 'px';
+            canvasWidthVal.innerText = W + 'px';
+            canvasHeightVal.innerText = H + 'px';
 
             platformPanelWidthVal.innerText = platformPanelWidth.value + 'px';
             platformBoxWidthVal.innerText = platformBoxWidth.value + 'px';
@@ -824,46 +861,50 @@
             arrowSvg.appendChild(arrowPath);
             arrowWrapper.appendChild(arrowSvg);
 
-            // Generate the stacked vertical layout block container
             const destinationsVerticalStack = document.createElement('div');
             destinationsVerticalStack.className = 'destinations-vertical-stack';
 
-            // Loop and draw user configurations across lines
-            destinationRows.forEach(row => {
+            let lastPrefix = null;
+
+            destinationRows.forEach((row, idx) => {
                 const rowLine = document.createElement('div');
                 rowLine.className = 'destination-row-line';
                 
                 const baseTermFs = parseInt(fsTerminus.value);
                 const basePrefixFs = parseInt(fsPrefix.value);
 
-                // Apply linker text attributes prefix
                 if (row.prefix !== 'none') {
                     const prefixSpan = document.createElement('span');
                     prefixSpan.className = 'prefix-text';
                     prefixSpan.innerText = row.prefix;
                     prefixSpan.style.fontSize = (basePrefixFs * row.scale) + 'px';
+                    
+                    if (hideDuplicatePrefixes.checked && idx > 0 && row.prefix === lastPrefix) {
+                        prefixSpan.style.visibility = 'hidden';
+                    }
+                    
                     rowLine.appendChild(prefixSpan);
+                    lastPrefix = row.prefix;
+                } else {
+                    lastPrefix = null;
                 }
 
-                // Append the unified side-by-side capsule token system block
                 const mainCapsuleNode = buildCombinedCapsule(row.codes, activeLineColor, row.scale);
                 if (mainCapsuleNode) {
                     rowLine.appendChild(mainCapsuleNode);
                 }
 
-                // Append principal terminus description label
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'destination-name';
                 nameSpan.innerText = row.name;
                 nameSpan.style.fontSize = (baseTermFs * row.scale) + 'px';
                 rowLine.appendChild(nameSpan);
 
-                // Parse and inject auxiliary tracking variables (Case 3 inline structures)
+                // Appends the suffix row passing parameters through the custom scaled-down typography filters
                 if (row.suffix.trim().length > 0) {
                     const suffixArea = document.createElement('div');
                     suffixArea.className = 'suffix-inline-area';
-                    suffixArea.style.fontSize = (basePrefixFs * row.scale * 0.9) + 'px';
-                    renderTextWithInlineCapsules(suffixArea, row.suffix, activeLineColor, row.scale);
+                    renderTextWithInlineCapsules(suffixArea, row.suffix, activeLineColor, row.scale, basePrefixFs);
                     rowLine.appendChild(suffixArea);
                 }
 
@@ -895,7 +936,7 @@
         const inputsInterceptionSuite = [
             customLineColor, canvasWidth, canvasHeight, showPlatformLeft, showPlatformRight,
             platformPanelWidth, platformText, platformBoxWidth, platformBoxHeight,
-            fsTerminus, fsPrefix, fsCapletCode, capH, capP, capVr, capHr, arrowDirection,
+            fsTerminus, fsPrefix, hideDuplicatePrefixes, fictionalLinesMap, fsCapletCode, capH, capP, capVr, capHr, arrowDirection,
             arrowFlowPlacement, arrowCircleColorMode, arrowCircleSize, arrowIconSize,
             showBottomBanner, showBottomText, bottomBannerText
         ];
@@ -907,13 +948,13 @@
 
         appendDestRowBtn.addEventListener('click', () => {
             if (destinationRows.length < 5) {
-                destinationRows.push({ prefix: 'to', codes: 'NS1', name: 'New Terminus Destination', suffix: '', scale: 0.8 });
+                const referencePrefix = destinationRows.length > 0 ? destinationRows[destinationRows.length - 1].prefix : 'to';
+                destinationRows.push({ prefix: referencePrefix, codes: 'NS1', name: 'New Terminus Destination', suffix: '', scale: 0.8 });
                 renderDestControlsRows();
                 renderPlatformSignage();
             }
         });
 
-        // Initialize view matrices
         renderDestControlsRows();
         renderPlatformSignage();
 
