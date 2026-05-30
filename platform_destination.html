@@ -193,9 +193,6 @@
             align-items: stretch;
             padding: 3px;
             background: #ffffff;
-            border: 3px solid #ffffff;
-            box-shadow: 0 0 0 3px #ffffff, inset 0 0 0 0px #ffffff;
-            overflow: hidden;
             box-sizing: border-box;
         }
         .combined-inner-row {
@@ -233,7 +230,7 @@
             height: 50px;
             display: flex;
             align-items: center;
-            justify-content: center; /* Enforces absolute text centering across the ribbon width */
+            justify-content: center;
             padding: 0 30px;
             box-sizing: border-box;
             width: 100%;
@@ -383,6 +380,16 @@
                         <input type="range" id="capP" min="5" max="45" value="18">
                     </div>
                 </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="capVr">Vert. Radius (Vr): <span id="capVrVal">28px</span></label>
+                        <input type="range" id="capVr" min="0" max="100" value="28">
+                    </div>
+                    <div class="control-group">
+                        <label for="capHr">Horiz. Radius (Hr): <span id="capHrVal">13px</span></label>
+                        <input type="range" id="capHr" min="0" max="160" value="13">
+                    </div>
+                </div>
 
                 <div class="section-title" style="margin-top:20px;">Direction Indicator Arrow Configuration</div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -496,6 +503,10 @@
         const capHVal = document.getElementById('capHVal');
         const capP = document.getElementById('capP');
         const capPVal = document.getElementById('capPVal');
+        const capVr = document.getElementById('capVr');
+        const capVrVal = document.getElementById('capVrVal');
+        const capHr = document.getElementById('capHr');
+        const capHrVal = document.getElementById('capHrVal');
 
         const arrowDirection = document.getElementById('arrowDirection');
         const arrowFlowPlacement = document.getElementById('arrowFlowPlacement');
@@ -543,7 +554,7 @@
             return '#ffffff';
         }
 
-        // Unified High-Precision Capsule Generation Factory (Fuses side-by-side components into an unbroken capsule)
+        // Unified High-Precision Capsule Generation Factory (Ellipse radius integration formula)
         function buildCombinedCapsule(tokensString, activeLineColor) {
             const tokens = tokensString.split(',').map(t => t.trim()).filter(t => t.length > 0);
             if (tokens.length === 0) return null;
@@ -551,17 +562,18 @@
             const hValue = parseInt(capH.value);
             const pValue = parseInt(capP.value);
             const fsValue = parseInt(fsCapletCode.value);
-            const radiusValue = Math.round(hValue / 2);
+            const vrValue = parseInt(capVr.value);
+            const hrValue = parseInt(capHr.value);
 
-            // Construct seamless outer boundary wrapper capsule box
+            // Construct seamless outer boundary wrapper capsule box using variable elliptical radius formula
             const outer = document.createElement('div');
             outer.className = 'combined-capsule-wrapper';
-            outer.style.borderRadius = (radiusValue + 3) + 'px';
+            outer.style.borderRadius = `${hrValue}px / ${vrValue}px`;
 
             const innerRow = document.createElement('div');
             innerRow.className = 'combined-inner-row';
             innerRow.style.height = hValue + 'px';
-            innerRow.style.borderRadius = radiusValue + 'px';
+            innerRow.style.borderRadius = `${hrValue}px / ${vrValue}px`;
 
             tokens.forEach((token, index) => {
                 if (index > 0) {
@@ -573,7 +585,6 @@
                 let segmentText = token;
                 let bgHex = getAutoColor(token) || activeLineColor;
                 
-                // Regex parsing interceptor matching programmatic inline overrides: e.g. "TE31 (#005ec4)"
                 const inlineColorMatch = token.match(/(.+?)\s*\((#[0-9A-Fa-f]{6})\)/);
                 if (inlineColorMatch) {
                     segmentText = inlineColorMatch[1].trim();
@@ -615,6 +626,8 @@
             fsCapletCodeVal.innerText = fsCapletCode.value + 'px';
             capHVal.innerText = capH.value + 'px';
             capPVal.innerText = capP.value + 'px';
+            capVrVal.innerText = capVr.value + 'px';
+            capHrVal.innerText = capHr.value + 'px';
             arrowCircleSizeVal.innerText = arrowCircleSize.value + 'px';
             arrowIconSizeVal.innerText = arrowIconSize.value + 'px';
 
@@ -644,7 +657,7 @@
             const pBoxW = parseInt(platformBoxWidth.value);
             const pBoxH = parseInt(platformBoxHeight.value);
 
-            // Helper Utility to construct standalone platform sign boxes inside bounded panels
+            // Helper Utility to construct platform sign boxes inside panels
             function createPlatformPanelNode() {
                 const panel = document.createElement('div');
                 panel.className = 'platform-panel';
@@ -777,7 +790,7 @@
             customLineColor, canvasWidth, canvasHeight, showPlatformLeft, showPlatformRight,
             platformPanelWidth, platformText, platformBoxWidth, platformBoxHeight,
             textPrefixMode, terminusName, fsTerminus, fsPrefix, capletCodesInput,
-            capletLayoutPosition, fsCapletCode, capH, capP, arrowDirection,
+            capletLayoutPosition, fsCapletCode, capH, capP, capVr, capHr, arrowDirection,
             arrowFlowPlacement, arrowCircleColorMode, arrowCircleSize, arrowIconSize,
             showBottomBanner, showBottomText, bottomBannerText
         ];
