@@ -963,16 +963,27 @@
                     } else { aTop += G + 10; }
                     arrowBox.style.top = aTop + 'px';
 
-                    // Arrow circle — direction-aware
+                    // Arrow circle — SVG arrow for reliable rendering in export
                     const circle = document.createElement('div');
                     circle.style.cssText = `
                         width:${aSize}px; height:${aSize}px; border-radius:50%;
-                        background:#111; color:#fff; display:flex;
+                        background:#111; display:flex;
                         align-items:center; justify-content:center;
-                        font-size:${aFont}px; font-weight:bold; cursor:default;
-                        user-select:none; flex-shrink:0;
+                        cursor:default; user-select:none; flex-shrink:0;
                     `;
-                    circle.textContent = arrowRight ? '→' : '←';
+                    const svgNS = 'http://www.w3.org/2000/svg';
+                    const arrowSvg = document.createElementNS(svgNS, 'svg');
+                    arrowSvg.setAttribute('width', aFont);
+                    arrowSvg.setAttribute('height', aFont);
+                    arrowSvg.setAttribute('viewBox', '0 0 24 24');
+                    const arrowPath = document.createElementNS(svgNS, 'path');
+                    arrowPath.setAttribute('fill', '#ffffff');
+                    arrowPath.setAttribute('d', arrowRight
+                        ? 'M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.42L16.17 13H4z'
+                        : 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.42L7.83 13H20z'
+                    );
+                    arrowSvg.appendChild(arrowPath);
+                    circle.appendChild(arrowSvg);
                     arrowBox.appendChild(circle);
 
                     totalStackBottom = aTop + aSize + 4;
@@ -1037,20 +1048,11 @@
                 selectedLineObj, finalPrefix
             });
 
-            // Map B (reversed station order)
+            // Map B (same station order — direction conveyed by arrow + fade flip only)
             if (isDual) {
-                const reversedStations = [...stationsState].reverse().map((s, i, arr) => ({
-                    ...s,
-                    fadeSplit: s.fadeSplit ? true : false,
-                    // Mirror the fadeSplit to the correct reversed index
-                }));
-                // Remap fadeSplit correctly after reversal
                 const origSplitIdx = stationsState.findIndex(s => s.fadeSplit);
-                reversedStations.forEach((s, i) => {
-                    s.fadeSplit = (origSplitIdx !== -1 && i === (stationsState.length - 1 - origSplitIdx));
-                });
                 renderOneMap({
-                    stations: reversedStations,
+                    stations: stationsState,
                     visualArea: routeVisualAreaB,
                     trackUnderlay: trackLineUnderlayB,
                     bandEl: bottomIdentityBandB,
