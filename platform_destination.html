@@ -367,7 +367,7 @@
         </div>
     </div>
 
-    <script>
+        <script>
         const standardLines = [
             { name: "Thomson–East Coast Line (TEL)", prefix: "TEL", color: "#9D5B25" },
             { name: "North East Line (NEL)", prefix: "NEL", color: "#9900aa" },
@@ -379,8 +379,8 @@
             { name: "Jurong Region Line (JRL)", prefix: "JRL", color: "#0099aa" },
             { name: "[ Custom Design Frame ]", prefix: "CUST", color: "#custom" }
         ];
-
-        // Component Configuration Selectors
+    
+        // DOM Elements (keep your existing selectors)
         const systemLineSelect = document.getElementById('systemLineSelect');
         const customLineColor = document.getElementById('customLineColor');
         const prefixSelect = document.getElementById('prefixSelect');
@@ -389,12 +389,10 @@
         const showRibbonToggle = document.getElementById('showRibbonToggle');
         const showRibbonTextToggle = document.getElementById('showRibbonTextToggle');
         const ribbonMetadataGroup = document.getElementById('ribbonMetadataGroup');
-
         const capletLayoutSelect = document.getElementById('capletLayoutSelect');
         const arrowPositionSelect = document.getElementById('arrowPositionSelect');
         const arrowColorSelect = document.getElementById('arrowColorSelect');
         const arrowDirectionSelect = document.getElementById('arrowDirectionSelect');
-
         const signageWidth = document.getElementById('signageWidth');
         const signageWidthVal = document.getElementById('signageWidthVal');
         const signageHeight = document.getElementById('signageHeight');
@@ -407,8 +405,7 @@
         const arrowCircleSizeVal = document.getElementById('arrowCircleSizeVal');
         const arrowIconSize = document.getElementById('arrowIconSize');
         const arrowIconSizeVal = document.getElementById('arrowIconSizeVal');
-
-        // Target Structural Node Selectors
+    
         const destinationSignageContainer = document.getElementById('destination-signage-container');
         const signageContentCore = document.getElementById('signageContentCore');
         const textHierarchyBlock = document.getElementById('textHierarchyBlock');
@@ -422,7 +419,7 @@
         const bottomIdentityBand = document.getElementById('bottomIdentityBand');
         const bandCapletWrapper = document.getElementById('bandCapletWrapper');
         const bandLineNameText = document.getElementById('bandLineNameText');
-
+    
         function getAutoColor(codeStr) {
             const clean = codeStr.trim().toUpperCase();
             if (clean.startsWith("NS")) return "#d42e12";
@@ -436,13 +433,13 @@
             if (clean.startsWith("PTC") || clean.startsWith("STC")) return "#708090";
             return "#111827";
         }
-
+    
         function getContrastColor(hexColor) {
             const darkTextLines = ["#FA9E0D", "#97C616", "#0099AA", "#FFCD00", "#cbd5e1"];
             if (darkTextLines.includes(hexColor.toUpperCase())) return '#000000';
             return '#ffffff';
         }
-
+    
         function buildSignageCaplet(tokenText, heightValue, fontSizeValue) {
             const cleanToken = tokenText.trim().toUpperCase();
             const bgColor = getAutoColor(cleanToken);
@@ -464,7 +461,7 @@
             outer.appendChild(inner);
             return outer;
         }
-
+    
         function buildBannerCapletStyleElement(text, fs, h, p, vr, hr) {
             const wrapper = document.createElement('div');
             wrapper.style.display = 'inline-flex';
@@ -492,30 +489,28 @@
             wrapper.appendChild(inner);
             return wrapper;
         }
-
+    
         function drawSignageCanvas() {
-            // --- 1. Dimension Controls Sizing Updates ---
             const w = parseInt(signageWidth.value);
             const h = parseInt(signageHeight.value);
             signageWidthVal.innerText = w + 'px';
             signageHeightVal.innerText = h + 'px';
             destinationSignageContainer.style.width = w + 'px';
             destinationSignageContainer.style.height = h + 'px';
-
+    
             const fsT = parseInt(fsTerminus.value);
             const fsC = parseInt(fsCaplet.value);
             fsTerminusVal.innerText = fsT + 'px';
             fsCapletVal.innerText = fsC + 'px';
-
+    
             const circleScale = parseInt(arrowCircleSize.value);
             const symbolScale = parseInt(arrowIconSize.value);
             arrowCircleSizeVal.innerText = circleScale + 'px';
             arrowIconSizeVal.innerText = symbolScale + 'px';
-
-            // --- 2. Typography Processing Core Logic ---
+    
             terminusNameDisplay.innerText = terminusInput.value;
             terminusNameDisplay.style.fontSize = fsT + 'px';
-
+    
             const prefixValue = prefixSelect.value;
             if (prefixValue === 'none') {
                 prefixTextLabel.style.display = 'none';
@@ -524,21 +519,18 @@
                 prefixTextLabel.innerText = prefixValue;
                 prefixTextLabel.style.fontSize = Math.max(14, fsT * 0.35) + 'px';
             }
-
-            // --- 3. Caplet Inline Array Construction Engine ---
-            // Purge historical dynamic nodes arrays first
+    
             bottomCapletRow.innerHTML = '';
             terminusTitleLine.querySelectorAll('.signage-caplet-outer').forEach(c => c.remove());
-
+    
             const rawTokens = capletInput.value.split(/[,/]+/);
             const capletHeight = fsC * 1.6;
-
+    
             rawTokens.forEach(token => {
                 if (!token.trim()) return;
                 const capletNode = buildSignageCaplet(token, capletHeight, fsC);
                 
                 if (capletLayoutSelect.value === 'before') {
-                    // Pre-insert caplet elements inside the title line matrix column grid loop
                     terminusTitleLine.insertBefore(capletNode, terminusNameDisplay);
                     bottomCapletRow.style.display = 'none';
                 } else {
@@ -546,14 +538,21 @@
                     bottomCapletRow.style.display = 'inline-flex';
                 }
             });
-
-            // --- 4. Arrow Indicator Alignment Swapping Matrix ---
+    
             indicatorArrowCircle.style.width = circleScale + 'px';
             indicatorArrowCircle.style.height = circleScale + 'px';
             arrowSvgObject.setAttribute('width', symbolScale);
             arrowSvgObject.setAttribute('height', symbolScale);
-
-            const activeLineColor = (systemLineSelect.value === '#custom') ? customLineColor.value : systemLineSelect.value;
+    
+            // FIXED: Active line color retrieval
+            let activeLineColor;
+            if (systemLineSelect.value === '#custom') {
+                activeLineColor = customLineColor.value;
+            } else {
+                const selectedLine = standardLines.find(line => line.color === systemLineSelect.value);
+                activeLineColor = selectedLine ? selectedLine.color : '#9D5B25';
+            }
+            
             if (arrowColorSelect.value === 'line') {
                 indicatorArrowCircle.style.backgroundColor = activeLineColor;
                 arrowSvgPath.setAttribute('fill', getContrastColor(activeLineColor));
@@ -561,26 +560,29 @@
                 indicatorArrowCircle.style.backgroundColor = '#111827';
                 arrowSvgPath.setAttribute('fill', '#ffffff');
             }
-
+    
             if (arrowDirectionSelect.value === 'left') {
                 arrowSvgPath.setAttribute('d', 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.42L7.83 13H20z');
             } else {
                 arrowSvgPath.setAttribute('d', 'M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.42L16.17 13H4z');
             }
-
+    
             if (arrowPositionSelect.value === 'left') {
                 signageContentCore.style.flexDirection = 'row-reverse';
             } else {
                 signageContentCore.style.flexDirection = 'row';
             }
-
-            // --- 5. Bottom Ribbon Rendering System ---
+    
             if (showRibbonToggle.value === 'true') {
                 bottomIdentityBand.style.display = 'flex';
                 bottomIdentityBand.style.backgroundColor = activeLineColor;
                 ribbonMetadataGroup.style.display = 'block';
-
-                const selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value) || { name: "Custom Line", prefix: "CUST" };
+    
+                // FIXED: Find selected line object
+                let selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value);
+                if (!selectedLineObj || systemLineSelect.value === '#custom') {
+                    selectedLineObj = { name: "Custom Line", prefix: "CUST" };
+                }
                 
                 if (showRibbonTextToggle.value === 'full') {
                     bandLineNameText.style.display = 'inline';
@@ -606,22 +608,42 @@
                 ribbonMetadataGroup.style.display = 'none';
             }
         }
-
+    
+        // FIXED: Initialize line select dropdown
+        function initializeLineSelect() {
+            standardLines.forEach(line => {
+                const option = document.createElement('option');
+                option.value = line.color === "#custom" ? "#custom" : line.color;
+                option.textContent = line.name;
+                if (line.color === "#9D5B25") option.selected = true;
+                systemLineSelect.appendChild(option);
+            });
+        }
+    
+        // FIXED: Event listener for line selection
         systemLineSelect.addEventListener('change', (e) => {
-            customLineColor.style.display = (e.target.value === '#custom') ? 'block' : 'none';
+            const selectedOption = standardLines.find(line => 
+                (line.color === "#custom" && e.target.value === "#custom") ||
+                (line.color === e.target.value)
+            );
+            customLineColor.style.display = (selectedOption?.color === "#custom") ? 'block' : 'none';
             drawSignageCanvas();
         });
-
-        [customLineColor, prefixSelect, terminusInput, capletInput, showRibbonToggle, showRibbonTextToggle, capletLayoutSelect, arrowPositionSelect, arrowColorSelect, arrowDirectionSelect, signageWidth, signageHeight, fsTerminus, fsCaplet, arrowCircleSize, arrowIconSize].forEach(ctrl => {
+    
+        // Attach all event listeners
+        [customLineColor, prefixSelect, terminusInput, capletInput, showRibbonToggle, 
+         showRibbonTextToggle, capletLayoutSelect, arrowPositionSelect, arrowColorSelect, 
+         arrowDirectionSelect, signageWidth, signageHeight, fsTerminus, fsCaplet, 
+         arrowCircleSize, arrowIconSize].forEach(ctrl => {
             ctrl.addEventListener('input', drawSignageCanvas);
             ctrl.addEventListener('change', drawSignageCanvas);
         });
-
-        // Initialize Data Profiles
-        renderControlsRows();
+    
+        // Initialize and draw
+        initializeLineSelect();
         drawSignageCanvas();
-
-        // High-Fidelity Capture Export Template Panel
+    
+        // Download functionality
         document.getElementById('downloadSignageBtn').addEventListener('click', () => {
             const target = document.getElementById('destination-signage-container');
             document.fonts.ready.then(() => {
