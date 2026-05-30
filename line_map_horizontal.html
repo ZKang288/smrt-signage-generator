@@ -858,6 +858,7 @@
                         ? `${Y - (H * parseFloat(icScale.value)) / 2}px`
                         : `${Y + (actualCapletHeight / 2) + G}px`;
                     icWrapper.style.opacity = isFaded ? '0.35' : '1';
+                    icWrapper.style.zIndex = '4';
 
                     // Parse interchange tokens
                     const icTokensParsed = station.interchanges.split(',').filter(t => t.trim()).map(token => {
@@ -1049,11 +1050,25 @@
                 selectedLineObj, finalPrefix
             });
 
-            // Map B (same station order — direction conveyed by arrow + fade flip only)
+            // Map B:
+            //   Opposite directions → same station order, fade flips (arrow conveys direction)
+            //   Same direction      → reversed station order, so terminals differ
             if (isDual) {
-                const origSplitIdx = stationsState.findIndex(s => s.fadeSplit);
+                const sameDirection = (mode === 'dual-both-right' || mode === 'dual-both-left');
+                let stationsB;
+                if (sameDirection) {
+                    // Reverse order and remap fadeSplit to mirrored index
+                    const origSplitIdx = stationsState.findIndex(s => s.fadeSplit);
+                    stationsB = [...stationsState].reverse().map((s, i) => ({
+                        ...s,
+                        fadeSplit: origSplitIdx !== -1 && i === (stationsState.length - 1 - origSplitIdx)
+                    }));
+                } else {
+                    // Same order — arrow direction + fade flip conveys which way you're going
+                    stationsB = stationsState;
+                }
                 renderOneMap({
-                    stations: stationsState,
+                    stations: stationsB,
                     visualArea: routeVisualAreaB,
                     trackUnderlay: trackLineUnderlayB,
                     bandEl: bottomIdentityBandB,
