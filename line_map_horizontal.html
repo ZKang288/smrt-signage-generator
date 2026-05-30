@@ -146,7 +146,9 @@
             padding: 40px 0;
             border-radius: 12px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
         }
 
         #line-map-container {
@@ -320,8 +322,8 @@
                 </div>
                 
                 <div class="control-group">
-                    <label for="mapWidth">Canvas Width Dimensions: <span id="mapWidthVal">3750px</span></label>
-                    <input type="range" id="mapWidth" min="800" max="5000" value="3750">
+                    <label for="mapWidth">Canvas Width Dimensions: <span id="mapWidthVal">1800px</span></label>
+                    <input type="range" id="mapWidth" min="800" max="4000" value="1800">
                 </div>
 
                 <div class="section-title" style="margin-top:20px;">Dynamic Alignment Layouts</div>
@@ -367,6 +369,32 @@
                     <div class="control-group">
                         <label for="fsCapletCode">Caplet Text Font: <span id="fsCapletCodeVal">30px</span></label>
                         <input type="range" id="fsCapletCode" min="10" max="60" value="30">
+                    </div>
+                </div>
+
+                <div class="section-title" style="margin-top:20px;">Direction Mode</div>
+                <div class="control-group">
+                    <label for="directionMode">Map Mode</label>
+                    <select id="directionMode">
+                        <option value="single-right">Single Map →</option>
+                        <option value="single-left">Single Map ←</option>
+                        <option value="dual-right-left">Dual Map: Top → Bottom ←</option>
+                        <option value="dual-left-right">Dual Map: Top ← Bottom →</option>
+                        <option value="dual-both-right">Dual Map: Both →</option>
+                        <option value="dual-both-left">Dual Map: Both ←</option>
+                    </select>
+                </div>
+                <div id="dualModeNote" style="display:none; font-size:12px; color:#64748b; margin-bottom:10px;">
+                    ℹ️ Dual mode stacks two maps. Station order is automatically reversed for the second map.
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="arrowSize">Arrow Circle Size: <span id="arrowSizeVal">36px</span></label>
+                        <input type="range" id="arrowSize" min="20" max="80" value="36">
+                    </div>
+                    <div class="control-group">
+                        <label for="arrowFontSize">Arrow Icon Size: <span id="arrowFontSizeVal">18px</span></label>
+                        <input type="range" id="arrowFontSize" min="10" max="48" value="18">
                     </div>
                 </div>
 
@@ -437,14 +465,25 @@
         <button class="btn-download" id="downloadMapBtn" style="background-color: #1e293b; color: white; width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);">Export Complete Horizontal Route Map Template</button>
     </div>
 
-    <div class="map-viewport">
-        <div id="line-map-container">
+    <div class="map-viewport" id="mapViewportWrapper">
+        <!-- Map A (always shown) -->
+        <div id="line-map-container" style="margin-bottom:0;">
             <div class="route-visual-area" id="routeVisualArea">
                 <div class="track-line-underlay" id="trackLineUnderlay"></div>
-                </div>
+            </div>
             <div class="bottom-identity-band" id="bottomIdentityBand">
                 <div id="bandCapletWrapper"></div>
                 <span class="band-text" id="bandLineNameText">North East Line</span>
+            </div>
+        </div>
+        <!-- Map B (dual mode only) -->
+        <div id="line-map-container-b" style="display:none; margin-top:8px;">
+            <div class="route-visual-area" id="routeVisualAreaB">
+                <div class="track-line-underlay" id="trackLineUnderlayB"></div>
+            </div>
+            <div class="bottom-identity-band" id="bottomIdentityBandB">
+                <div id="bandCapletWrapperB"></div>
+                <span class="band-text" id="bandLineNameTextB">North East Line</span>
             </div>
         </div>
     </div>
@@ -510,7 +549,16 @@
         const bottomIdentityBand = document.getElementById('bottomIdentityBand');
         const bandCapletWrapper = document.getElementById('bandCapletWrapper');
         const bandLineNameText = document.getElementById('bandLineNameText');
-        const lineMapContainer = document.getElementById('line-map-container');
+        const lineMapContainer    = document.getElementById('line-map-container');
+        const lineMapContainerB   = document.getElementById('line-map-container-b');
+        const routeVisualAreaB    = document.getElementById('routeVisualAreaB');
+        const trackLineUnderlayB  = document.getElementById('trackLineUnderlayB');
+        const bottomIdentityBandB = document.getElementById('bottomIdentityBandB');
+        const bandCapletWrapperB  = document.getElementById('bandCapletWrapperB');
+        const bandLineNameTextB   = document.getElementById('bandLineNameTextB');
+        const directionMode       = document.getElementById('directionMode');
+        const arrowSize           = document.getElementById('arrowSize');
+        const arrowFontSize       = document.getElementById('arrowFontSize');
 
         // Populate Options
         standardLines.forEach(line => {
@@ -665,272 +713,374 @@
             addStationBtn.disabled = stationsState.length >= 50;
         }
 
-        function updateMapRenderer() {
-            const totalW = parseInt(mapWidth.value);
-            mapWidthVal.innerText = totalW + 'px';
-            lineMapContainer.style.width = totalW + 'px';
-            
-            const activeLineColor = (systemLineSelect.value === '#custom') ? customLineColor.value : systemLineSelect.value;
-            
+        function renderOneMap({
+            stations, visualArea, trackUnderlay, bandEl, capletWrapperEl, nameTextEl,
+            activeLineColor, totalW, arrowRight, selectedLineObj, finalPrefix
+        }) {
             const Y = parseInt(trackLineY.value);
             const G = parseInt(interchangeGap.value);
             const O = parseInt(labelOffset.value);
             const currentScale = parseFloat(icScale.value);
-            
-            trackLineUnderlay.style.top = Y + 'px';
-            trackLineUnderlay.innerHTML = ''; 
+            const H = parseInt(capH.value);
+            const P = parseInt(capP.value);
+            const Fs = parseInt(fsCapletCode.value);
+            const Vr = parseInt(capVr.value);
+            const Hr = parseInt(capHr.value);
+            const actualCapletHeight = H + 4;
+            const icHeight = (H * currentScale) + 4;
+            const aSize = parseInt(arrowSize.value);
+            const aFont = parseInt(arrowFontSize.value);
 
-            const selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value) || {name: "Custom Route Line", prefix: "CUST"};
-            
-            // Check for manual line name text input override
-            const manualOverride = customBandLineName.value.trim();
-            if (manualOverride) {
-                bandLineNameText.innerText = manualOverride;
-            } else {
-                bandLineNameText.innerText = selectedLineObj.name.replace(/\s\([^)]*\)$/, ""); 
-            }
+            // Set label tilt based on arrow direction
+            const effectiveTilt = arrowRight ? 'tilt-left' : 'tilt-right';
+            const orientVal = textOrientation.value;
+            // Only auto-override tilt if user picked a tilt mode, not horizontal/vertical
+            const useTilt = (orientVal === 'tilt-left' || orientVal === 'tilt-right')
+                ? effectiveTilt   // override with direction
+                : orientVal;      // honour horizontal / vertical / alternate as-is
 
-            // Check for manual line prefix text input override
-            const manualPrefixOverride = customBandLinePrefix.value.trim();
-            const finalPrefix = manualPrefixOverride ? manualPrefixOverride.toUpperCase() : selectedLineObj.prefix;
-            
-            bandLineNameText.style.fontSize = fsBandName.value + 'px';
-            document.getElementById('fsBandNameVal').innerText   = fsBandName.value   + 'px';
-            document.getElementById('fsBandCapletVal').innerText = fsBandCaplet.value + 'px';
-            document.getElementById('bandCapHVal').innerText     = bandCapH.value     + 'px';
-            document.getElementById('bandCapPVal').innerText     = bandCapP.value     + 'px';
-            document.getElementById('bandCapVrVal').innerText    = bandCapVr.value    + 'px';
-            document.getElementById('bandCapHrVal').innerText    = bandCapHr.value    + 'px';
-            bottomIdentityBand.style.backgroundColor = activeLineColor;
+            // Band
+            nameTextEl.innerText = customBandLineName.value.trim()
+                ? customBandLineName.value.trim()
+                : selectedLineObj.name.replace(/\s\([^)]*\)$/, "");
+            nameTextEl.style.fontSize = fsBandName.value + 'px';
+            bandEl.style.backgroundColor = activeLineColor;
 
-            const dynamicNodes = routeVisualArea.querySelectorAll('.station-column');
-            dynamicNodes.forEach(node => node.remove());
-
-            // Render Banner Caplet
-            bandCapletWrapper.innerHTML = '';
-            const bannerCap = buildBannerCapletStyleElement(
+            capletWrapperEl.innerHTML = '';
+            capletWrapperEl.appendChild(buildBannerCapletStyleElement(
                 finalPrefix,
-                parseInt(fsBandCaplet.value),
-                parseInt(bandCapH.value),
-                parseInt(bandCapP.value),
-                parseInt(bandCapVr.value),
-                parseInt(bandCapHr.value)
-            );
-            bandCapletWrapper.appendChild(bannerCap);
+                parseInt(fsBandCaplet.value), parseInt(bandCapH.value),
+                parseInt(bandCapP.value), parseInt(bandCapVr.value), parseInt(bandCapHr.value)
+            ));
 
-            const nodeCount = stationsState.length;
+            // Clear previous dynamic nodes
+            visualArea.querySelectorAll('.station-column').forEach(n => n.remove());
+            trackUnderlay.innerHTML = '';
+            trackUnderlay.style.top = Y + 'px';
+
+            const nodeCount = stations.length;
             const horizontalStepDistance = (totalW - 100) / (nodeCount > 1 ? nodeCount : 1);
-            
-            const splitIdx = stationsState.findIndex(s => s.fadeSplit);
+            const splitIdx = stations.findIndex(s => s.fadeSplit);
 
-            // --- Segmented Track Drawing Engine ---
+            // Track segments
             for (let i = 0; i < nodeCount - 1; i++) {
                 const seg = document.createElement('div');
                 seg.className = 'track-segment';
-                seg.style.position = 'absolute';
-                seg.style.top = '0px'; 
+                seg.style.cssText = `position:absolute;top:0;height:14px;z-index:1;`;
                 seg.style.left = (50 + (i * horizontalStepDistance) + (horizontalStepDistance / 2)) + 'px';
                 seg.style.width = horizontalStepDistance + 'px';
-                seg.style.height = '14px';
                 seg.style.backgroundColor = activeLineColor;
-                seg.style.zIndex = '1';
-                
-                const isSegFaded = (splitIdx !== -1 && i < splitIdx);
-                seg.style.opacity = isSegFaded ? '0.35' : '1';
-                
-                trackLineUnderlay.appendChild(seg);
+                seg.style.opacity = (splitIdx !== -1 && (arrowRight ? i < splitIdx : i >= splitIdx)) ? '0.35' : '1';
+                trackUnderlay.appendChild(seg);
             }
 
-            let maxStructuralHeightCalculated = 480;
+            let maxH = 480;
 
-            stationsState.forEach((station, idx) => {
-                const isFaded = (splitIdx !== -1 && idx < splitIdx);
-
+            stations.forEach((station, idx) => {
+                const isFaded = (splitIdx !== -1 && (arrowRight ? idx < splitIdx : idx > splitIdx));
                 const col = document.createElement('div');
                 col.className = 'station-column';
                 col.style.width = `${horizontalStepDistance}px`;
 
-                // Geometry Variables Setup
-                const H = parseInt(capH.value);
-                const P = parseInt(capP.value);
-                const Fs = parseInt(fsCapletCode.value);
-                const Vr = parseInt(capVr.value);
-                const Hr = parseInt(capHr.value);
-                const actualCapletHeight = H + 4;
-                const icHeight = (H * currentScale) + 4;
-
-                const isAlternateBottom = (textOrientation.value === 'horizontal-alternate' && idx % 2 === 1);
+                const isAlternateBottom = (orientVal === 'horizontal-alternate' && idx % 2 === 1);
 
                 let icTokensCount = 0;
                 if (station.interchanges.trim().length > 0) {
                     icTokensCount = station.interchanges.split(',').filter(t => t.trim()).length;
                 }
 
-                // --- 1. Typography Handling System ---
+                // Label
                 const labelWrap = document.createElement('div');
                 labelWrap.className = 'station-label-wrapper';
-                
+
                 if (isAlternateBottom) {
                     let labelBottomY = Y + (actualCapletHeight / 2) + O;
                     if (icTokensCount > 0) {
-                        if (interchangeLayout.value === 'stacked') {
-                            labelBottomY += (icTokensCount * icHeight) + ((icTokensCount - 1) * G);
-                        } else {
-                            labelBottomY += icHeight;
-                        }
-                        labelBottomY += O; 
+                        labelBottomY += interchangeLayout.value === 'stacked'
+                            ? (icTokensCount * icHeight) + ((icTokensCount - 1) * G)
+                            : icHeight;
+                        labelBottomY += O;
                     }
-                    if (station.fadeSplit) {
-                        labelBottomY += 36; 
-                    }
+                    if (station.fadeSplit) labelBottomY += 36;
                     labelWrap.style.top = `${labelBottomY}px`;
                 } else {
                     labelWrap.style.top = `${Y - (actualCapletHeight / 2) - O}px`;
                 }
-                
+
                 const labelTxt = document.createElement('span');
                 labelTxt.className = 'station-label-text';
                 labelTxt.innerText = station.name;
                 labelTxt.style.fontSize = fsStationName.value + 'px';
                 labelTxt.style.opacity = isFaded ? '0.35' : '1';
 
-                if (textOrientation.value === 'tilt-right') {
+                if (useTilt === 'tilt-right') {
                     labelTxt.style.transform = 'rotate(-45deg)';
                     labelTxt.style.transformOrigin = 'left bottom';
-                    labelTxt.style.left = '0px';
-                    labelTxt.style.bottom = '0px';
-                } else if (textOrientation.value === 'tilt-left') {
+                    labelTxt.style.left = '0px'; labelTxt.style.bottom = '0px';
+                } else if (useTilt === 'tilt-left') {
                     labelTxt.style.transform = 'rotate(45deg)';
                     labelTxt.style.transformOrigin = 'right bottom';
-                    labelTxt.style.right = '0px';
-                    labelTxt.style.bottom = '0px';
-                } else if (textOrientation.value === 'vertical') {
-                    labelTxt.style.transform = 'rotate(-90deg)';
+                    labelTxt.style.right = '0px'; labelTxt.style.bottom = '0px';
+                } else if (useTilt === 'vertical') {
+                    labelTxt.style.transform = 'rotate(-90deg) translateY(-50%)';
                     labelTxt.style.transformOrigin = 'left center';
-                    labelTxt.style.left = '0px';
-                    labelTxt.style.top = '50%';
-                    labelTxt.style.transform += ' translateY(-50%)';
+                    labelTxt.style.left = '0px'; labelTxt.style.top = '50%';
                 } else if (isAlternateBottom) {
-                    labelTxt.style.transform = 'rotate(0deg)';
+                    labelTxt.style.transform = 'translateX(-50%)';
                     labelTxt.style.transformOrigin = 'center top';
-                    labelTxt.style.left = '50%';
-                    labelTxt.style.transform += ' translateX(-50%)';
-                    labelTxt.style.top = '0px';
+                    labelTxt.style.left = '50%'; labelTxt.style.top = '0px';
                 } else {
-                    labelTxt.style.transform = 'rotate(0deg)';
+                    labelTxt.style.transform = 'translateX(-50%)';
                     labelTxt.style.transformOrigin = 'center bottom';
-                    labelTxt.style.left = '50%';
-                    labelTxt.style.transform += ' translateX(-50%)';
-                    labelTxt.style.bottom = '0px';
+                    labelTxt.style.left = '50%'; labelTxt.style.bottom = '0px';
                 }
 
                 labelWrap.appendChild(labelTxt);
                 col.appendChild(labelWrap);
 
-                // --- 2. Track Node ---
+                // Node
                 const nodeContainer = document.createElement('div');
                 nodeContainer.className = 'node-container';
                 nodeContainer.style.top = Y + 'px';
-                
                 const mainCaplet = buildCapletStyleElement(activeLineColor, getContrastColor(activeLineColor), Fs, H, P, Vr, Hr, false, isFaded);
                 mainCaplet.inner.innerText = station.code.toUpperCase();
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // --- 3. Interchange Matrix Grid System (With Smart Inline Color Processing Engine) ---
+                // Interchanges
                 if (icTokensCount > 0) {
                     const icWrapper = document.createElement('div');
                     icWrapper.className = 'interchanges-wrapper';
-                    icWrapper.style.top = `${Y + (actualCapletHeight / 2) + G}px`;
+                    // Side-by-side: unified caplet centres on track (replaces main node)
+                    // Stacked: sits below the main caplet
+                    icWrapper.style.top = interchangeLayout.value === 'side-by-side'
+                        ? `${Y - (H * parseFloat(icScale.value)) / 2}px`
+                        : `${Y + (actualCapletHeight / 2) + G}px`;
                     icWrapper.style.opacity = isFaded ? '0.35' : '1';
-                    
-                    if (interchangeLayout.value === 'stacked') {
-                        icWrapper.style.flexDirection = 'column';
-                        icWrapper.style.gap = `${G}px`;
-                    } else {
-                        icWrapper.style.flexDirection = 'row';
-                        icWrapper.style.gap = `${G}px`;
-                    }
 
-                    const icTokens = station.interchanges.split(',');
-                    icTokens.forEach(token => {
-                        if(!token.trim()) return;
-                        
+                    // Parse interchange tokens
+                    const icTokensParsed = station.interchanges.split(',').filter(t => t.trim()).map(token => {
                         let displayToken = token.trim();
                         let icBgColor = getAutoColor(displayToken);
-                        
-                        // Intelligent parenthetical color matching pattern parser
-                        const colorMatch = displayToken.match(/(.+?)\s*\((#[0-9A-Fa-f]{6})\)/);
-                        if (colorMatch) {
-                            displayToken = colorMatch[1].trim(); // Extracts display text: e.g. "SE 12"
-                            icBgColor = colorMatch[2];          // Extracts custom color string hex
-                        }
-                        
-                        const icCaplet = buildCapletStyleElement(icBgColor, getContrastColor(icBgColor), Fs, H, P, Vr, Hr, true, false);
-                        icCaplet.inner.innerText = displayToken.toUpperCase();
-                        icWrapper.appendChild(icCaplet.wrapper);
+                        const cm = displayToken.match(/(.+?)\s*\((#[0-9A-Fa-f]{6})\)/);
+                        if (cm) { displayToken = cm[1].trim(); icBgColor = cm[2]; }
+                        return { code: displayToken.toUpperCase(), color: icBgColor };
                     });
+
+                    if (interchangeLayout.value === 'side-by-side') {
+                        // ── Unified multi-segment caplet ──────────────────────────────
+                        // All codes in one pill: main station first, then interchanges
+                        const scale = parseFloat(icScale.value);
+                        const uH  = H * scale;
+                        const uFs = Fs * scale;
+                        const uVr = Vr * scale;
+                        const uHr = Hr * scale;
+                        const bw  = 2; // border width
+
+                        const allSegments = [
+                            { code: station.code.toUpperCase(), color: activeLineColor },
+                            ...icTokensParsed
+                        ];
+
+                        const outer = document.createElement('div');
+                        outer.style.cssText = `
+                            display: inline-flex;
+                            align-items: stretch;
+                            padding: ${bw}px;
+                            background: #ffffff;
+                            border-radius: ${uHr}px / ${uVr}px;
+                            overflow: hidden;
+                            box-sizing: border-box;
+                        `;
+
+                        const innerRow = document.createElement('div');
+                        innerRow.style.cssText = `
+                            display: inline-flex;
+                            align-items: stretch;
+                            height: ${uH}px;
+                            border-radius: ${Math.max(uHr - bw, 0)}px / ${Math.max(uVr - bw, 0)}px;
+                            overflow: hidden;
+                            box-sizing: border-box;
+                        `;
+
+                        allSegments.forEach((seg, i) => {
+                            if (i > 0) {
+                                const divider = document.createElement('div');
+                                divider.style.cssText = `width:${bw}px; background:#ffffff; flex-shrink:0;`;
+                                innerRow.appendChild(divider);
+                            }
+                            const segEl = document.createElement('div');
+                            segEl.style.cssText = `
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                background: ${seg.color};
+                                color: ${getContrastColor(seg.color)};
+                                font-family: 'MRT-Identity', Arial, sans-serif;
+                                font-size: ${uFs}px;
+                                font-weight: 700;
+                                padding: 0 ${P * scale}px;
+                                white-space: nowrap;
+                                box-sizing: border-box;
+                                height: 100%;
+                            `;
+                            segEl.textContent = seg.code;
+                            innerRow.appendChild(segEl);
+                        });
+
+                        outer.appendChild(innerRow);
+                        icWrapper.style.flexDirection = 'row';
+                        icWrapper.appendChild(outer);
+
+                        // Hide the original main caplet node since it's now in the unified pill
+                        nodeContainer.style.display = 'none';
+
+                    } else {
+                        // ── Stacked: individual caplets as before ─────────────────────
+                        icWrapper.style.flexDirection = 'column';
+                        icWrapper.style.gap = `${G}px`;
+                        icTokensParsed.forEach(({ code, color }) => {
+                            const icCaplet = buildCapletStyleElement(color, getContrastColor(color), Fs, H, P, Vr, Hr, true, false);
+                            icCaplet.inner.innerText = code;
+                            icWrapper.appendChild(icCaplet.wrapper);
+                        });
+                    }
+
                     col.appendChild(icWrapper);
                 }
 
-                // --- 4. Render Active Split Point Direction Arrow ---
-                let totalStackNodeBottomPosition = Y + (actualCapletHeight / 2);
+                // Arrow at split point
+                let totalStackBottom = Y + (actualCapletHeight / 2);
                 if (station.fadeSplit) {
                     const arrowBox = document.createElement('div');
                     arrowBox.className = 'direction-arrow-box';
-                    arrowBox.style.position = 'absolute';
-                    arrowBox.style.left = '50%';
-                    arrowBox.style.transform = 'translateX(-50%)';
-                    
-                    let arrowTop = Y + (actualCapletHeight / 2) + G;
+                    arrowBox.style.cssText = `position:absolute;left:50%;transform:translateX(-50%);`;
+                    let aTop = Y + (actualCapletHeight / 2) + G;
                     if (icTokensCount > 0) {
-                        if (interchangeLayout.value === 'stacked') {
-                            arrowTop += (icTokensCount * icHeight) + ((icTokensCount - 1) * G) + G + 10;
-                        } else {
-                            arrowTop += icHeight + G + 10;
-                        }
-                    } else {
-                        arrowTop += G + 10;
-                    }
-                    
-                    arrowBox.style.top = arrowTop + 'px';
-                    totalStackNodeBottomPosition = arrowTop + 30;
+                        aTop += interchangeLayout.value === 'stacked'
+                            ? (icTokensCount * icHeight) + ((icTokensCount - 1) * G) + G + 10
+                            : icHeight + G + 10;
+                    } else { aTop += G + 10; }
+                    arrowBox.style.top = aTop + 'px';
+
+                    // Arrow circle — direction-aware
+                    const circle = document.createElement('div');
+                    circle.style.cssText = `
+                        width:${aSize}px; height:${aSize}px; border-radius:50%;
+                        background:#111; color:#fff; display:flex;
+                        align-items:center; justify-content:center;
+                        font-size:${aFont}px; font-weight:bold; cursor:default;
+                        user-select:none; flex-shrink:0;
+                    `;
+                    circle.textContent = arrowRight ? '→' : '←';
+                    arrowBox.appendChild(circle);
+
+                    totalStackBottom = aTop + aSize + 4;
                     col.appendChild(arrowBox);
                 } else if (icTokensCount > 0) {
-                    if (interchangeLayout.value === 'stacked') {
-                        totalStackNodeBottomPosition += (icTokensCount * icHeight) + ((icTokensCount - 1) * G) + 30;
-                    } else {
-                        totalStackNodeBottomPosition += icHeight + 30;
-                    }
+                    totalStackBottom += interchangeLayout.value === 'stacked'
+                        ? (icTokensCount * icHeight) + ((icTokensCount - 1) * G) + 30
+                        : icHeight + 30;
                 }
 
                 if (isAlternateBottom) {
-                    const estimatedLabelBottom = parseFloat(labelWrap.style.top) + parseInt(fsStationName.value) + 20;
-                    if (estimatedLabelBottom > totalStackNodeBottomPosition) {
-                        totalStackNodeBottomPosition = estimatedLabelBottom;
-                    }
+                    const est = parseFloat(labelWrap.style.top) + parseInt(fsStationName.value) + 20;
+                    if (est > totalStackBottom) totalStackBottom = est;
                 }
+                if (totalStackBottom > maxH) maxH = totalStackBottom;
 
-                if (totalStackNodeBottomPosition > maxStructuralHeightCalculated) {
-                    maxStructuralHeightCalculated = totalStackNodeBottomPosition;
-                }
-
-                routeVisualArea.appendChild(col);
+                visualArea.appendChild(col);
             });
 
-            routeVisualArea.style.height = maxStructuralHeightCalculated + 'px';
+            visualArea.style.height = maxH + 'px';
+        }
 
-            // Sync Value Indicators
-            document.getElementById('trackLineYVal').innerText = Y + 'px';
-            document.getElementById('interchangeGapVal').innerText = G + 'px';
-            document.getElementById('icScaleVal').innerText = Math.round(currentScale * 100) + '%';
-            document.getElementById('labelOffsetVal').innerText = O + 'px';
-            document.getElementById('fsStationNameVal').innerText = fsStationName.value + 'px';
-            document.getElementById('fsCapletCodeVal').innerText = fsCapletCode.value + 'px';
-            document.getElementById('capPVal').innerText = capP.value + 'px';
-            document.getElementById('capHVal').innerText = capH.value + 'px';
-            document.getElementById('capVrVal').innerText = capVr.value + 'px';
-            document.getElementById('capHrVal').innerText = capHr.value + 'px';
+        function updateMapRenderer() {
+            const totalW = parseInt(mapWidth.value);
+            mapWidthVal.innerText = totalW + 'px';
+            const mode = directionMode.value;
+            const isDual = mode.startsWith('dual');
+
+            // Show/hide dual note
+            document.getElementById('dualModeNote').style.display = isDual ? 'block' : 'none';
+
+            const activeLineColor = (systemLineSelect.value === '#custom') ? customLineColor.value : systemLineSelect.value;
+            const selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value) || { name: "Custom Route Line", prefix: "CUST" };
+            const finalPrefix = customBandLinePrefix.value.trim()
+                ? customBandLinePrefix.value.trim().toUpperCase()
+                : selectedLineObj.prefix;
+
+            lineMapContainer.style.width = totalW + 'px';
+            lineMapContainerB.style.width = totalW + 'px';
+            lineMapContainerB.style.display = isDual ? 'block' : 'none';
+
+            // Arrow direction per mode
+            let arrowRightA, arrowRightB;
+            if (mode === 'single-right')        { arrowRightA = true;  arrowRightB = false; }
+            else if (mode === 'single-left')    { arrowRightA = false; arrowRightB = false; }
+            else if (mode === 'dual-right-left'){ arrowRightA = true;  arrowRightB = false; }
+            else if (mode === 'dual-left-right'){ arrowRightA = false; arrowRightB = true;  }
+            else if (mode === 'dual-both-right'){ arrowRightA = true;  arrowRightB = true;  }
+            else if (mode === 'dual-both-left') { arrowRightA = false; arrowRightB = false; }
+            else                                { arrowRightA = true;  arrowRightB = false; }
+
+            // Map A
+            renderOneMap({
+                stations: stationsState,
+                visualArea: routeVisualArea,
+                trackUnderlay: trackLineUnderlay,
+                bandEl: bottomIdentityBand,
+                capletWrapperEl: bandCapletWrapper,
+                nameTextEl: bandLineNameText,
+                activeLineColor, totalW,
+                arrowRight: arrowRightA,
+                selectedLineObj, finalPrefix
+            });
+
+            // Map B (reversed station order)
+            if (isDual) {
+                const reversedStations = [...stationsState].reverse().map((s, i, arr) => ({
+                    ...s,
+                    fadeSplit: s.fadeSplit ? true : false,
+                    // Mirror the fadeSplit to the correct reversed index
+                }));
+                // Remap fadeSplit correctly after reversal
+                const origSplitIdx = stationsState.findIndex(s => s.fadeSplit);
+                reversedStations.forEach((s, i) => {
+                    s.fadeSplit = (origSplitIdx !== -1 && i === (stationsState.length - 1 - origSplitIdx));
+                });
+                renderOneMap({
+                    stations: reversedStations,
+                    visualArea: routeVisualAreaB,
+                    trackUnderlay: trackLineUnderlayB,
+                    bandEl: bottomIdentityBandB,
+                    capletWrapperEl: bandCapletWrapperB,
+                    nameTextEl: bandLineNameTextB,
+                    activeLineColor, totalW,
+                    arrowRight: arrowRightB,
+                    selectedLineObj, finalPrefix
+                });
+            }
+
+            // Sync value indicators
+            document.getElementById('trackLineYVal').innerText      = trackLineY.value + 'px';
+            document.getElementById('interchangeGapVal').innerText  = interchangeGap.value + 'px';
+            document.getElementById('icScaleVal').innerText         = Math.round(parseFloat(icScale.value) * 100) + '%';
+            document.getElementById('labelOffsetVal').innerText     = labelOffset.value + 'px';
+            document.getElementById('fsStationNameVal').innerText   = fsStationName.value + 'px';
+            document.getElementById('fsCapletCodeVal').innerText    = fsCapletCode.value + 'px';
+            document.getElementById('fsBandNameVal').innerText      = fsBandName.value + 'px';
+            document.getElementById('fsBandCapletVal').innerText    = fsBandCaplet.value + 'px';
+            document.getElementById('bandCapHVal').innerText        = bandCapH.value + 'px';
+            document.getElementById('bandCapPVal').innerText        = bandCapP.value + 'px';
+            document.getElementById('bandCapVrVal').innerText       = bandCapVr.value + 'px';
+            document.getElementById('bandCapHrVal').innerText       = bandCapHr.value + 'px';
+            document.getElementById('capPVal').innerText            = capP.value + 'px';
+            document.getElementById('capHVal').innerText            = capH.value + 'px';
+            document.getElementById('capVrVal').innerText           = capVr.value + 'px';
+            document.getElementById('capHrVal').innerText           = capHr.value + 'px';
+            document.getElementById('arrowSizeVal').innerText       = arrowSize.value + 'px';
+            document.getElementById('arrowFontSizeVal').innerText   = arrowFontSize.value + 'px';
         }
 
         systemLineSelect.addEventListener('change', (e) => {
@@ -938,7 +1088,7 @@
             updateMapRenderer();
         });
 
-        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName, customBandLinePrefix].forEach(ctrl => {
+        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName, customBandLinePrefix, directionMode, arrowSize, arrowFontSize].forEach(ctrl => {
             ctrl.addEventListener('input', updateMapRenderer);
             ctrl.addEventListener('change', updateMapRenderer);
         });
@@ -956,19 +1106,32 @@
 
         // Canvas Capture Processing Engine
         document.getElementById('downloadMapBtn').addEventListener('click', () => {
-            const target = document.getElementById('line-map-container');
-            document.fonts.ready.then(() => {
-                html2canvas(target, {
-                    scale: 2,
-                    logging: false,
-                    useCORS: true,
-                    backgroundColor: "#ffffff"
-                }).then(canvas => {
-                    const downloadLink = document.createElement('a');
-                    downloadLink.download = `horizontal_route_map_export.png`;
-                    downloadLink.href = canvas.toDataURL('image/png');
-                    downloadLink.click();
-                });
+            const isDual = directionMode.value.startsWith('dual');
+            document.fonts.ready.then(async () => {
+                if (isDual) {
+                    // Capture both maps and stitch vertically
+                    const canvasA = await html2canvas(lineMapContainer,  { scale:2, logging:false, useCORS:true, backgroundColor:'#ffffff' });
+                    const canvasB = await html2canvas(lineMapContainerB, { scale:2, logging:false, useCORS:true, backgroundColor:'#ffffff' });
+                    const gap = 8 * 2; // 8px gap at scale 2
+                    const stitched = document.createElement('canvas');
+                    stitched.width  = Math.max(canvasA.width, canvasB.width);
+                    stitched.height = canvasA.height + gap + canvasB.height;
+                    const ctx = stitched.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, stitched.width, stitched.height);
+                    ctx.drawImage(canvasA, 0, 0);
+                    ctx.drawImage(canvasB, 0, canvasA.height + gap);
+                    const a = document.createElement('a');
+                    a.download = 'horizontal_route_map_dual.png';
+                    a.href = stitched.toDataURL('image/png');
+                    a.click();
+                } else {
+                    const canvas = await html2canvas(lineMapContainer, { scale:2, logging:false, useCORS:true, backgroundColor:'#ffffff' });
+                    const a = document.createElement('a');
+                    a.download = 'horizontal_route_map_export.png';
+                    a.href = canvas.toDataURL('image/png');
+                    a.click();
+                }
             });
         });
     </script>
