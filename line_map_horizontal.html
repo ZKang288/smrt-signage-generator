@@ -264,13 +264,6 @@
             z-index: 4;
         }
 
-        .direction-arrow-box::before {
-            content: '➔';
-            color: #ffffff;
-            font-size: 13px;
-            font-weight: bold;
-        }
-
         /* Bottom Color Identification Ribbon */
         .bottom-identity-band {
             height: 75px;
@@ -467,7 +460,6 @@
     </div>
 
     <div class="map-viewport" id="mapViewportWrapper">
-        <!-- Map A (always shown) -->
         <div id="line-map-container" style="margin-bottom:0;">
             <div class="route-visual-area" id="routeVisualArea">
                 <div class="track-line-underlay" id="trackLineUnderlay"></div>
@@ -477,7 +469,6 @@
                 <span class="band-text" id="bandLineNameText">North East Line</span>
             </div>
         </div>
-        <!-- Map B (dual mode only) -->
         <div id="line-map-container-b" style="display:none; margin-top:8px;">
             <div class="route-visual-area" id="routeVisualAreaB">
                 <div class="track-line-underlay" id="trackLineUnderlayB"></div>
@@ -857,7 +848,7 @@
                     icWrapper.style.top = interchangeLayout.value === 'side-by-side'
                         ? `${Y - (H * parseFloat(icScale.value)) / 2}px`
                         : `${Y + (actualCapletHeight / 2) + G}px`;
-                    icWrapper.style.opacity = isFaded ? '0.35' : '1';
+                    icWrapper.style.opacity = '1';
                     icWrapper.style.zIndex = '4';
 
                     // Parse interchange tokens
@@ -905,6 +896,10 @@
                             box-sizing: border-box;
                         `;
 
+                        if (isFaded) {
+                            innerRow.style.opacity = '0.35';
+                        }
+
                         allSegments.forEach((seg, i) => {
                             if (i > 0) {
                                 const divider = document.createElement('div');
@@ -942,7 +937,7 @@
                         icWrapper.style.flexDirection = 'column';
                         icWrapper.style.gap = `${G}px`;
                         icTokensParsed.forEach(({ code, color }) => {
-                            const icCaplet = buildCapletStyleElement(color, getContrastColor(color), Fs, H, P, Vr, Hr, true, false);
+                            const icCaplet = buildCapletStyleElement(color, getContrastColor(color), Fs, H, P, Vr, Hr, true, isFaded);
                             icCaplet.inner.innerText = code;
                             icWrapper.appendChild(icCaplet.wrapper);
                         });
