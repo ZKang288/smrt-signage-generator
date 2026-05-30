@@ -409,13 +409,17 @@
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="destSizeSlider">Circle Diameter: <span id="destSizeVal">32px</span></label>
-                        <input type="range" id="destSizeSlider" min="16" max="64" value="32">
+                        <label for="destSizeSlider">Circle Diameter: <span id="destSizeVal">40px</span></label>
+                        <input type="range" id="destSizeSlider" min="16" max="64" value="40">
                     </div>
                     <div class="control-group">
-                        <label for="destFontSizeSlider">Font Size: <span id="destFontSizeVal">16px</span></label>
-                        <input type="range" id="destFontSizeSlider" min="10" max="36" value="16">
+                        <label for="destFontSizeSlider">Font Size: <span id="destFontSizeVal">20px</span></label>
+                        <input type="range" id="destFontSizeSlider" min="10" max="36" value="20">
                     </div>
+                </div>
+                <div class="control-group">
+                    <label for="destOffsetSlider">Destination Distance Offset: <span id="destOffsetVal">80px</span></label>
+                    <input type="range" id="destOffsetSlider" min="20" max="400" value="80">
                 </div>
 
                 <div class="section-title" style="margin-top:20px;">Line Banner (Bottom Ribbon)</div>
@@ -439,7 +443,7 @@
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
-                        <label for="bandCapH">Caplet Height: <span id="bandCapHVal">45px</span></label>
+                        <label pour="bandCapH">Caplet Height: <span id="bandCapHVal">45px</span></label>
                         <input type="range" id="bandCapH" min="20" max="100" value="45">
                     </div>
                     <div class="control-group">
@@ -520,14 +524,8 @@
         ];
 
         let stationsState = [
-            { code: "NE 17", name: "Punggol", interchanges: "PTC" },
-            { code: "NE 16", name: "Sengkang", interchanges: "STC" },
-            { code: "NE 14", name: "Hougang", interchanges: "" },
-            { code: "NE 12", name: "Serangoon", interchanges: "CC 13" },
-            { code: "NE 6", name: "Dhoby Ghaut", interchanges: "NS 24, CC 1", fadeSplit: true },
-            { code: "NE 4", name: "Chinatown", interchanges: "DT 19" },
             { code: "NE 3", name: "Outram Park", interchanges: "EW 16, TE 12" },
-            { code: "NE 1", name: "HarbourFront", interchanges: "CC 29" }
+            { code: "NE 1", name: "HarbourFront", interchanges: "CC 29", fadeSplit: true }
         ];
 
         // UI Element Selectors
@@ -583,6 +581,7 @@
         const destEndInput        = document.getElementById('destEndInput');
         const destSizeSlider      = document.getElementById('destSizeSlider');
         const destFontSizeSlider  = document.getElementById('destFontSizeSlider');
+        const destOffsetSlider    = document.getElementById('destOffsetSlider');
 
         // Populate Options
         standardLines.forEach(line => {
@@ -755,15 +754,15 @@
             const icHeight = (H * currentScale) + 4;
             const aSize = parseInt(arrowSize.value);
             const aFont = parseInt(arrowFontSize.value);
+            const dOffset = parseInt(destOffsetSlider.value);
 
-            // Set label tilt based on arrow direction
             const effectiveTilt = arrowRight ? 'tilt-left' : 'tilt-right';
             const orientVal = textOrientation.value;
             const useTilt = (orientVal === 'tilt-left' || orientVal === 'tilt-right')
                 ? effectiveTilt   
                 : orientVal;      
 
-            // Band
+            // Band Configuration
             nameTextEl.innerText = customBandLineName.value.trim()
                 ? customBandLineName.value.trim()
                 : selectedLineObj.name.replace(/\s\([^)]*\)$/, "");
@@ -777,7 +776,7 @@
                 parseInt(bandCapP.value), parseInt(bandCapVr.value), parseInt(bandCapHr.value)
             ));
 
-            // Clear previous dynamic nodes
+            // Clear previous structural canvas layers
             visualArea.querySelectorAll('.station-column').forEach(n => n.remove());
             trackUnderlay.innerHTML = '';
             trackUnderlay.style.top = Y + 'px';
@@ -862,7 +861,7 @@
                 labelWrap.appendChild(labelTxt);
                 col.appendChild(labelWrap);
 
-                // Node
+                // Node Container
                 const nodeContainer = document.createElement('div');
                 nodeContainer.className = 'node-container';
                 nodeContainer.style.top = Y + 'px';
@@ -871,15 +870,14 @@
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // Global Column Level Destination Placement (Maintains layout alignment under absolute side-by-side mode)
+                // Global Column Level Destination Placement
                 if (showDest) {
-                    const innerPillOffsetDistance = Math.max(H, P * 2);
                     if (idx === 0 && destLeft && destLeft !== "") {
                         const destCircle = document.createElement('div');
                         destCircle.style.cssText = `
                             position: absolute;
                             top: ${Y}px;
-                            right: calc(50% + ${innerPillOffsetDistance + 14}px);
+                            right: calc(50% + ${dOffset}px);
                             width: ${destSize}px;
                             height: ${destSize}px;
                             border-radius: 50%;
@@ -907,7 +905,7 @@
                         destCircle.style.cssText = `
                             position: absolute;
                             top: ${Y}px;
-                            left: calc(50% + ${innerPillOffsetDistance + 14}px);
+                            left: calc(50% + ${dOffset}px);
                             width: ${destSize}px;
                             height: ${destSize}px;
                             border-radius: 50%;
@@ -1134,7 +1132,7 @@
                 destRightB = destStart;
             }
 
-            // Map A
+            // Map A Execution Block
             renderOneMap({
                 stations: stationsState,
                 visualArea: routeVisualArea,
@@ -1148,7 +1146,7 @@
                 showDest, destLeft: destLeftA, destRight: destRightA, destSize, destFS
             });
 
-            // Map B
+            // Map B Execution Block
             if (isDual) {
                 let stationsB;
                 if (sameDirection) {
@@ -1174,7 +1172,7 @@
                 });
             }
 
-            // Sync structural indicator values
+            // Sync structural display mapping parameters
             document.getElementById('trackLineYVal').innerText      = trackLineY.value + 'px';
             document.getElementById('interchangeGapVal').innerText  = interchangeGap.value + 'px';
             document.getElementById('icScaleVal').innerText         = Math.round(parseFloat(icScale.value) * 100) + '%';
@@ -1195,6 +1193,7 @@
             document.getElementById('arrowFontSizeVal').innerText   = arrowFontSize.value + 'px';
             document.getElementById('destSizeVal').innerText        = destSizeSlider.value + 'px';
             document.getElementById('destFontSizeVal').innerText    = destFontSizeSlider.value + 'px';
+            document.getElementById('destOffsetVal').innerText      = destOffsetSlider.value + 'px';
         }
 
         systemLineSelect.addEventListener('change', (e) => {
@@ -1202,7 +1201,7 @@
             updateMapRenderer();
         });
 
-        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName, customBandLinePrefix, directionMode, arrowSize, arrowFontSize, showDestNumbers, destStartInput, destEndInput, destSizeSlider, destFontSizeSlider].forEach(ctrl => {
+        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName, customBandLinePrefix, directionMode, arrowSize, arrowFontSize, showDestNumbers, destStartInput, destEndInput, destSizeSlider, destFontSizeSlider, destOffsetSlider].forEach(ctrl => {
             ctrl.addEventListener('input', updateMapRenderer);
             ctrl.addEventListener('change', updateMapRenderer);
         });
