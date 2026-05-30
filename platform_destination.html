@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MRT Platform Signage Generator - Destination Display</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* --- Font Setup --- */
+        @font-face {
+            font-family: 'MRT-Identity';
+            src: url('LTA_Identity-Medium.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #1e293b;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #0f172a;
+        }
+
+        p.subtitle {
+            margin: 0;
+            margin-bottom: 30px;
+            color: #64748b;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            margin-bottom: 35px;
+            box-sizing: border-box;
+        }
+
+        .editor-regions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 992px) {
+            .editor-regions { grid-template-columns: 1fr; }
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .control-group input, .control-group select {
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            background-color: #fff;
+            color: #1e293b;
+            outline: none;
+        }
+
+        .control-group input[type="range"] {
+            padding: 5px 0;
+            cursor: pointer;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-group input {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        .checkbox-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* --- Map Preview Screen Canvas --- */
+        .map-viewport {
+            width: 100%;
+            overflow-x: auto;
+            background: #cbd5e1;
+            padding: 40px 0;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #destination-sign-container {
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            box-sizing: border-box;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .sign-main-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 40px 60px;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .text-and-arrow-block {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .text-hierarchy-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prefix-label-text {
+            font-family: 'MRT-Identity', sans-serif;
+            font-weight: 500;
+            color: #64748b;
+            margin-bottom: 2px;
+            text-transform: capitalize;
+        }
+
+        .terminus-title-line {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .terminus-name-string {
+            font-family: 'MRT-Identity', Arial, sans-serif;
+            font-weight: 700;
+            color: #111111;
+            white-space: nowrap;
+        }
+
+        /* Base Caplet Engine Styles */
+        .outer-capsule {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            overflow: hidden;
+            background: #ffffff; 
+        }
+
+        .inner-capsule {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .direction-arrow-circle {
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Right-hand Platform Token Identifier styling */
+        .platform-indicator-token {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            border: 4px solid;
+            font-family: 'MRT-Identity', Arial, sans-serif;
+            font-weight: 700;
+            text-align: center;
+            background-color: #ffffff;
+        }
+
+        .platform-underline-bar {
+            width: 70%;
+            height: 4px;
+            background-color: currentColor;
+            margin-top: 2px;
+            border-radius: 2px;
+        }
+
+        /* Bottom Color Identification Ribbon */
+        .bottom-identity-band {
+            height: 75px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            box-sizing: border-box;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        .band-text {
+            color: #ffffff;
+            font-family: 'MRT-Identity', Arial, sans-serif;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <nav style="margin-bottom: 20px; display: flex; gap: 15px;">
+        <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Signage Generator</a>
+        <a href="map.html" style="color: #64748b; text-decoration: none;">🗺️ Platform Signage Generator</a>
+        <a href="line_map_horizontal.html" style="color: #64748b; text-decoration: none;">🚇 Route Map Generator</a>
+        <a href="platform_destination.html" style="font-weight: bold; color: #004c54; text-decoration: none;">🎯 Destination Signage Generator</a>
+    </nav>
+
+    <h1>Platform Destination Signage Generator</h1>
+    <p class="subtitle">Customizable terminal indicators with flexible arrow alignment and optional layout banners</p>
+
+    <div class="container">
+        <div class="editor-regions">
+            <div>
+                <div class="section-title">Core Content & Line Profile</div>
+                <div class="control-group">
+                    <label for="systemLineSelect">System Line Profile</label>
+                    <select id="systemLineSelect"></select>
+                    <input type="color" id="customLineColor" value="#9D5B25" style="display:none; width:100%; height:40px; border-radius:8px; border:1px solid #cbd5e1; margin-top:8px; padding:0;">
+                </div>
+                <div class="control-group">
+                    <label for="terminusNameInput">Terminus Station Name</label>
+                    <input type="text" id="terminusNameInput" value="Sungei Bedok">
+                </div>
+                <div class="control-group">
+                    <label for="stationCodesInput">Station Codes (Comma-separated for multi-line)</label>
+                    <input type="text" id="stationCodesInput" value="TE 31, DT 37">
+                </div>
+                <div class="control-group">
+                    <label for="textPrefixSelect">Label Prefix Context Mode</label>
+                    <select id="textPrefixSelect">
+                        <option value="none">None (Direct Terminus Name)</option>
+                        <option value="to">"To" Prefix</option>
+                        <option value="via">"Via" Prefix</option>
+                    </select>
+                </div>
+
+                <div class="section-title" style="margin-top: 20px;">Platform & Ribbon Overlays</div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showPlatformIndicator" checked>
+                    <label for="showPlatformIndicator">Enable Platform ID Token Display</label>
+                </div>
+                <div class="control-group" id="platformInputGroup">
+                    <label for="platformTextInput">Platform Designation Label</label>
+                    <input type="text" id="platformTextInput" value="B">
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showBottomRibbon" checked>
+                    <label for="showBottomRibbon">Display Bottom System Color Ribbon</label>
+                </div>
+                <div class="checkbox-group" id="ribbonTextToggleGroup">
+                    <input type="checkbox" id="showRibbonText" checked>
+                    <label for="showRibbonText">Include Line Profile Branding Text Inside Ribbon</label>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Arrow Vector Configuration</div>
+                <div class="control-group">
+                    <label for="arrowDirectionSelect">Arrow Vector Direction</label>
+                    <select id="arrowDirectionSelect">
+                        <option value="right">Right Navigation (➔)</option>
+                        <option value="left">Left Navigation (←)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="arrowPlacementSelect">Arrow Circle Alignment Position</label>
+                    <select id="arrowPlacementSelect">
+                        <option value="right">Position on the Right of Text Block</option>
+                        <option value="left">Position on the Left of Text Block</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="arrowColorSelect">Arrow Circle Background Palette</label>
+                    <select id="arrowColorSelect">
+                        <option value="black">Standard High-Contrast Black Fill</option>
+                        <option value="system">Adaptive Active System Line Color Fill</option>
+                    </select>
+                </div>
+
+                <div class="section-title" style="margin-top: 20px;">Layout & Typography Matrix</div>
+                <div class="control-group">
+                    <label for="capletPlacementSelect">Station Codes Position</label>
+                    <select id="capletPlacementSelect">
+                        <option value="below">Position Stacking Below Terminus Name</option>
+                        <option value="before">Inline Position Before Terminus Name</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="signWidthInput">Canvas Width Dimensions: <span id="signWidthVal">1200px</span></label>
+                    <input type="range" id="signWidthInput" min="800" max="2400" value="1200">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="fsTerminusName">Name Font Size: <span id="fsTerminusNameVal">48px</span></label>
+                        <input type="range" id="fsTerminusName" min="24" max="80" value="48">
+                    </div>
+                    <div class="control-group">
+                        <label for="fsCapletCode">Caplet Code Font: <span id="fsCapletCodeVal">20px</span></label>
+                        <input type="range" id="fsCapletCode" min="12" max="40" value="20">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="arrowCircleSize">Arrow Ring Size: <span id="arrowCircleSizeVal">64px</span></label>
+                        <input type="range" id="arrowCircleSize" min="40" max="120" value="64">
+                    </div>
+                    <div class="control-group">
+                        <label for="arrowIconSize">Arrow Glyph Size: <span id="arrowIconSizeVal">32px</span></label>
+                        <input type="range" id="arrowIconSize" min="16" max="64" value="32">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-download" id="downloadSignBtn" style="background-color: #1e293b; color: white; width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);">Export High-Fidelity Destination Signage Asset</button>
+    </div>
+
+    <div class="map-viewport">
+        <div id="destination-sign-container">
+            <div class="sign-main-content" id="signMainContent">
+                <div class="text-and-arrow-block" id="textAndArrowBlock">
+                    </div>
+                <div class="platform-indicator-token" id="platformIndicatorToken">
+                    <span id="platformTextNode">B</span>
+                    <div class="platform-underline-bar"></div>
+                </div>
+            </div>
+            <div class="bottom-identity-band" id="bottomIdentityBand">
+                <div id="bandCapletWrapper"></div>
+                <span class="band-text" id="bandLineNameText">Thomson-East Coast Line</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const standardLines = [
+            { name: "Thomson–East Coast Line (TEL)", prefix: "TEL", color: "#9D5B25" },
+            { name: "Downtown Line (DTL)", prefix: "DTL", color: "#005ec4" },
+            { name: "North East Line (NEL)", prefix: "NEL", color: "#9900aa" },
+            { name: "North–South Line (NSL)", prefix: "NSL", color: "#d42e12" },
+            { name: "East–West Line (EWL)", prefix: "EWL", color: "#009645" },
+            { name: "Circle Line (CCL)", prefix: "CCL", color: "#fa9e0d" },
+            { name: "Cross Island Line (CRL)", prefix: "CRL", color: "#97C616" },
+            { name: "Jurong Region Line (JRL)", prefix: "JRL", color: "#0099aa" },
+            { name: "[ Create Custom Profile ]", prefix: "CUST", color: "#custom" }
+        ];
+
+        // Component Target Hooks
+        const systemLineSelect = document.getElementById('systemLineSelect');
+        const customLineColor = document.getElementById('customLineColor');
+        const terminusNameInput = document.getElementById('terminusNameInput');
+        const stationCodesInput = document.getElementById('stationCodesInput');
+        const textPrefixSelect = document.getElementById('textPrefixSelect');
+        const showPlatformIndicator = document.getElementById('showPlatformIndicator');
+        const platformInputGroup = document.getElementById('platformInputGroup');
+        const platformTextInput = document.getElementById('platformTextInput');
+        const showBottomRibbon = document.getElementById('showBottomRibbon');
+        const ribbonTextToggleGroup = document.getElementById('ribbonTextToggleGroup');
+        const showRibbonText = document.getElementById('showRibbonText');
+        const arrowDirectionSelect = document.getElementById('arrowDirectionSelect');
+        const arrowPlacementSelect = document.getElementById('arrowPlacementSelect');
+        const arrowColorSelect = document.getElementById('arrowColorSelect');
+        const capletPlacementSelect = document.getElementById('capletPlacementSelect');
+        const signWidthInput = document.getElementById('signWidthInput');
+        const signWidthVal = document.getElementById('signWidthVal');
+        
+        const fsTerminusName = document.getElementById('fsTerminusName');
+        const fsCapletCode = document.getElementById('fsCapletCode');
+        const arrowCircleSize = document.getElementById('arrowCircleSize');
+        const arrowIconSize = document.getElementById('arrowIconSize');
+
+        const destinationSignContainer = document.getElementById('destination-sign-container');
+        const textAndArrowBlock = document.getElementById('textAndArrowBlock');
+        const platformIndicatorToken = document.getElementById('platformIndicatorToken');
+        const platformTextNode = document.getElementById('platformTextNode');
+        const bottomIdentityBand = document.getElementById('bottomIdentityBand');
+        const bandCapletWrapper = document.getElementById('bandCapletWrapper');
+        const bandLineNameText = document.getElementById('bandLineNameText');
+
+        function buildCapletStyleElement(bg, textHex, fs, h, p, vr, hr) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'outer-capsule';
+            wrapper.style.padding = '2px';
+            wrapper.style.background = '#ffffff';
+            wrapper.style.borderRadius = `${hr}px / ${vr}px`;
+            
+            const inner = document.createElement('div');
+            inner.className = 'inner-capsule';
+            inner.style.height = `${h}px`;
+            inner.style.paddingLeft = `${p}px`;
+            inner.style.paddingRight = `${p}px`;
+            inner.style.backgroundColor = bg;
+            inner.style.color = textHex;
+            inner.style.fontSize = `${fs}px`;
+            inner.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
+            inner.style.fontWeight = '700';
+            inner.style.borderRadius = `${hr}px / ${vr}px`;
+            inner.style.display = 'flex';
+            inner.style.alignItems = 'center';
+            inner.style.justifyContent = 'center';
+            inner.style.boxSizing = 'border-box';
+            inner.style.whiteSpace = 'nowrap';
+            
+            wrapper.appendChild(inner);
+            return wrapper;
+        }
+
+        function buildBannerCapletStyleElement(text, fs, h, p, vr, hr) {
+            const wrapper = document.createElement('div');
+            wrapper.style.display = 'inline-flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.style.justifyContent = 'center';
+            wrapper.style.boxSizing = 'border-box';
+            wrapper.style.overflow = 'hidden';
+            wrapper.style.border = '3px solid #ffffff'; 
+            wrapper.style.borderRadius = `${hr}px / ${vr}px`;
+            
+            const inner = document.createElement('div');
+            inner.style.display = 'inline-flex';
+            inner.style.alignItems = 'center';
+            inner.style.justifyContent = 'center';
+            inner.style.boxSizing = 'border-box';
+            inner.style.height = `${h}px`;
+            inner.style.paddingLeft = `${p}px`;
+            inner.style.paddingRight = `${p}px`;
+            inner.style.color = '#ffffff'; 
+            inner.style.fontSize = `${fs}px`;
+            inner.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
+            inner.style.fontWeight = '700';
+            inner.style.borderRadius = `${hr}px / ${vr}px`;
+            inner.innerText = text;
+            
+            wrapper.appendChild(inner);
+            return wrapper;
+        }
+
+        function updateSignageRenderer() {
+            const totalW = parseInt(signWidthInput.value);
+            signWidthVal.innerText = totalW + 'px';
+            destinationSignContainer.style.width = totalW + 'px';
+
+            const activeLineColor = (systemLineSelect.value === '#custom') ? customLineColor.value : systemLineSelect.value;
+            const selectedLineObj = standardLines.find(l => l.color === systemLineSelect.value) || {name: "Custom Line", prefix: "CUST"};
+
+            // --- Platform ID Token Processing Block ---
+            if (showPlatformIndicator.checked) {
+                platformInputGroup.style.display = 'flex';
+                platformIndicatorToken.style.display = 'flex';
+                platformIndicatorToken.style.borderColor = activeLineColor;
+                platformIndicatorToken.style.color = activeLineColor;
+                
+                const tokenDim = parseInt(fsTerminusName.value) * 1.5;
+                platformIndicatorToken.style.width = tokenDim + 'px';
+                platformIndicatorToken.style.height = tokenDim + 'px';
+                platformIndicatorToken.style.borderRadius = (tokenDim * 0.15) + 'px';
+                platformTextNode.innerText = platformTextInput.value;
+                platformTextNode.style.fontSize = (tokenDim * 0.5) + 'px';
+            } else {
+                platformInputGroup.style.display = 'none';
+                platformIndicatorToken.style.display = 'none';
+            }
+
+            // --- Bottom Identity Band Processing Block ---
+            if (showBottomRibbon.checked) {
+                ribbonTextToggleGroup.style.display = 'flex';
+                bottomIdentityBand.style.display = 'flex';
+                bottomIdentityBand.style.backgroundColor = activeLineColor;
+                
+                if (showRibbonText.checked) {
+                    bandLineNameText.style.display = 'inline';
+                    bandLineNameText.innerText = selectedLineObj.name.replace(/\s\([^)]*\)$/, "");
+                    bandLineNameText.style.fontSize = (parseInt(fsTerminusName.value) * 0.6) + 'px';
+                    
+                    bandCapletWrapper.innerHTML = '';
+                    bandCapletWrapper.style.display = 'inline-flex';
+                    const ribbonCapH = parseInt(fsTerminusName.value) * 0.7;
+                    const bannerCap = buildBannerCapletStyleElement(
+                        selectedLineObj.prefix,
+                        ribbonCapH * 0.5,
+                        ribbonCapH,
+                        ribbonCapH * 0.6,
+                        ribbonCapH,
+                        ribbonCapH * 0.4
+                    );
+                    bandCapletWrapper.appendChild(bannerCap);
+                } else {
+                    bandLineNameText.style.display = 'none';
+                    bandCapletWrapper.style.display = 'none';
+                }
+            } else {
+                ribbonTextToggleGroup.style.display = 'none';
+                bottomIdentityBand.style.display = 'none';
+            }
+
+            // --- Rebuilding Content Structural Matrix ---
+            textAndArrowBlock.innerHTML = '';
+
+            // 1. Structuralize Arrow Ring Layout Object
+            const arrowCircle = document.createElement('div');
+            arrowCircle.className = 'direction-arrow-circle';
+            const ringSize = parseInt(arrowCircleSize.value);
+            arrowCircle.style.width = ringSize + 'px';
+            arrowCircle.style.height = ringSize + 'px';
+            arrowCircle.style.backgroundColor = (arrowColorSelect.value === 'black') ? '#000000' : activeLineColor;
+            
+            const svgNS = 'http://www.w3.org/2000/svg';
+            const arrowSvg = document.createElementNS(svgNS, 'svg');
+            const gSize = parseInt(arrowIconSize.value);
+            arrowSvg.setAttribute('width', gSize);
+            arrowSvg.setAttribute('height', gSize);
+            arrowSvg.setAttribute('viewBox', '0 0 24 24');
+            
+            const arrowPath = document.createElementNS(svgNS, 'path');
+            arrowPath.setAttribute('fill', '#ffffff');
+            arrowPath.setAttribute('d', (arrowDirectionSelect.value === 'right') 
+                ? 'M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.42L16.17 13H4z'
+                : 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.42L7.83 13H20z'
+            );
+            arrowSvg.appendChild(arrowPath);
+            arrowCircle.appendChild(arrowSvg);
+
+            // 2. Structuralize Typography Text Containers
+            const textHierarchy = document.createElement('div');
+            textHierarchy.className = 'text-hierarchy-container';
+
+            if (textPrefixSelect.value !== 'none') {
+                const prefixSpan = document.createElement('span');
+                prefixSpan.className = 'prefix-label-text';
+                prefixSpan.innerText = textPrefixSelect.value;
+                prefixSpan.style.fontSize = (parseInt(fsTerminusName.value) * 0.45) + 'px';
+                textHierarchy.appendChild(prefixSpan);
+            }
+
+            const titleLine = document.createElement('div');
+            titleLine.className = 'terminus-title-line';
+
+            if (capletPlacementSelect.value === 'below') {
+                titleLine.style.flexDirection = 'row';
+            } else {
+                titleLine.style.flexDirection = 'row-reverse';
+                titleLine.style.justifyContent = 'flex-end';
+            }
+
+            const nameString = document.createElement('span');
+            nameString.className = 'terminus-name-string';
+            nameString.innerText = terminusNameInput.value;
+            nameString.style.fontSize = fsTerminusName.value + 'px';
+            titleLine.appendChild(nameString);
+
+            // Parse Multi-Line Transit Caplets
+            const capletContainer = document.createElement('div');
+            capletContainer.style.display = 'inline-flex';
+            capletContainer.style.gap = '6px';
+            capletContainer.style.alignItems = 'center';
+
+            const codes = stationCodesInput.value.split(',');
+            codes.forEach(code => {
+                if (!code.trim()) return;
+                const parsedBg = getAutoColor(code);
+                const capletNode = buildCapletStyleElement(
+                    parsedBg,
+                    getContrastColor(parsedBg),
+                    parseInt(fsCapletCode.value),
+                    parseInt(fsCapletCode.value) * 1.5,
+                    parseInt(fsCapletCode.value) * 0.7,
+                    parseInt(fsCapletCode.value) * 1.5,
+                    parseInt(fsCapletCode.value) * 0.4
+                );
+                capletNode.querySelector('.inner-capsule').innerText = code.trim().toUpperCase();
+                capletContainer.appendChild(capletNode);
+            });
+
+            if (capletPlacementSelect.value === 'below') {
+                textHierarchy.appendChild(titleLine);
+                capletContainer.style.marginTop = '8px';
+                textHierarchy.appendChild(capletContainer);
+            } else {
+                titleLine.appendChild(capletContainer);
+                textHierarchy.appendChild(titleLine);
+            }
+
+            // 3. Coordinate Left vs Right Macro Assembly Alignment
+            if (arrowPlacementSelect.value === 'left') {
+                textAndArrowBlock.style.flexDirection = 'row';
+                textAndArrowBlock.appendChild(arrowCircle);
+                textAndArrowBlock.appendChild(textHierarchy);
+            } else {
+                textAndArrowBlock.style.flexDirection = 'row-reverse';
+                textAndArrowBlock.appendChild(arrowCircle);
+                textAndArrowBlock.appendChild(textHierarchy);
+            }
+
+            // Sync Text Field Counters
+            document.getElementById('fsTerminusNameVal').innerText = fsTerminusName.value + 'px';
+            document.getElementById('fsCapletCodeVal').innerText = fsCapletCode.value + 'px';
+            document.getElementById('arrowCircleSizeVal').innerText = arrowCircleSize.value + 'px';
+            document.getElementById('arrowIconSizeVal').innerText = arrowIconSize.value + 'px';
+        }
+
+        systemLineSelect.addEventListener('change', (e) => {
+            customLineColor.style.display = (e.target.value === '#custom') ? 'block' : 'none';
+            updateSignageRenderer();
+        });
+
+        [systemLineSelect, customLineColor, terminusNameInput, stationCodesInput, textPrefixSelect, showPlatformIndicator, platformTextInput, showBottomRibbon, showRibbonText, arrowDirectionSelect, arrowPlacementSelect, arrowColorSelect, capletPlacementSelect, signWidthInput, fsTerminusName, fsCapletCode, arrowCircleSize, arrowIconSize].forEach(ctrl => {
+            ctrl.addEventListener('input', updateSignageRenderer);
+            ctrl.addEventListener('change', updateSignageRenderer);
+        });
+
+        updateSignageRenderer();
+
+        // High-Fidelity Canvas Export Execution Engine
+        document.getElementById('downloadSignBtn').addEventListener('click', () => {
+            const target = document.getElementById('destination-sign-container');
+            document.fonts.ready.then(() => {
+                html2canvas(target, {
+                    scale: 2,
+                    logging: false,
+                    useCORS: true,
+                    backgroundColor: "#ffffff"
+                }).then(canvas => {
+                    const downloadLink = document.createElement('a');
+                    downloadLink.download = `platform_destination_signage.png`;
+                    downloadLink.href = canvas.toDataURL('image/png');
+                    downloadLink.click();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
