@@ -113,14 +113,68 @@
 
         .station-row {
             display: grid;
-            grid-template-columns: auto 80px 140px 140px 50px 40px;
+            grid-template-columns: 28px auto 80px 150px 1fr 50px 40px;
             gap: 8px;
             align-items: center;
-            padding: 8px;
+            padding: 8px 10px;
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
-            margin-bottom: 6px;
+            margin-bottom: 0;
+            transition: box-shadow 0.15s, background 0.15s;
+            cursor: default;
+        }
+        .station-row.drag-over {
+            box-shadow: 0 0 0 2px #004c54;
+            background: #f0fafb;
+        }
+        .station-row.dragging {
+            opacity: 0.4;
+        }
+        .drag-handle {
+            cursor: grab;
+            color: #94a3b8;
+            font-size: 18px;
+            line-height: 1;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .drag-handle:active { cursor: grabbing; }
+        .insert-btn-row {
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            height: 18px;
+            margin: 0;
+        }
+        .insert-btn {
+            flex: 1;
+            height: 2px;
+            background: #e2e8f0;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 0;
+            background: transparent;
+            font-size: 13px;
+            color: #94a3b8;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: color 0.15s, background 0.15s;
+        }
+        .insert-btn:hover {
+            color: #004c54;
+            background: #f0fafb;
+        }
+        .station-rows-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
         }
 
         .btn-action {
@@ -708,24 +762,52 @@
             return wrapper;
         }
 
+        let dragSrcIdx = null;
+
+        function makeInsertBar(insertIdx) {
+            const bar = document.createElement('div');
+            bar.className = 'insert-btn-row';
+            const btn = document.createElement('button');
+            btn.className = 'insert-btn';
+            btn.textContent = '＋ insert here';
+            btn.title = 'Insert new station at this position';
+            btn.addEventListener('click', () => {
+                if (stationsState.length >= 50) return;
+                stationsState.splice(insertIdx, 0, { code: 'NEW', name: 'New Station', interchanges: '', fadeSplit: false });
+                renderControlsRows();
+                updateMapRenderer();
+            });
+            bar.appendChild(btn);
+            return bar;
+        }
+
         function renderControlsRows() {
             stationManagerContainer.innerHTML = '';
+
             stationsState.forEach((station, idx) => {
+                // ── Insert bar above each row ────────────────────────────────
+                stationManagerContainer.appendChild(makeInsertBar(idx));
+
+                // ── Station row ───────────────────────────────────────────────
                 const row = document.createElement('div');
                 row.className = 'station-row';
+                row.draggable = true;
+                row.dataset.idx = idx;
 
                 row.innerHTML = `
-                    <span style="font-weight:bold; color:#64748b; font-size:12px;">#${idx+1}</span>
+                    <div class="drag-handle" title="Drag to reorder">⠿</div>
+                    <span style="font-weight:bold; color:#94a3b8; font-size:11px; white-space:nowrap;">#${idx+1}</span>
                     <input type="text" value="${station.code}" placeholder="Code" class="input-code" style="width:100%; box-sizing:border-box;">
                     <input type="text" value="${station.name}" placeholder="Station Name" class="input-name" style="width:100%; box-sizing:border-box;">
                     <input type="text" value="${station.interchanges}" placeholder="e.g. EW 16, SE 12 (#ff0055)" class="input-interchanges" style="width:100%; box-sizing:border-box;">
-                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                        <label style="font-size:9px; font-weight:bold; color:#64748b;">SPLIT</label>
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;">
+                        <label style="font-size:9px; font-weight:bold; color:#64748b; line-height:1;">SPLIT</label>
                         <input type="checkbox" class="input-split" ${station.fadeSplit ? 'checked' : ''}>
                     </div>
-                    <button class="btn-action btn-delete">✕</button>
+                    <button class="btn-action btn-delete" title="Delete station">✕</button>
                 `;
 
+                // Live edit listeners
                 row.querySelector('.input-code').addEventListener('input', (e) => { stationsState[idx].code = e.target.value; updateMapRenderer(); });
                 row.querySelector('.input-name').addEventListener('input', (e) => { stationsState[idx].name = e.target.value; updateMapRenderer(); });
                 row.querySelector('.input-interchanges').addEventListener('input', (e) => { stationsState[idx].interchanges = e.target.value; updateMapRenderer(); });
@@ -740,8 +822,38 @@
                     updateMapRenderer();
                 });
 
+                // ── Drag-to-reorder ──────────────────────────────────────────
+                row.addEventListener('dragstart', (e) => {
+                    dragSrcIdx = idx;
+                    row.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                row.addEventListener('dragend', () => {
+                    row.classList.remove('dragging');
+                    document.querySelectorAll('.station-row').forEach(r => r.classList.remove('drag-over'));
+                });
+                row.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    document.querySelectorAll('.station-row').forEach(r => r.classList.remove('drag-over'));
+                    if (idx !== dragSrcIdx) row.classList.add('drag-over');
+                });
+                row.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (dragSrcIdx === null || dragSrcIdx === idx) return;
+                    const [moved] = stationsState.splice(dragSrcIdx, 1);
+                    stationsState.splice(idx, 0, moved);
+                    dragSrcIdx = null;
+                    renderControlsRows();
+                    updateMapRenderer();
+                });
+
                 stationManagerContainer.appendChild(row);
             });
+
+            // ── Final insert bar at bottom ────────────────────────────────────
+            stationManagerContainer.appendChild(makeInsertBar(stationsState.length));
+
             addStationBtn.disabled = stationsState.length >= 50;
         }
 
