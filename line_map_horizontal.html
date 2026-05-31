@@ -348,7 +348,7 @@
     </nav>
 
     <h1>MRT Horizontal Route Map Generator</h1>
-    <p class="subtitle">Supports precision name layouts, dynamic track snapping, and scaling tools</p>
+    <p class="subtitle">Create and customise your own line maps! These are usually displayed over the platform screen doors.</p>
 
     <div class="container">
         <div class="editor-regions">
@@ -359,7 +359,7 @@
                 </div>
                 <div class="station-manager" id="stationManagerContainer">
                     </div>
-                <button class="btn-action btn-add" id="addStationBtn">+ Append New Station Node</button>
+                <button class="btn-action btn-add" id="addStationBtn">+ Add New Station</button>
             </div>
 
             <div>
@@ -770,7 +770,7 @@
             bar.className = 'insert-btn-row';
             const btn = document.createElement('button');
             btn.className = 'insert-btn';
-            btn.textContent = '＋ insert here';
+            btn.textContent = '＋ insert station here';
             btn.title = 'Insert new station at this position';
             btn.addEventListener('click', () => {
                 if (stationsState.length >= 50) return;
