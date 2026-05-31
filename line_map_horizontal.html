@@ -171,11 +171,6 @@
             color: #004c54;
             background: #f0fafb;
         }
-        .station-rows-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-        }
 
         .btn-action {
             padding: 8px 12px;
@@ -320,7 +315,6 @@
 
         /* Bottom Color Identification Ribbon */
         .bottom-identity-band {
-            height: 75px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -341,7 +335,7 @@
 <body>
 
     <nav style="margin-bottom: 20px; display: flex; gap: 15px;">
-        <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Signage Generator</a>
+        <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Exit Signage Generator</a>
         <a href="map.html" style="color: #64748b; text-decoration: none;">🗺️ Platform Signage Generator</a>
         <a href="line_map_horizontal.html" style="font-weight: bold; color: #004c54; text-decoration: none;">🚇 Route Map Generator</a>
         <a href="platform_destination.html" style="color: #64748b; text-decoration: none;">🚏 Platform Destination Generator</a>
@@ -488,33 +482,37 @@
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
+                        <label for="bandHeight">Ribbon Height: <span id="bandHeightVal">75px</span></label>
+                        <input type="range" id="bandHeight" min="45" max="160" value="75">
+                    </div>
+                    <div class="control-group">
                         <label for="fsBandName">Line Name Font: <span id="fsBandNameVal">43px</span></label>
                         <input type="range" id="fsBandName" min="16" max="72" value="43">
                     </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
                         <label for="fsBandCaplet">Caplet Font: <span id="fsBandCapletVal">37px</span></label>
                         <input type="range" id="fsBandCaplet" min="10" max="60" value="37">
                     </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
                         <label for="bandCapH">Caplet Height: <span id="bandCapHVal">45px</span></label>
                         <input type="range" id="bandCapH" min="20" max="100" value="45">
                     </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
                         <label for="bandCapP">Caplet H. Padding: <span id="bandCapPVal">28px</span></label>
                         <input type="range" id="bandCapP" min="5" max="60" value="28">
                     </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="control-group">
                         <label for="bandCapVr">Caplet Vert. Radius: <span id="bandCapVrVal">28px</span></label>
                         <input type="range" id="bandCapVr" min="0" max="100" value="28">
                     </div>
-                    <div class="control-group">
-                        <label for="bandCapHr">Caplet Horiz. Radius: <span id="bandCapHrVal">13px</span></label>
-                        <input type="range" id="bandCapHr" min="0" max="160" value="13">
-                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="bandCapHr">Caplet Horiz. Radius: <span id="bandCapHrVal">13px</span></label>
+                    <input type="range" id="bandCapHr" min="0" max="160" value="13">
                 </div>
 
                 <div class="section-title" style="margin-top:20px;">Caplet Settings</div>
@@ -608,6 +606,8 @@
         
         const fsStationName = document.getElementById('fsStationName');
         const fsCapletCode = document.getElementById('fsCapletCode');
+        const bandHeight = document.getElementById('bandHeight');
+        const bandHeightVal = document.getElementById('bandHeightVal');
         const fsBandName    = document.getElementById('fsBandName');
         const fsBandCaplet  = document.getElementById('fsBandCaplet');
         const bandCapH      = document.getElementById('bandCapH');
@@ -786,10 +786,8 @@
             stationManagerContainer.innerHTML = '';
 
             stationsState.forEach((station, idx) => {
-                // ── Insert bar above each row ────────────────────────────────
                 stationManagerContainer.appendChild(makeInsertBar(idx));
 
-                // ── Station row ───────────────────────────────────────────────
                 const row = document.createElement('div');
                 row.className = 'station-row';
                 row.draggable = true;
@@ -808,7 +806,6 @@
                     <button class="btn-action btn-delete" title="Delete station">✕</button>
                 `;
 
-                // Live edit listeners
                 row.querySelector('.input-code').addEventListener('input', (e) => { stationsState[idx].code = e.target.value; updateMapRenderer(); });
                 row.querySelector('.input-name').addEventListener('input', (e) => { stationsState[idx].name = e.target.value; updateMapRenderer(); });
                 row.querySelector('.input-interchanges').addEventListener('input', (e) => { stationsState[idx].interchanges = e.target.value; updateMapRenderer(); });
@@ -823,7 +820,6 @@
                     updateMapRenderer();
                 });
 
-                // ── Drag-to-reorder ──────────────────────────────────────────
                 row.addEventListener('dragstart', (e) => {
                     dragSrcIdx = idx;
                     row.classList.add('dragging');
@@ -852,9 +848,7 @@
                 stationManagerContainer.appendChild(row);
             });
 
-            // ── Final insert bar at bottom ────────────────────────────────────
             stationManagerContainer.appendChild(makeInsertBar(stationsState.length));
-
             addStationBtn.disabled = stationsState.length >= 50;
         }
 
@@ -872,6 +866,7 @@
             const Fs = parseInt(fsCapletCode.value);
             const Vr = parseInt(capVr.value);
             const Hr = parseInt(capHr.value);
+            const bH = parseInt(bandHeight.value);
             const actualCapletHeight = H + 4;
             const icHeight = (H * currentScale) + 4;
             const aSize = parseInt(arrowSize.value);
@@ -884,7 +879,8 @@
                 ? effectiveTilt   
                 : orientVal;      
 
-            // Band
+            // Band Height Allocation
+            bandEl.style.height = bH + 'px';
             nameTextEl.innerText = customBandLineName.value.trim()
                 ? customBandLineName.value.trim()
                 : selectedLineObj.name.replace(/\s\([^)]*\)$/, "");
@@ -992,7 +988,6 @@
                 nodeContainer.appendChild(mainCaplet.wrapper);
                 col.appendChild(nodeContainer);
 
-                // Global Column Level Destination Placement (Maintains position freedom relative to horizontal capsules)
                 if (showDest) {
                     if (idx === 0 && destLeft && destLeft !== "") {
                         const destCircle = document.createElement('div');
@@ -1301,6 +1296,7 @@
             document.getElementById('labelOffsetVal').innerText     = labelOffset.value + 'px';
             document.getElementById('fsStationNameVal').innerText   = fsStationName.value + 'px';
             document.getElementById('fsCapletCodeVal').innerText    = fsCapletCode.value + 'px';
+            document.getElementById('bandHeightVal').innerText      = bandHeight.value + 'px';
             document.getElementById('fsBandNameVal').innerText      = fsBandName.value + 'px';
             document.getElementById('fsBandCapletVal').innerText    = fsBandCaplet.value + 'px';
             document.getElementById('bandCapHVal').innerText        = bandCapH.value + 'px';
@@ -1323,7 +1319,7 @@
             updateMapRenderer();
         });
 
-        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName, customBandLinePrefix, directionMode, arrowSize, arrowFontSize, showDestNumbers, destStartInput, destEndInput, destSizeSlider, destFontSizeSlider, destOffsetSlider].forEach(ctrl => {
+        [customLineColor, mapWidth, textOrientation, interchangeLayout, trackLineY, interchangeGap, icScale, labelOffset, fsStationName, fsCapletCode, bandHeight, fsBandName, fsBandCaplet, bandCapH, bandCapP, bandCapVr, bandCapHr, capP, capH, capVr, capHr, customBandLineName, customBandLinePrefix, directionMode, arrowSize, arrowFontSize, showDestNumbers, destStartInput, destEndInput, destSizeSlider, destFontSizeSlider, destOffsetSlider].forEach(ctrl => {
             ctrl.addEventListener('input', updateMapRenderer);
             ctrl.addEventListener('change', updateMapRenderer);
         });
