@@ -230,7 +230,6 @@
             color: #ffffff;
             font-family: inherit;
             font-weight: 600;
-            font-size: 19px;
             letter-spacing: 0.5px;
         }
     </style>
@@ -256,7 +255,7 @@
                     <input type="text" id="stationEn" value="Outram Park">
                 </div>
                 <div class="control-group">
-                    <label for="stationZh">Chinese Name (中文)</label>
+                    <label for="stationZh">Chinese Name (简体中文)</label>
                     <input type="text" id="stationZh" value="欧南园">
                 </div>
                 <div class="control-group">
@@ -334,6 +333,16 @@
                     <div class="checkbox-group">
                         <input type="checkbox" id="showBottomText" checked>
                         <label for="showBottomText">Render Line Text Name Label</label>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="bottomBannerHeight">Ribbon Height: <span id="bottomBannerHeightVal">50px</span></label>
+                        <input type="range" id="bottomBannerHeight" min="30" max="120" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label for="bottomBannerFontSize">Ribbon Font Size: <span id="bottomBannerFontSizeVal">19px</span></label>
+                        <input type="range" id="bottomBannerFontSize" min="12" max="36" value="19">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -426,10 +435,14 @@
         const roundnessVal = document.getElementById('roundnessVal');
         const hradiusVal = document.getElementById('hradiusVal');
 
-        // Ribbon handles binding components selectors suite
+        // Ribbon handles binding component selectors suite
         const showBottomBanner = document.getElementById('showBottomBanner');
         const showBottomText = document.getElementById('showBottomText');
         const showBottomCaplet = document.getElementById('showBottomCaplet');
+        const bottomBannerHeightInput = document.getElementById('bottomBannerHeight');
+        const bottomBannerHeightVal = document.getElementById('bottomBannerHeightVal');
+        const bottomBannerFontSizeInput = document.getElementById('bottomBannerFontSize');
+        const bottomBannerFontSizeVal = document.getElementById('bottomBannerFontSizeVal');
         const bottomBannerPrefix = document.getElementById('bottomBannerPrefix');
         const bottomBannerText = document.getElementById('bottomBannerText');
         const bottomIdentityBand = document.getElementById('bottomIdentityBand');
@@ -551,17 +564,25 @@
             const ribbonContrastColor = getContrastColor(activeColor);
             bandCapletWrapper.innerHTML = '';
 
+            // Sync label metrics trackers
+            bottomBannerHeightVal.innerText = bottomBannerHeightInput.value + 'px';
+            bottomBannerFontSizeVal.innerText = bottomBannerFontSizeInput.value + 'px';
+
             if (showBottomBanner.checked) {
                 bottomIdentityBand.style.display = 'flex';
                 bottomIdentityBand.style.backgroundColor = activeColor;
                 
+                const ribbonH = parseInt(bottomBannerHeightInput.value);
+                const ribbonFs = parseInt(bottomBannerFontSizeInput.value);
+
+                bottomIdentityBand.style.height = ribbonH + 'px';
+
                 if (showBottomCaplet.checked) {
                     let determinedPrefix = '';
                     if (bottomBannerPrefix.value.trim().length > 0) {
                         determinedPrefix = bottomBannerPrefix.value.trim();
                     } else {
                         const directMatch = standardLines.find(lineObj => lineObj.color === lineSelect.value);
-                        // Safely handles abbreviation parsing overrides from name properties tokens string brackets
                         determinedPrefix = directMatch ? (directMatch.name.match(/\((.*?)\)/)?.[1] || 'MRT') : 'MRT';
                     }
 
@@ -570,9 +591,9 @@
                     bottomCapletBadge.style.alignItems = 'center';
                     bottomCapletBadge.style.justifyContent = 'center';
                     bottomCapletBadge.style.boxSizing = 'border-box';
-                    bottomCapletBadge.style.height = '34px';
-                    bottomCapletBadge.style.padding = '2px 14px';
-                    bottomCapletBadge.style.border = `2.5px solid ${ribbonContrastColor}`;
+                    bottomCapletBadge.style.height = Math.round(ribbonH * 0.68) + 'px';
+                    bottomCapletBadge.style.padding = `2px ${Math.round(ribbonH * 0.28)}px`;
+                    bottomCapletBadge.style.border = `${Math.max(1.5, ribbonH * 0.05)}px solid ${ribbonContrastColor}`;
                     
                     const ribbonVr = Math.round(Vr * 0.65);
                     const ribbonHr = Math.round(Hr * 0.65);
@@ -580,7 +601,7 @@
 
                     const labelNodeSpan = document.createElement('span');
                     labelNodeSpan.style.color = ribbonContrastColor;
-                    labelNodeSpan.style.fontSize = '18px';
+                    labelNodeSpan.style.fontSize = Math.round(ribbonFs * 0.95) + 'px';
                     labelNodeSpan.style.fontWeight = '700';
                     labelNodeSpan.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
                     labelNodeSpan.innerText = determinedPrefix.toUpperCase();
@@ -598,6 +619,7 @@
                     
                     bandLineNameText.style.display = 'inline';
                     bandLineNameText.style.color = ribbonContrastColor;
+                    bandLineNameText.style.fontSize = ribbonFs + 'px';
                     bandLineNameText.innerText = bottomBannerText.value.trim() ? bottomBannerText.value.trim() : fallbackLineName;
                 } else {
                     bandLineNameText.style.display = 'none';
@@ -632,7 +654,7 @@
             panelTheme, panelColorPicker, lineSelect, lineColorPicker, stationEnInput, stationZhInput, 
             stationTaInput, stationCodeInput, autoWidth, signageWidthInput, signageHeightInput, 
             capsuleFontSizeInput, capsulePaddingInput, capsuleHeightInput, capsuleRoundnessInput, capsuleHRadiusInput,
-            showBottomBanner, showBottomText, showBottomCaplet, bottomBannerPrefix, bottomBannerText
+            showBottomBanner, showBottomText, showBottomCaplet, bottomBannerHeightInput, bottomBannerFontSizeInput, bottomBannerPrefix, bottomBannerText
         ];
 
         interactionInterceptorsSuite.forEach(targetInput => {
