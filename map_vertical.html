@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SG MRT Vertical Route Map Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@font-face {
+    font-family: 'MRT-Identity';
+    src: url('LTA_Identity-Medium.ttf') format('truetype'),
+         url('OceanSans.ttf') format('truetype');
+    font-weight: normal; font-style: normal; font-display: swap;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f0f4f8; margin: 0; padding: 30px 20px;
+    display: flex; flex-direction: column; align-items: center; color: #1e293b;
+}
+h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+p.subtitle { color: #64748b; margin: 0 0 24px; }
+
+nav { margin-bottom: 18px; display: flex; gap: 18px; }
+nav a { color: #64748b; text-decoration: none; font-size: 14px; }
+nav a.active { color: #004c54; font-weight: 700; }
+
+.container {
+    width: 100%; max-width: 1100px; background: white;
+    padding: 28px; border-radius: 14px;
+    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.06); margin-bottom: 30px;
+}
+.section-title {
+    font-size: 15px; font-weight: 700; color: #334155;
+    border-bottom: 2px solid #f1f5f9; padding-bottom: 5px; margin-bottom: 14px;
+}
+.editor-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+@media(max-width:820px){ .editor-grid{ grid-template-columns:1fr; } }
+
+.control-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+.control-group label { font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px; }
+.control-group input, .control-group select {
+    padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 7px;
+    font-size: 14px; background: #fff; color: #1e293b; outline: none;
+    transition: border-color 0.2s;
+}
+.control-group input:focus, .control-group select:focus { border-color: #004c54; }
+.control-group input[type="range"] { padding: 5px 0; cursor: pointer; }
+.control-group input[type="color"] {
+    padding: 0; width: 38px; height: 34px; border: 1px solid #cbd5e1;
+    border-radius: 7px; cursor: pointer;
+}
+.inline-row { display: flex; gap: 8px; align-items: center; }
+.inline-row input[type="text"] { flex: 1; }
+
+.btn-dl {
+    background: #1e293b; color: white; width: 100%; padding: 13px;
+    font-size: 15px; font-weight: 600; border-radius: 8px; border: none;
+    cursor: pointer; transition: background 0.2s; margin-top: 10px;
+}
+.btn-dl:hover { background: #0f172a; }
+.btn-add {
+    background: #e2e8f0; color: #334155; padding: 9px 14px; font-size: 13px;
+    font-weight: 600; border-radius: 7px; border: none; cursor: pointer; width: 100%; margin-top: 6px;
+}
+.btn-add:hover { background: #cbd5e1; }
+.btn-delete { background: #fee2e2; color: #ef4444; padding: 6px 10px; font-size: 13px; border-radius: 6px; border: none; cursor: pointer; }
+.btn-delete:hover { background: #fca5a5; }
+
+/* Station list */
+.station-rows-list { display: flex; flex-direction: column; gap: 0; }
+.station-row {
+    display: grid;
+    grid-template-columns: 24px auto 90px 180px 1fr 48px 38px;
+    gap: 7px; align-items: center;
+    padding: 7px 9px; background: white; border: 1px solid #e2e8f0;
+    border-radius: 6px; margin-bottom: 0; cursor: default;
+    transition: box-shadow 0.15s, background 0.15s;
+}
+.station-row.drag-over { box-shadow: 0 0 0 2px #004c54; background: #f0fafb; }
+.station-row.dragging { opacity: 0.4; }
+.drag-handle {
+    cursor: grab; color: #94a3b8; font-size: 17px; user-select: none;
+    display: flex; align-items: center; justify-content: center;
+}
+.drag-handle:active { cursor: grabbing; }
+.insert-btn-row { display: flex; align-items: center; padding: 0 9px; height: 16px; }
+.insert-btn {
+    flex: 1; height: auto; background: transparent; border: none; cursor: pointer;
+    padding: 5px 0; font-size: 12px; color: #94a3b8; font-weight: 600;
+    border-radius: 4px; transition: color 0.15s, background 0.15s;
+}
+.insert-btn:hover { color: #004c54; background: #f0fafb; }
+
+/* Preview wrapper */
+.preview-wrapper {
+    width: 100%; background: #374151; border-radius: 12px;
+    padding: 36px 24px; display: flex; gap: 20px;
+    justify-content: center; align-items: flex-start; flex-wrap: wrap; overflow-x: auto;
+}
+
+/* ── The actual vertical map panel ── */
+.vmap-panel {
+    background: #ffffff;
+    border: 3px solid #111;
+    border-radius: 4px;
+    display: inline-flex;
+    flex-direction: column;
+    min-width: 260px;
+    font-family: 'MRT-Identity', Arial, sans-serif;
+    user-select: none;
+    overflow: hidden;
+}
+
+/* Header bar */
+.vmap-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    gap: 10px;
+    color: white;
+}
+.vmap-header-platform {
+    font-size: 48px; font-weight: 900; line-height: 1; color: white;
+    font-family: 'MRT-Identity', Arial Black, sans-serif;
+}
+.vmap-header-dest-block {
+    display: flex; flex-direction: column; gap: 3px;
+}
+.vmap-header-caplet { display: flex; align-items: center; }
+.vmap-header-destname {
+    font-size: 22px; font-weight: 700; color: white; line-height: 1.1;
+    font-family: 'MRT-Identity', Arial, sans-serif;
+}
+.vmap-arrow {
+    margin-left: auto;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: white;
+    font-size: 22px; font-weight: 900; flex-shrink: 0;
+    color: #000;
+}
+
+/* Route body */
+.vmap-body { display: flex; flex-direction: row; }
+
+/* Column A: station names */
+.vmap-names-col {
+    display: flex; flex-direction: column;
+    flex: 1; padding: 0;
+}
+.vmap-name-cell {
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 4px 10px 4px 14px; min-height: 56px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.vmap-name-cell:last-child { border-bottom: none; }
+.vmap-name-en {
+    font-family: 'MRT-Identity', Arial, sans-serif;
+    font-weight: 700; color: #111; line-height: 1.1;
+}
+.vmap-name-zh { font-family: 'SimHei','Microsoft YaHei',sans-serif; color: #111; letter-spacing: 2px; line-height: 1.2; }
+.vmap-name-ta { font-family: 'Latha','Tamil MN',sans-serif; color: #111; line-height: 1.2; }
+.vmap-name-faded { opacity: 0.32; }
+
+/* Column B: track + caplets */
+.vmap-track-col {
+    width: 80px; position: relative; display: flex; flex-direction: column; flex-shrink: 0;
+}
+.vmap-track-cell {
+    position: relative; min-height: 56px; display: flex;
+    align-items: center; justify-content: center;
+    border-bottom: 1px solid #e5e7eb; flex-shrink: 0;
+}
+.vmap-track-cell:last-child { border-bottom: none; }
+
+/* Column C: interchange caplets */
+.vmap-ic-col {
+    display: flex; flex-direction: column; flex-shrink: 0;
+    padding: 0;
+}
+.vmap-ic-cell {
+    display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center;
+    padding: 4px 8px 4px 6px; gap: 3px; min-height: 56px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.vmap-ic-cell:last-child { border-bottom: none; }
+
+/* Legend */
+.vmap-legend {
+    padding: 10px 14px; border-top: 1px solid #e5e7eb;
+    display: flex; flex-wrap: wrap; gap: 8px;
+}
+.legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; font-family: 'MRT-Identity', Arial, sans-serif;
+}
+.legend-dot {
+    width: 26px; height: 14px; border-radius: 7px; flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html">📋 Signage Generator</a>
+    <a href="map.html">🚇 Platform Signage</a>
+    <a href="line_map_horizontal.html">➡️ Horizontal Route Map</a>
+    <a href="map_vertical.html" class="active">↕️ Vertical Route Map</a>
+</nav>
+
+<h1>Vertical Route Map Generator</h1>
+<p class="subtitle">Singapore MRT in-carriage / platform vertical line map</p>
+
+<div class="container">
+    <div class="editor-grid">
+
+        <!-- Col 1: Line & Destination -->
+        <div>
+            <div class="section-title">Line & Header</div>
+
+            <div class="control-group">
+                <label>Line (for track & caplet colour)</label>
+                <select id="vLineSelect">
+                    <option value="#d42e12">North–South Line (NSL)</option>
+                    <option value="#009645">East–West Line (EWL)</option>
+                    <option value="#9900aa" selected>North East Line (NEL)</option>
+                    <option value="#fa9e0d">Circle Line (CCL)</option>
+                    <option value="#005ec4">Downtown Line (DTL)</option>
+                    <option value="#9D5B25">Thomson–East Coast Line (TEL)</option>
+                    <option value="#97C616">Cross Island Line (CRL)</option>
+                    <option value="#0099aa">Jurong Region Line (JRL)</option>
+                    <option value="#custom">[ Custom ]</option>
+                </select>
+            </div>
+            <div class="control-group" id="customColorWrap" style="display:none;">
+                <label>Custom Line Color</label>
+                <div class="inline-row">
+                    <input type="color" id="vCustomColor" value="#9900aa">
+                    <input type="text" id="vCustomColorHex" value="#9900aa" style="font-family:monospace;">
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top:14px;">Header Layout</div>
+            <div class="control-group">
+                <label>Header Order</label>
+                <select id="vHeaderOrder">
+                    <option value="arrow-platform-dest">← [Platform] [Code] Destination</option>
+                    <option value="dest-platform-arrow">Destination [Code] [Platform] →</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Arrow Direction</label>
+                <select id="vArrowDir">
+                    <option value="left" selected>← Left</option>
+                    <option value="right">→ Right</option>
+                    <option value="up">↑ Up</option>
+                    <option value="down">↓ Down</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+
+            <div class="section-title" style="margin-top:14px;">Platform Box</div>
+            <div class="control-group">
+                <label>Platform Letter</label>
+                <input type="text" id="vPlatformLetter" value="A" maxlength="2">
+            </div>
+            <div class="control-group">
+                <label>Platform Box Color</label>
+                <div class="inline-row">
+                    <input type="color" id="vPlatformColor" value="#9900aa">
+                    <input type="text" id="vPlatformColorHex" value="#9900aa" style="font-family:monospace;flex:1;">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="control-group">
+                    <label>Box Width: <span id="platformBoxWidthVal">75px</span></label>
+                    <input type="range" id="platformBoxWidth" min="40" max="180" value="75">
+                </div>
+                <div class="control-group">
+                    <label>Box Height: <span id="platformBoxHeightVal">55px</span></label>
+                    <input type="range" id="platformBoxHeight" min="30" max="120" value="55">
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Box Border Radius: <span id="platformBoxRVal">8px</span></label>
+                <input type="range" id="platformBoxR" min="0" max="40" value="8">
+            </div>
+
+            <div class="section-title" style="margin-top:14px;">Destination</div>
+            <div class="control-group">
+                <label>Destination Station Code</label>
+                <input type="text" id="vDestCode" value="NE 1">
+            </div>
+            <div class="control-group">
+                <label>Destination Name (English)</label>
+                <input type="text" id="vDestNameEn" value="HarbourFront">
+            </div>
+        </div>
+
+        <!-- Col 2: Map Settings -->
+        <div>
+            <div class="section-title">Map Settings</div>
+
+            <div class="control-group">
+                <label>Panel Width: <span id="vPanelWidthVal">300px</span></label>
+                <input type="range" id="vPanelWidth" min="220" max="600" value="300">
+            </div>
+            <div class="control-group">
+                <label>Row Height: <span id="vRowHeightVal">56px</span></label>
+                <input type="range" id="vRowHeight" min="36" max="120" value="56">
+            </div>
+            <div class="control-group">
+                <label>Track Width: <span id="vTrackWidthVal">10px</span></label>
+                <input type="range" id="vTrackWidth" min="4" max="28" value="10">
+            </div>
+            <div class="control-group">
+                <label>Track Column Width: <span id="vTrackColWVal">80px</span></label>
+                <input type="range" id="vTrackColW" min="50" max="150" value="80">
+            </div>
+
+            <div class="section-title" style="margin-top:16px;">Station Name Fonts</div>
+            <div class="control-group">
+                <label>English Font Size: <span id="vFsEnVal">15px</span></label>
+                <input type="range" id="vFsEn" min="9" max="32" value="15">
+            </div>
+            <div class="control-group">
+                <label>Chinese Font Size: <span id="vFsZhVal">11px</span></label>
+                <input type="range" id="vFsZh" min="8" max="28" value="11">
+            </div>
+            <div class="control-group">
+                <label>Tamil Font Size: <span id="vFsTaVal">10px</span></label>
+                <input type="range" id="vFsTa" min="8" max="28" value="10">
+            </div>
+            <div style="display:flex; gap:14px; margin-bottom:12px;">
+                <label style="font-size:12px;font-weight:600;color:#475569;display:flex;align-items:center;gap:5px;cursor:pointer;">
+                    <input type="checkbox" id="vShowZh" checked> Chinese
+                </label>
+                <label style="font-size:12px;font-weight:600;color:#475569;display:flex;align-items:center;gap:5px;cursor:pointer;">
+                    <input type="checkbox" id="vShowTa" checked> Tamil
+                </label>
+            </div>
+
+            <div class="section-title" style="margin-top:16px;">Caplet Style</div>
+            <div class="control-group">
+                <label>Caplet Font Size: <span id="vFsCapVal">11px</span></label>
+                <input type="range" id="vFsCap" min="7" max="24" value="11">
+            </div>
+            <div class="control-group">
+                <label>Caplet Height: <span id="vCapHVal">24px</span></label>
+                <input type="range" id="vCapH" min="14" max="60" value="24">
+            </div>
+            <div class="control-group">
+                <label>Caplet H. Padding: <span id="vCapPVal">8px</span></label>
+                <input type="range" id="vCapP" min="2" max="30" value="8">
+            </div>
+            <div class="control-group">
+                <label>Caplet Vr: <span id="vCapVrVal">12px</span></label>
+                <input type="range" id="vCapVr" min="0" max="50" value="12">
+            </div>
+            <div class="control-group">
+                <label>Caplet Hr: <span id="vCapHrVal">6px</span></label>
+                <input type="range" id="vCapHr" min="0" max="60" value="6">
+            </div>
+        </div>
+
+        <!-- Col 3: Split & Legend -->
+        <div>
+            <div class="section-title">Column Splitting</div>
+            <p style="font-size:12px;color:#64748b;margin-bottom:10px;">Split a long line into multiple side-by-side panels.</p>
+            <div class="control-group">
+                <label>Split after station #: <span id="vSplitIdxVal">–</span></label>
+                <input type="range" id="vSplitIdx" min="0" max="20" value="0">
+            </div>
+            <p style="font-size:11px;color:#94a3b8;margin:0 0 14px;">0 = no split</p>
+
+            <div class="section-title" style="margin-top:16px;">Fade (Passed Stations)</div>
+            <div class="control-group">
+                <label>Fade from station #: <span id="vFadeFromVal">0 (none)</span></label>
+                <input type="range" id="vFadeFrom" min="0" max="50" value="0">
+            </div>
+            <p style="font-size:11px;color:#94a3b8;margin:0 0 14px;">0 = no fade. Stations before this index will be faded.</p>
+
+            <div class="section-title" style="margin-top:16px;">Header & Arrow</div>
+            <div class="control-group">
+                <label>Header Height: <span id="vHeaderHVal">70px</span></label>
+                <input type="range" id="vHeaderH" min="40" max="180" value="70">
+            </div>
+            <div class="control-group">
+                <label>Platform Letter Size: <span id="vFsPlatformVal">32px</span></label>
+                <input type="range" id="vFsPlatform" min="14" max="72" value="32">
+            </div>
+            <div class="control-group">
+                <label>Dest Name Font Size: <span id="vFsDestVal">22px</span></label>
+                <input type="range" id="vFsDest" min="12" max="48" value="22">
+            </div>
+            <div class="control-group">
+                <label>Arrow Size: <span id="vArrowSzVal">28px</span></label>
+                <input type="range" id="vArrowSz" min="16" max="80" value="28">
+            </div>
+
+            <div class="section-title" style="margin-top:16px;">Legend</div>
+            <label style="font-size:12px;font-weight:600;color:#475569;display:flex;align-items:center;gap:7px;margin-bottom:10px;cursor:pointer;">
+                <input type="checkbox" id="vShowLegend" checked> Show Legend
+            </label>
+            <div id="legendItemsContainer"></div>
+            <button class="btn-add" id="vAddLegendItem">+ Add Legend Item</button>
+        </div>
+    </div>
+
+    <button class="btn-dl" id="vDownloadBtn">Export Vertical Route Map as PNG</button>
+</div>
+
+<!-- Station List -->
+<div class="container">
+    <div class="section-title">Route Stations Lineup <span style="font-size:12px;font-weight:400;color:#64748b;">(top = first station shown, bottom = destination)</span></div>
+    <p style="font-size:12px;color:#64748b;margin:0 0 12px;">Drag ⠿ to reorder · Click + insert here to add between stations · Interchange codes auto-colour (e.g. NS 1, EW 5, CC 3). Custom: CODE (#hexcolor)</p>
+    <div class="station-rows-list" id="vStationList"></div>
+    <button class="btn-add" id="vAddStation">+ Append New Station</button>
+</div>
+
+<!-- Preview -->
+<div class="preview-wrapper" id="vPreviewWrapper">
+    <!-- panels injected by JS -->
+</div>
+
+<script>
+const standardLines = [
+    { color: "#d42e12", name: "North–South Line",         prefix: "NSL" },
+    { color: "#009645", name: "East–West Line",           prefix: "EWL" },
+    { color: "#9900aa", name: "North East Line",          prefix: "NEL" },
+    { color: "#fa9e0d", name: "Circle Line",              prefix: "CCL" },
+    { color: "#005ec4", name: "Downtown Line",            prefix: "DTL" },
+    { color: "#9D5B25", name: "Thomson–East Coast Line",  prefix: "TEL" },
+    { color: "#97C616", name: "Cross Island Line",        prefix: "CRL" },
+    { color: "#0099aa", name: "Jurong Region Line",       prefix: "JRL" },
+];
+
+const autoColorMap = {
+    NS:"#d42e12",EW:"#009645",NE:"#9900aa",CC:"#fa9e0d",
+    DT:"#005ec4",TE:"#9D5B25",CR:"#97C616",JW:"#0099aa",
+    BP:"#b85600",PTC:"#8B8680",STC:"#747474",
+};
+function getAutoColor(code) {
+    const m = code.match(/^([A-Z]+)/i);
+    if (!m) return "#888";
+    return autoColorMap[m[1].toUpperCase()] || "#888";
+}
+function getContrastColor(hex) {
+    const h = hex.replace('#','');
+    const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+    return (r*299+g*587+b*114)/1000>=140?'#000':'#fff';
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let vStations = [
+    { code:"NE 18", name:"Punggol Coast", nameZh:"榜鹅海岸", nameTa:"புங்கோல் கோஸ்ட்", interchanges:"" },
+    { code:"NE 17", name:"Punggol",       nameZh:"榜鹅",     nameTa:"புங்கோல்",         interchanges:"PTC" },
+    { code:"NE 16", name:"Sengkang",      nameZh:"盛港",     nameTa:"செங்காங்",          interchanges:"STC" },
+    { code:"NE 14", name:"Hougang",       nameZh:"后港",     nameTa:"ஹூகாங்",           interchanges:"" },
+    { code:"NE 12", name:"Serangoon",     nameZh:"实龙岗",   nameTa:"செரங்கூன்",         interchanges:"CC 13" },
+    { code:"NE 7",  name:"Little India",  nameZh:"小印度",   nameTa:"லிட்டில் இந்தியா",  interchanges:"DT 12" },
+    { code:"NE 6",  name:"Dhoby Ghaut",   nameZh:"多美歌",   nameTa:"டோபி கோட்",        interchanges:"NS 24, CC 1" },
+    { code:"NE 4",  name:"Chinatown",     nameZh:"牛车水",   nameTa:"சைனாடவுன்",        interchanges:"DT 19" },
+    { code:"NE 3",  name:"Outram Park",   nameZh:"欧南园",   nameTa:"அவுட்ரம் பார்க்",  interchanges:"EW 16, TE 12" },
+    { code:"NE 1",  name:"HarbourFront",  nameZh:"港湾",     nameTa:"ஹார்பர்ஃப்ரண்ட்", interchanges:"CC 29" },
+];
+
+let vLegendItems = [
+    { color:"#d42e12", label:"North-South Line" },
+    { color:"#009645", label:"East-West Line" },
+    { color:"#9900aa", label:"North East Line" },
+    { color:"#fa9e0d", label:"Circle Line" },
+    { color:"#005ec4", label:"Downtown Line" },
+    { color:"#9D5B25", label:"Thomson–East Coast Line" },
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function activeLineColor() {
+    const sel = $('vLineSelect').value;
+    return sel === '#custom' ? $('vCustomColor').value : sel;
+}
+
+function buildCaplet(code, color, fs, h, p, vr, hr) {
+    const bw = 2;
+    const outer = document.createElement('div');
+    outer.style.cssText = `display:inline-flex;align-items:stretch;padding:${bw}px;background:#fff;border-radius:${hr}px / ${vr}px;overflow:hidden;box-sizing:border-box;`;
+    const inner = document.createElement('div');
+    inner.style.cssText = `display:inline-flex;align-items:center;justify-content:center;background:${color};color:${getContrastColor(color)};font-family:'MRT-Identity',Arial,sans-serif;font-size:${fs}px;font-weight:700;padding:0 ${p}px;height:${h}px;white-space:nowrap;border-radius:${Math.max(hr-bw,0)}px / ${Math.max(vr-bw,0)}px;box-sizing:border-box;`;
+    inner.textContent = code.toUpperCase();
+    outer.appendChild(inner);
+    return outer;
+}
+
+function parseInterchanges(str) {
+    return str.split(',').map(t=>t.trim()).filter(Boolean).map(token => {
+        let code = token, color = getAutoColor(token);
+        const m = token.match(/(.+?)\s*\((#[0-9A-Fa-f]{6})\)/);
+        if (m) { code = m[1].trim(); color = m[2]; }
+        return { code: code.toUpperCase(), color };
+    });
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+    const lc          = activeLineColor();
+    const panelW      = parseInt($('vPanelWidth').value);
+    const rowH        = parseInt($('vRowHeight').value);
+    const trackW      = parseInt($('vTrackWidth').value);
+    const trackColW   = parseInt($('vTrackColW').value);
+    const fsEn        = parseInt($('vFsEn').value);
+    const fsZh        = parseInt($('vFsZh').value);
+    const fsTa        = parseInt($('vFsTa').value);
+    const fsCap       = parseInt($('vFsCap').value);
+    const capH        = parseInt($('vCapH').value);
+    const capP        = parseInt($('vCapP').value);
+    const capVr       = parseInt($('vCapVr').value);
+    const capHr       = parseInt($('vCapHr').value);
+    const showZh      = $('vShowZh').checked;
+    const showTa      = $('vShowTa').checked;
+    const splitIdx    = parseInt($('vSplitIdx').value);
+    const fadeFrom    = parseInt($('vFadeFrom').value);
+    const headerH     = parseInt($('vHeaderH').value);
+    const fsPlatform  = parseInt($('vFsPlatform').value);
+    const fsDest      = parseInt($('vFsDest').value);
+    const arrowSz     = parseInt($('vArrowSz').value);
+    const arrowDir    = $('vArrowDir').value;
+    const showLegend  = $('vShowLegend').checked;
+
+    const destCode       = $('vDestCode').value;
+    const destNameEn     = $('vDestNameEn').value;
+    const platformLetter = $('vPlatformLetter').value;
+
+    // Update value labels
+    $('vPanelWidthVal').innerText  = panelW+'px';
+    $('vRowHeightVal').innerText   = rowH+'px';
+    $('vTrackWidthVal').innerText  = trackW+'px';
+    $('vTrackColWVal').innerText   = trackColW+'px';
+    $('vFsEnVal').innerText        = fsEn+'px';
+    $('vFsZhVal').innerText        = fsZh+'px';
+    $('vFsTaVal').innerText        = fsTa+'px';
+    $('vFsCapVal').innerText       = fsCap+'px';
+    $('vCapHVal').innerText        = capH+'px';
+    $('vCapPVal').innerText        = capP+'px';
+    $('vCapVrVal').innerText       = capVr+'px';
+    $('vCapHrVal').innerText       = capHr+'px';
+    $('vHeaderHVal').innerText     = headerH+'px';
+    $('vFsPlatformVal').innerText  = fsPlatform+'px';
+    $('vFsDestVal').innerText      = fsDest+'px';
+    $('vArrowSzVal').innerText     = arrowSz+'px';
+    $('platformBoxWidthVal').innerText = $('platformBoxWidth').value + 'px';
+    $('platformBoxHeightVal').innerText = $('platformBoxHeight').value + 'px';
+    $('platformBoxRVal').innerText = $('platformBoxR').value + 'px';
+    $('vSplitIdxVal').innerText    = splitIdx === 0 ? '– (no split)' : `#${splitIdx}`;
+    $('vFadeFromVal').innerText    = fadeFrom === 0 ? '0 (none)' : `#${fadeFrom}`;
+    $('vSplitIdx').max             = Math.max(vStations.length - 1, 1);
+    $('vFadeFrom').max             = vStations.length;
+
+    // Split stations into panels
+    const panels = [];
+    if (splitIdx > 0 && splitIdx < vStations.length) {
+        panels.push(vStations.slice(0, splitIdx));
+        panels.push(vStations.slice(splitIdx));
+    } else {
+        panels.push(vStations);
+    }
+
+    const wrapper = $('vPreviewWrapper');
+    wrapper.innerHTML = '';
+
+    const arrowGlyph = { left:'←', right:'→', up:'↑', down:'↓', none:'' };
+
+    panels.forEach((panelStations, panelIdx) => {
+        const nameColW = panelW - trackColW;
+
+        const panel = document.createElement('div');
+        panel.className = 'vmap-panel';
+        panel.style.width = panelW + 'px';
+        panel.id = `vmap-panel-${panelIdx}`;
+
+        // ── Header (black bar) ────────────────────────────────────────────
+        const header = document.createElement('div');
+        header.style.cssText = `
+            background: #111111;
+            height: ${headerH}px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+            flex-shrink: 0;
+            overflow: hidden;
+        `;
+
+        const headerOrder = $('vHeaderOrder').value;
+        const platformBoxW  = parseInt($('platformBoxWidth').value);
+        const platformBoxHt = parseInt($('platformBoxHeight').value);
+        const platformBoxR  = parseInt($('platformBoxR').value);
+        const platformColor = $('vPlatformColor').value;
+
+        // Arrow element
+        const arrowEl = document.createElement('div');
+        arrowEl.style.cssText = `font-size:${arrowSz}px;font-weight:900;color:white;flex-shrink:0;line-height:1;font-family:'MRT-Identity',Arial,sans-serif;`;
+        arrowEl.textContent = arrowGlyph[arrowDir] || '';
+
+        // Platform box element
+        const platformBox = document.createElement('div');
+        platformBox.style.cssText = `
+            width: ${platformBoxW}px;
+            height: ${platformBoxHt}px;
+            background: ${platformColor};
+            border-radius: ${platformBoxR}px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-family: 'MRT-Identity', Arial Black, sans-serif;
+            font-size: ${fsPlatform}px;
+            font-weight: 900;
+            color: ${getContrastColor(platformColor)};
+        `;
+        platformBox.textContent = platformLetter;
+
+        // Destination caplet
+        const destCapletEl = destCode.trim()
+            ? buildCaplet(destCode, lc, fsCap, capH, capP, capVr, capHr)
+            : null;
+        if (destCapletEl) destCapletEl.style.flexShrink = '0';
+
+        // Destination name
+        const destNameEl = document.createElement('div');
+        destNameEl.style.cssText = `font-family:'MRT-Identity',Arial,sans-serif;font-size:${fsDest}px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+        destNameEl.textContent = destNameEn;
+
+        // Assemble in order
+        if (headerOrder === 'arrow-platform-dest') {
+            if (arrowDir !== 'none') header.appendChild(arrowEl);
+            header.appendChild(platformBox);
+            if (destCapletEl) header.appendChild(destCapletEl);
+            header.appendChild(destNameEl);
+        } else {
+            header.appendChild(destNameEl);
+            if (destCapletEl) header.appendChild(destCapletEl);
+            header.appendChild(platformBox);
+            if (arrowDir !== 'none') header.appendChild(arrowEl);
+        }
+
+        panel.appendChild(header);
+
+        // ── Body ──────────────────────────────────────────────────────────
+        const body = document.createElement('div');
+        body.className = 'vmap-body';
+
+        const namesCol = document.createElement('div');
+        namesCol.className = 'vmap-names-col';
+        namesCol.style.width = nameColW + 'px';
+
+        const trackCol = document.createElement('div');
+        trackCol.className = 'vmap-track-col';
+        trackCol.style.width = trackColW + 'px';
+
+        const icCol = document.createElement('div');
+        icCol.className = 'vmap-ic-col';
+
+        panelStations.forEach((st, i) => {
+            // Global index (for fade calculation)
+            const globalIdx = panelIdx === 0 ? i : vStations.indexOf(st);
+            const isFaded = fadeFrom > 0 && globalIdx < fadeFrom - 1;
+            const isLast = i === panelStations.length - 1;
+            const isHighlighted = !isFaded && (fadeFrom === 0 || globalIdx === fadeFrom - 1);
+
+            // ── Name cell ──────────────────────────────────────────────
+            const nameCell = document.createElement('div');
+            nameCell.className = 'vmap-name-cell' + (isFaded ? ' vmap-name-faded' : '');
+            nameCell.style.minHeight = rowH + 'px';
+            nameCell.style.borderBottom = isLast ? 'none' : '1px solid #e5e7eb';
+
+            const nameEn = document.createElement('div');
+            nameEn.className = 'vmap-name-en';
+            nameEn.style.fontSize = fsEn + 'px';
+            nameEn.style.fontWeight = isHighlighted ? '900' : '700';
+            nameEn.textContent = st.name;
+            nameCell.appendChild(nameEn);
+
+            if (showZh && st.nameZh) {
+                const zh = document.createElement('div');
+                zh.className = 'vmap-name-zh';
+                zh.style.fontSize = fsZh + 'px';
+                zh.textContent = st.nameZh;
+                nameCell.appendChild(zh);
+            }
+            if (showTa && st.nameTa) {
+                const ta = document.createElement('div');
+                ta.className = 'vmap-name-ta';
+                ta.style.fontSize = fsTa + 'px';
+                ta.textContent = st.nameTa;
+                nameCell.appendChild(ta);
+            }
+            namesCol.appendChild(nameCell);
+
+            // ── Track cell ─────────────────────────────────────────────
+            const trackCell = document.createElement('div');
+            trackCell.className = 'vmap-track-cell';
+            trackCell.style.cssText = `min-height:${rowH}px;border-bottom:${isLast?'none':'1px solid #e5e7eb'};position:relative;display:flex;align-items:center;justify-content:center;`;
+
+            // Vertical track line (top half)
+            if (i > 0) {
+                const topLine = document.createElement('div');
+                topLine.style.cssText = `position:absolute;top:0;left:50%;transform:translateX(-50%);width:${trackW}px;height:50%;background:${isFaded ? lc+'55' : lc};`;
+                trackCell.appendChild(topLine);
+            }
+            // Bottom half
+            if (!isLast) {
+                const botLine = document.createElement('div');
+                const nextGlobalIdx = panelIdx === 0 ? i+1 : vStations.indexOf(panelStations[i+1]);
+                const nextFaded = fadeFrom > 0 && nextGlobalIdx < fadeFrom - 1;
+                botLine.style.cssText = `position:absolute;top:50%;left:50%;transform:translateX(-50%);width:${trackW}px;height:50%;background:${nextFaded ? lc+'55' : lc};`;
+                trackCell.appendChild(botLine);
+            }
+
+            // Station dot / caplet
+            const caplet = buildCaplet(st.code, isFaded ? lc+'99' : lc, fsCap, capH, capP, capVr, capHr);
+            caplet.style.position = 'relative';
+            caplet.style.zIndex = '2';
+            if (isFaded) caplet.style.opacity = '0.5';
+            trackCell.appendChild(caplet);
+
+            trackCol.appendChild(trackCell);
+
+            // ── Interchange cell ───────────────────────────────────────
+            const icCell = document.createElement('div');
+            icCell.className = 'vmap-ic-cell';
+            icCell.style.cssText = `min-height:${rowH}px;border-bottom:${isLast?'none':'1px solid #e5e7eb'};display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:4px 8px 4px 6px;gap:3px;`;
+
+            if (st.interchanges) {
+                parseInterchanges(st.interchanges).forEach(ic => {
+                    const cap = buildCaplet(ic.code, ic.color, fsCap, capH, capP, capVr, capHr);
+                    if (isFaded) cap.style.opacity = '0.4';
+                    icCell.appendChild(cap);
+                });
+            }
+            icCol.appendChild(icCell);
+        });
+
+        body.appendChild(namesCol);
+        body.appendChild(trackCol);
+        body.appendChild(icCol);
+        panel.appendChild(body);
+
+        // ── Legend ────────────────────────────────────────────────────────
+        if (showLegend && vLegendItems.length > 0) {
+            const legend = document.createElement('div');
+            legend.className = 'vmap-legend';
+            legend.style.cssText = `border-top:1px solid #e5e7eb;padding:8px 12px;display:flex;flex-wrap:wrap;gap:7px 14px;`;
+            vLegendItems.forEach(item => {
+                const li = document.createElement('div');
+                li.style.cssText = `display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;font-family:'MRT-Identity',Arial,sans-serif;`;
+                const dot = document.createElement('div');
+                dot.style.cssText = `width:22px;height:12px;border-radius:6px;background:${item.color};flex-shrink:0;`;
+                const lbl = document.createElement('span');
+                lbl.textContent = item.label;
+                li.appendChild(dot); li.appendChild(lbl);
+                legend.appendChild(li);
+            });
+            panel.appendChild(legend);
+        }
+
+        wrapper.appendChild(panel);
+    });
+}
+
+// ── Station List UI ────────────────────────────────────────────────────────────
+let dragSrcIdx = null;
+
+function makeInsertBar(insertIdx) {
+    const bar = document.createElement('div');
+    bar.className = 'insert-btn-row';
+    const btn = document.createElement('button');
+    btn.className = 'insert-btn';
+    btn.textContent = '＋ insert here';
+    btn.addEventListener('click', () => {
+        vStations.splice(insertIdx, 0, { code:'NEW', name:'New Station', nameZh:'', nameTa:'', interchanges:'' });
+        renderStationList(); render();
+    });
+    bar.appendChild(btn);
+    return bar;
+}
+
+function renderStationList() {
+    const list = $('vStationList');
+    list.innerHTML = '';
+    vStations.forEach((st, idx) => {
+        list.appendChild(makeInsertBar(idx));
+
+        const row = document.createElement('div');
+        row.className = 'station-row';
+        row.draggable = true;
+        row.dataset.idx = idx;
+        row.innerHTML = `
+            <div class="drag-handle" title="Drag to reorder">⠿</div>
+            <span style="font-weight:bold;color:#94a3b8;font-size:11px;white-space:nowrap;">#${idx+1}</span>
+            <input type="text" value="${st.code}" placeholder="Code" class="s-code" style="width:100%;box-sizing:border-box;">
+            <input type="text" value="${st.name}" placeholder="English" class="s-name" style="width:100%;box-sizing:border-box;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;">
+                <input type="text" value="${st.nameZh||''}" placeholder="中文" class="s-zh" style="width:100%;box-sizing:border-box;font-size:12px;">
+                <input type="text" value="${st.nameTa||''}" placeholder="தமிழ்" class="s-ta" style="width:100%;box-sizing:border-box;font-size:12px;">
+                <input type="text" value="${st.interchanges||''}" placeholder="Interchanges (e.g. CC 1, DT 5)" class="s-ic" style="width:100%;box-sizing:border-box;font-size:12px;">
+            </div>
+            <div></div>
+            <button class="btn-delete">✕</button>
+        `;
+
+        row.querySelector('.s-code').addEventListener('input', e => { vStations[idx].code = e.target.value; render(); });
+        row.querySelector('.s-name').addEventListener('input', e => { vStations[idx].name = e.target.value; render(); });
+        row.querySelector('.s-zh').addEventListener('input',   e => { vStations[idx].nameZh = e.target.value; render(); });
+        row.querySelector('.s-ta').addEventListener('input',   e => { vStations[idx].nameTa = e.target.value; render(); });
+        row.querySelector('.s-ic').addEventListener('input',   e => { vStations[idx].interchanges = e.target.value; render(); });
+        row.querySelector('.btn-delete').addEventListener('click', () => { vStations.splice(idx, 1); renderStationList(); render(); });
+
+        row.addEventListener('dragstart', e => { dragSrcIdx = idx; row.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+        row.addEventListener('dragend',   () => { row.classList.remove('dragging'); document.querySelectorAll('.station-row').forEach(r=>r.classList.remove('drag-over')); });
+        row.addEventListener('dragover',  e => { e.preventDefault(); document.querySelectorAll('.station-row').forEach(r=>r.classList.remove('drag-over')); if (idx!==dragSrcIdx) row.classList.add('drag-over'); });
+        row.addEventListener('drop',      e => { e.preventDefault(); if (dragSrcIdx===null||dragSrcIdx===idx) return; const [m]=vStations.splice(dragSrcIdx,1); vStations.splice(idx,0,m); dragSrcIdx=null; renderStationList(); render(); });
+
+        list.appendChild(row);
+    });
+    list.appendChild(makeInsertBar(vStations.length));
+}
+
+// ── Legend Items UI ────────────────────────────────────────────────────────────
+function renderLegendItems() {
+    const c = $('legendItemsContainer');
+    c.innerHTML = '';
+    vLegendItems.forEach((item, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:grid;grid-template-columns:36px 1fr auto;gap:6px;align-items:center;margin-bottom:6px;';
+        row.innerHTML = `
+            <input type="color" value="${item.color}" style="width:36px;height:28px;padding:0;border:1px solid #cbd5e1;border-radius:5px;cursor:pointer;">
+            <input type="text" value="${item.label}" placeholder="Line name" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <button class="btn-delete">✕</button>
+        `;
+        row.querySelector('input[type="color"]').addEventListener('input', e => { vLegendItems[i].color = e.target.value; render(); });
+        row.querySelector('input[type="text"]').addEventListener('input',  e => { vLegendItems[i].label = e.target.value; render(); });
+        row.querySelector('.btn-delete').addEventListener('click', () => { vLegendItems.splice(i,1); renderLegendItems(); render(); });
+        c.appendChild(row);
+    });
+}
+
+// ── Wire controls ─────────────────────────────────────────────────────────────
+['vLineSelect','vPlatformLetter','vArrowDir','vHeaderOrder','vDestCode','vDestNameEn','platformBoxWidth','platformBoxHeight','platformBoxR','vPlatformColor',
+ 'vShowZh','vShowTa','vShowLegend',
+ 'vPanelWidth','vRowHeight','vTrackWidth','vTrackColW',
+ 'vFsEn','vFsZh','vFsTa','vFsCap','vCapH','vCapP','vCapVr','vCapHr',
+ 'vSplitIdx','vFadeFrom','vHeaderH','vFsPlatform','vFsDest','vArrowSz'
+].forEach(id => $(id).addEventListener('input', render));
+
+$('vLineSelect').addEventListener('change', () => {
+    const sel = $('vLineSelect').value;
+    $('customColorWrap').style.display = sel === '#custom' ? '' : 'none';
+    if (sel !== '#custom') {
+        $('vPlatformColor').value = sel;
+        $('vPlatformColorHex').value = sel;
+    }
+    render();
+});
+$('vCustomColor').addEventListener('input', e => { $('vCustomColorHex').value = e.target.value; render(); });
+$('vPlatformColor').addEventListener('input', e => { $('vPlatformColorHex').value = e.target.value; render(); });
+$('vPlatformColorHex').addEventListener('input', e => {
+    if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) { $('vPlatformColor').value = e.target.value; render(); }
+});
+$('vCustomColorHex').addEventListener('input', e => {
+    if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) { $('vCustomColor').value = e.target.value; render(); }
+});
+
+$('vAddStation').addEventListener('click', () => {
+    vStations.push({ code:'NEW', name:'New Station', nameZh:'', nameTa:'', interchanges:'' });
+    renderStationList(); render();
+});
+
+$('vAddLegendItem').addEventListener('click', () => {
+    vLegendItems.push({ color:'#888888', label:'New Line' });
+    renderLegendItems(); render();
+});
+
+// ── Export ─────────────────────────────────────────────────────────────────────
+$('vDownloadBtn').addEventListener('click', async () => {
+    const wrapper = $('vPreviewWrapper');
+    const panels = wrapper.querySelectorAll('.vmap-panel');
+    if (!panels.length) return;
+
+    await document.fonts.ready;
+
+    if (panels.length === 1) {
+        const canvas = await html2canvas(panels[0], { scale:2, logging:false, useCORS:true, backgroundColor:'#ffffff' });
+        const a = document.createElement('a');
+        a.download = 'vertical_route_map.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+    } else {
+        // Stitch panels side-by-side
+        const canvases = await Promise.all([...panels].map(p => html2canvas(p, { scale:2, logging:false, useCORS:true, backgroundColor:'#ffffff' })));
+        const gap = 16;
+        const totalW = canvases.reduce((s,c) => s+c.width, 0) + gap*(canvases.length-1);
+        const totalH = Math.max(...canvases.map(c=>c.height));
+        const out = document.createElement('canvas');
+        out.width = totalW; out.height = totalH;
+        const ctx = out.getContext('2d');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,totalW,totalH);
+        let x = 0;
+        canvases.forEach((c,i) => { ctx.drawImage(c,x,0); x += c.width+gap; });
+        const a = document.createElement('a');
+        a.download = 'vertical_route_map.png';
+        a.href = out.toDataURL('image/png');
+        a.click();
+    }
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+renderStationList();
+renderLegendItems();
+render();
+</script>
+</body>
+</html>
