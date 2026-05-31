@@ -304,6 +304,24 @@
                     <input type="range" id="signageWidth" min="800" max="2500" value="1080">
                 </div>
 
+                <div class="section-title" style="margin-top: 25px;">Component Sizing & Scaling</div>
+                <div class="control-group">
+                    <label for="mrtLogoHeight">MRT Icon Height: <span id="mrtLogoHeightVal">68px</span></label>
+                    <input type="range" id="mrtLogoHeight" min="40" max="140" value="68">
+                </div>
+                <div class="control-group">
+                    <label for="fsStation">Station Name Font Size: <span id="fsStationVal">54px</span></label>
+                    <input type="range" id="fsStation" min="30" max="110" value="54">
+                </div>
+                <div class="control-group">
+                    <label for="exitBoxSize">Exit Icon Box Size: <span id="exitBoxSizeVal">76px</span></label>
+                    <input type="range" id="exitBoxSize" min="40" max="150" value="76">
+                </div>
+                <div class="control-group">
+                    <label for="fsExitNumber">Exit Number Font Size: <span id="fsExitNumberVal">28px</span></label>
+                    <input type="range" id="fsExitNumber" min="16" max="60" value="28">
+                </div>
+
                 <div class="section-title" style="margin-top: 25px;">Caplet Geometry</div>
                 <div class="control-group">
                     <label for="capsuleHeight">Capsule Height: <span id="heightVal">60px</span></label>
@@ -379,6 +397,7 @@
         const signageExit = document.getElementById('signageExit');
         const mrtSignage = document.getElementById('mrt-signage');
         const exitContainer = document.getElementById('exitContainer');
+        const mrtLogoImg = document.querySelector('.left-section img');
 
         // Toggle / Width Inputs
         const showExit = document.getElementById('showExit');
@@ -387,6 +406,16 @@
         const widthSliderGroup = document.getElementById('widthSliderGroup');
         const signageWidthInput = document.getElementById('signageWidth');
         const widthVal = document.getElementById('widthVal');
+
+        // Scaling Inputs Interceptors
+        const mrtLogoHeightInput = document.getElementById('mrtLogoHeight');
+        const mrtLogoHeightVal = document.getElementById('mrtLogoHeightVal');
+        const fsStationInput = document.getElementById('fsStation');
+        const fsStationVal = document.getElementById('fsStationVal');
+        const exitBoxSizeInput = document.getElementById('exitBoxSize');
+        const exitBoxSizeVal = document.getElementById('exitBoxSizeVal');
+        const fsExitNumberInput = document.getElementById('fsExitNumber');
+        const fsExitNumberVal = document.getElementById('fsExitNumberVal');
 
         // Geometry Inputs
         const capsuleHeightInput = document.getElementById('capsuleHeight');
@@ -502,7 +531,20 @@
                 widthVal.innerText = signageWidthInput.value + 'px';
             }
 
-            // Update textual elements
+            // Sync structural scaling values text displays
+            mrtLogoHeightVal.innerText = mrtLogoHeightInput.value + 'px';
+            fsStationVal.innerText = fsStationInput.value + 'px';
+            exitBoxSizeVal.innerText = exitBoxSizeInput.value + 'px';
+            fsExitNumberVal.innerText = fsExitNumberInput.value + 'px';
+
+            // Apply dynamic component overrides onto canvas frame nodes
+            mrtLogoImg.style.height = mrtLogoHeightInput.value + 'px';
+            signageName.style.fontSize = fsStationInput.value + 'px';
+            exitContainer.style.width = exitBoxSizeInput.value + 'px';
+            exitContainer.style.height = exitBoxSizeInput.value + 'px';
+            signageExit.style.fontSize = fsExitNumberInput.value + 'px';
+
+            // Update text labels
             signageName.innerText = stationNameInput.value;
             signageExit.innerText = exitNumberInput.value.toUpperCase();
 
@@ -517,13 +559,8 @@
             }
 
             const Vr = parseInt(capsuleRoundnessInput.value);
-            // Hr is fully independent; clamp max slider to a reasonable range
             capsuleHRadiusInput.max = Math.max(160, Vr * 4);
             const Hr = parseInt(capsuleHRadiusInput.value);
-
-            // Calculate the horizontal wing extension distance to pad the text perfectly
-            const ratio = (H * H) / (4 * Vr * Vr);
-            const xCorner = (Vr > 0 && ratio <= 1) ? Hr * (1 - Math.sqrt(1 - ratio)) : 0;
 
             // Update Geometry Indicators
             heightVal.innerText = H + 'px';
@@ -533,10 +570,7 @@
             // ===============================
             // CLEAN CAPSULE RENDERING ENGINE
             // ===============================
-
             const borderW = 4;
-
-            // Elliptical border-radius using independent Hr / Vr
             const radius = `${Hr}px / ${Vr}px`;
 
             // Outer white outline
@@ -558,27 +592,20 @@
             innerCapsule.style.overflow = 'hidden';
             innerCapsule.style.boxSizing = 'border-box';
             
-            // Clear and rebuild line segments
             innerCapsule.innerHTML = '';
             linesState.forEach((line, index) => {
                 const segment = document.createElement('div');
-            
                 segment.className = 'code-segment';
                 segment.innerText = line.code.toUpperCase();
-            
                 segment.style.backgroundColor = line.color;
                 segment.style.color = getContrastColor(line.color);
-            
                 segment.style.paddingLeft = '18px';
                 segment.style.paddingRight = '18px';
-            
                 segment.style.height = '100%';
             
-                // White divider between lines
                 if (index > 0) {
                     segment.style.borderLeft = `${borderW}px solid #ffffff`;
                 }
-            
                 innerCapsule.appendChild(segment);
             });
         }
@@ -588,7 +615,7 @@
             updateSignagePreview();
         }
 
-        // Event Listeners for controls
+        // Event Listeners for controls Configuration
         addLineBtn.addEventListener('click', () => {
             if (linesState.length < 10) { 
                 linesState.push({ code: 'TE 7', color: '#9D5B25' });
@@ -596,14 +623,16 @@
             }
         });
 
-        stationNameInput.addEventListener('input', updateSignagePreview);
-        exitNumberInput.addEventListener('input', updateSignagePreview);
-        showExit.addEventListener('change', updateSignagePreview);
-        autoWidth.addEventListener('change', updateSignagePreview);
-        signageWidthInput.addEventListener('input', updateSignagePreview);
-        capsuleHeightInput.addEventListener('input', updateSignagePreview);
-        capsuleRoundnessInput.addEventListener('input', updateSignagePreview);
-        capsuleHRadiusInput.addEventListener('input', updateSignagePreview);
+        const genericInputsListenersArray = [
+            stationNameInput, exitNumberInput, showExit, autoWidth, signageWidthInput,
+            mrtLogoHeightInput, fsStationInput, exitBoxSizeInput, fsExitNumberInput,
+            capsuleHeightInput, capsuleRoundnessInput, capsuleHRadiusInput
+        ];
+
+        genericInputsListenersArray.forEach(inputNode => {
+            inputNode.addEventListener('input', updateSignagePreview);
+            inputNode.addEventListener('change', updateSignagePreview);
+        });
 
         // Core initialization trigger
         renderAll();
