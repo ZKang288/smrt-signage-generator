@@ -69,6 +69,9 @@
             margin-bottom: 15px;
             border-bottom: 2px solid #f1f5f9;
             padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .control-group {
@@ -102,6 +105,17 @@
 
         .control-group input:focus, .control-group select:focus {
             border-color: #004c54;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .checkbox-group input {
+            cursor: pointer;
+            width: auto;
         }
 
         .color-picker-box {
@@ -139,14 +153,25 @@
         #mrt-signage {
             height: 180px; 
             display: flex;
-            align-items: center;
-            justify-content: center; /* Centered alignment for components */
-            padding: 0 40px;
-            gap: 40px; 
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: space-between;
             box-sizing: border-box;
             user-select: none;
             white-space: nowrap;
             transition: background-color 0.2s;
+            overflow: hidden;
+        }
+
+        .signage-main-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            padding: 0 40px;
+            gap: 40px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .code-segment {
@@ -189,18 +214,38 @@
             opacity: 0.95;
             transition: color 0.2s;
         }
+
+        /* --- Centered Bottom Ribbon Accent Layout --- */
+        .bottom-identity-band {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 30px;
+            box-sizing: border-box;
+            width: 100%;
+            flex-shrink: 0;
+        }
+        .band-text {
+            color: #ffffff;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 19px;
+            letter-spacing: 0.5px;
+        }
     </style>
 </head>
 <body>
 
     <nav style="margin-bottom: 20px; display: flex; gap: 15px;">
-        <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Signage Generator</a>
+        <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Exit Signage Generator</a>
         <a href="map.html" style="font-weight: bold; color: #141517; text-decoration: none;">🗺️ Platform Signage Generator</a>
-        <a href="line_map_horizontal.html; text-decoration: none;">🚇 Route Map Generator</a>
+        <a href="line_map_horizontal.html" style="color: #64748b; text-decoration: none;">🚇 Route Map Generator</a>
+        <a href="platform_destination.html" style="color: #64748b; text-decoration: none;">🚏 Platform Destination Generator</a>
     </nav>
 
     <h1>MRT Platform Signage Generator</h1>
-    <p class="subtitle">Generates accurate platform signs with custom themes and multi-language script support</p>
+    <p class="subtitle">The station name displayed above the platform doors.</p>
 
     <div class="container">
         <div class="editor-regions">
@@ -211,7 +256,7 @@
                     <input type="text" id="stationEn" value="Outram Park">
                 </div>
                 <div class="control-group">
-                    <label for="stationZh">Chinese Name (简体中文)</label>
+                    <label for="stationZh">Chinese Name (中文)</label>
                     <input type="text" id="stationZh" value="欧南园">
                 </div>
                 <div class="control-group">
@@ -255,25 +300,54 @@
                 </div>
 
                 <div class="section-title" style="margin-top: 25px;">Capsule Geometry & Typography</div>
-                <div class="control-group">
-                    <label for="capsuleFontSize">Caplet Font Size: <span id="fontSizeVal">40px</span></label>
-                    <input type="range" id="capsuleFontSize" min="16" max="60" value="40">
-                </div>
-                <div class="control-group">
-                    <label for="capsulePadding">Capsule Length (Horizontal Padding): <span id="paddingVal">25px</span></label>
-                    <input type="range" id="capsulePadding" min="10" max="100" value="25">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="capsuleFontSize">Caplet Font Size: <span id="fontSizeVal">40px</span></label>
+                        <input type="range" id="capsuleFontSize" min="16" max="60" value="40">
+                    </div>
+                    <div class="control-group">
+                        <label for="capsulePadding">Capsule Length: <span id="paddingVal">25px</span></label>
+                        <input type="range" id="capsulePadding" min="10" max="100" value="25">
+                    </div>
                 </div>
                 <div class="control-group">
                     <label for="capsuleHeight">Capsule Height: <span id="heightVal">78px</span></label>
                     <input type="range" id="capsuleHeight" min="50" max="130" value="78">
                 </div>
-                <div class="control-group">
-                    <label for="capsuleRoundness">Vertical Radius (Vr): <span id="roundnessVal">50px</span></label>
-                    <input type="range" id="capsuleRoundness" min="0" max="100" value="50">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="capsuleRoundness">Vert. Radius (Vr): <span id="roundnessVal">50px</span></label>
+                        <input type="range" id="capsuleRoundness" min="0" max="100" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label for="capsuleHRadius">Horiz. Radius (Hr): <span id="hradiusVal">25px</span></label>
+                        <input type="range" id="capsuleHRadius" min="0" max="160" value="25">
+                    </div>
                 </div>
-                <div class="control-group">
-                    <label for="capsuleHRadius">Horizontal Radius (Hr): <span id="hradiusVal">25px</span></label>
-                    <input type="range" id="capsuleHRadius" min="0" max="160" value="25">
+
+                <div class="section-title" style="margin-top:20px;">Bottom Identity Ribbon Banner Accent</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showBottomBanner" checked>
+                        <label for="showBottomBanner">Enable Bottom Banner Ribbon</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showBottomText" checked>
+                        <label for="showBottomText">Render Line Text Name Label</label>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showBottomCaplet" checked>
+                        <label for="showBottomCaplet">Enable Line Abbreviation Caplet</label>
+                    </div>
+                    <div class="control-group" style="margin-bottom:0;">
+                        <input type="text" id="bottomBannerPrefix" placeholder="Custom Abbreviation Override (e.g. CCL)">
+                    </div>
+                </div>
+                <div class="control-group" style="margin-top:15px;">
+                    <label for="bottomBannerText">Line Label Overlay String Override</label>
+                    <input type="text" id="bottomBannerText" placeholder="Leave blank to pull automatically from system line metadata">
                 </div>
             </div>
         </div>
@@ -283,16 +357,23 @@
 
     <div class="signage-wrapper">
         <div id="mrt-signage">
-            <div id="interchangeCapsule" style="display: inline-flex; align-items: center; position: relative; box-sizing: border-box;">
-                <div id="capsuleInner" style="display: inline-flex; box-sizing: border-box;"></div>
-            </div>
-            
-            <div class="text-block">
-                <div class="station-en" id="signageEn">Outram Park</div>
-                <div class="translations-row">
-                    <div class="station-translation" id="signageZh">欧南园</div>
-                    <div class="station-translation" id="signageTa">ஊட்ரம் பார்க்</div>
+            <div class="signage-main-content">
+                <div id="interchangeCapsule" style="display: inline-flex; align-items: center; position: relative; box-sizing: border-box;">
+                    <div id="capsuleInner" style="display: inline-flex; box-sizing: border-box;"></div>
                 </div>
+                
+                <div class="text-block">
+                    <div class="station-en" id="signageEn">Outram Park</div>
+                    <div class="translations-row">
+                        <div class="station-translation" id="signageZh">欧南园</div>
+                        <div class="station-translation" id="signageTa">ஊட்ரம் பார்க்</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom-identity-band" id="bottomIdentityBand">
+                <div id="bandCapletWrapper" style="display: inline-flex; align-items: center; margin-right: 12px;"></div>
+                <span class="band-text" id="bandLineNameText">Circle Line</span>
             </div>
         </div>
     </div>
@@ -344,6 +425,16 @@
         const heightVal = document.getElementById('heightVal');
         const roundnessVal = document.getElementById('roundnessVal');
         const hradiusVal = document.getElementById('hradiusVal');
+
+        // Ribbon handles binding components selectors suite
+        const showBottomBanner = document.getElementById('showBottomBanner');
+        const showBottomText = document.getElementById('showBottomText');
+        const showBottomCaplet = document.getElementById('showBottomCaplet');
+        const bottomBannerPrefix = document.getElementById('bottomBannerPrefix');
+        const bottomBannerText = document.getElementById('bottomBannerText');
+        const bottomIdentityBand = document.getElementById('bottomIdentityBand');
+        const bandCapletWrapper = document.getElementById('bandCapletWrapper');
+        const bandLineNameText = document.getElementById('bandLineNameText');
 
         // Populate Line Selector Options
         standardLines.forEach(line => {
@@ -453,6 +544,67 @@
             segment.style.height = '100%';
 
             innerCapsule.appendChild(segment);
+
+            // ============================================
+            // INTEGRATED BASELINE ACCENT RIBBON CORE ENGINE
+            // ============================================
+            const ribbonContrastColor = getContrastColor(activeColor);
+            bandCapletWrapper.innerHTML = '';
+
+            if (showBottomBanner.checked) {
+                bottomIdentityBand.style.display = 'flex';
+                bottomIdentityBand.style.backgroundColor = activeColor;
+                
+                if (showBottomCaplet.checked) {
+                    let determinedPrefix = '';
+                    if (bottomBannerPrefix.value.trim().length > 0) {
+                        determinedPrefix = bottomBannerPrefix.value.trim();
+                    } else {
+                        const directMatch = standardLines.find(lineObj => lineObj.color === lineSelect.value);
+                        // Safely handles abbreviation parsing overrides from name properties tokens string brackets
+                        determinedPrefix = directMatch ? (directMatch.name.match(/\((.*?)\)/)?.[1] || 'MRT') : 'MRT';
+                    }
+
+                    const bottomCapletBadge = document.createElement('div');
+                    bottomCapletBadge.style.display = 'inline-flex';
+                    bottomCapletBadge.style.alignItems = 'center';
+                    bottomCapletBadge.style.justifyContent = 'center';
+                    bottomCapletBadge.style.boxSizing = 'border-box';
+                    bottomCapletBadge.style.height = '34px';
+                    bottomCapletBadge.style.padding = '2px 14px';
+                    bottomCapletBadge.style.border = `2.5px solid ${ribbonContrastColor}`;
+                    
+                    const ribbonVr = Math.round(Vr * 0.65);
+                    const ribbonHr = Math.round(Hr * 0.65);
+                    bottomCapletBadge.style.borderRadius = `${ribbonHr}px / ${ribbonVr}px`;
+
+                    const labelNodeSpan = document.createElement('span');
+                    labelNodeSpan.style.color = ribbonContrastColor;
+                    labelNodeSpan.style.fontSize = '18px';
+                    labelNodeSpan.style.fontWeight = '700';
+                    labelNodeSpan.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
+                    labelNodeSpan.innerText = determinedPrefix.toUpperCase();
+
+                    bottomCapletBadge.appendChild(labelNodeSpan);
+                    bandCapletWrapper.appendChild(bottomCapletBadge);
+                    bandCapletWrapper.style.display = 'inline-flex';
+                } else {
+                    bandCapletWrapper.style.display = 'none';
+                }
+
+                if (showBottomText.checked) {
+                    const activeLineObj = standardLines.find(l => l.color === lineSelect.value);
+                    const fallbackLineName = activeLineObj ? activeLineObj.name.replace(/\s\([^)]*\)$/, "") : "Custom Line Route";
+                    
+                    bandLineNameText.style.display = 'inline';
+                    bandLineNameText.style.color = ribbonContrastColor;
+                    bandLineNameText.innerText = bottomBannerText.value.trim() ? bottomBannerText.value.trim() : fallbackLineName;
+                } else {
+                    bandLineNameText.style.display = 'none';
+                }
+            } else {
+                bottomIdentityBand.style.display = 'none';
+            }
         }
 
         // Toggle Custom Color Picker Display Logic
@@ -475,22 +627,18 @@
             updateSignage();
         });
 
-        // Configuration Event Bindings
-        panelTheme.addEventListener('change', updateSignage);
-        panelColorPicker.addEventListener('input', updateSignage);
-        lineColorPicker.addEventListener('input', updateSignage);
-        stationEnInput.addEventListener('input', updateSignage);
-        stationZhInput.addEventListener('input', updateSignage);
-        stationTaInput.addEventListener('input', updateSignage);
-        stationCodeInput.addEventListener('input', updateSignage);
-        autoWidth.addEventListener('change', updateSignage);
-        signageWidthInput.addEventListener('input', updateSignage);
-        signageHeightInput.addEventListener('input', updateSignage);
-        capsuleFontSizeInput.addEventListener('input', updateSignage);
-        capsulePaddingInput.addEventListener('input', updateSignage);
-        capsuleHeightInput.addEventListener('input', updateSignage);
-        capsuleRoundnessInput.addEventListener('input', updateSignage);
-        capsuleHRadiusInput.addEventListener('input', updateSignage);
+        // Configuration Event Bindings Matrix Suite
+        const interactionInterceptorsSuite = [
+            panelTheme, panelColorPicker, lineSelect, lineColorPicker, stationEnInput, stationZhInput, 
+            stationTaInput, stationCodeInput, autoWidth, signageWidthInput, signageHeightInput, 
+            capsuleFontSizeInput, capsulePaddingInput, capsuleHeightInput, capsuleRoundnessInput, capsuleHRadiusInput,
+            showBottomBanner, showBottomText, showBottomCaplet, bottomBannerPrefix, bottomBannerText
+        ];
+
+        interactionInterceptorsSuite.forEach(targetInput => {
+            targetInput.addEventListener('input', updateSignage);
+            targetInput.addEventListener('change', updateSignage);
+        });
 
         // Run Initial Compilation
         updateSignage();
