@@ -206,7 +206,6 @@
         }
 
         .code-segment {
-            font-size: 26px; 
             font-weight: bold;
             font-family: 'MRT-Identity', 'Arial Black', sans-serif;
             display: flex;
@@ -272,7 +271,7 @@
     </nav>
 
     <h1>Singapore MRT Exit Signage Generator</h1>
-    <p class="subtitle">Create and customise your own exit signage! It also works for fictional stations, as shown below. And well, it also works for an interchange station with 10 lines!</p>
+    <p class="subtitle">Supports length adjustments, visibility toggles, and up to 10 lines</p>
 
     <div class="container">
         <div class="editor-regions">
@@ -320,6 +319,10 @@
                     <input type="range" id="mrtLogoHeight" min="40" max="140" value="68">
                 </div>
                 <div class="control-group">
+                    <label for="fsCapsuleCode">Capsule Code Font Size: <span id="fsCapsuleCodeVal">26px</span></label>
+                    <input type="range" id="fsCapsuleCode" min="12" max="60" value="26">
+                </div>
+                <div class="control-group">
                     <label for="fsStation">Station Name Font Size: <span id="fsStationVal">54px</span></label>
                     <input type="range" id="fsStation" min="30" max="110" value="54">
                 </div>
@@ -348,7 +351,7 @@
             </div>
 
             <div>
-                <div class="section-title">Lines Configuration (Max 10)</div>
+                <div class="section-title">Lines served by station (Max 10)</div>
                 <div id="linesContainer"></div>
                 <button id="addLineBtn" class="btn-action btn-add">+ Add Interchange Line</button>
             </div>
@@ -377,7 +380,6 @@
     </div>
 
     <script>
-        // Predefined LTA Palette Registry
         const standardLines = [
             { name: "North–South Line (NS)", color: "#d42e12" },
             { name: "Circle Line (CC)", color: "#fa9e0d" },
@@ -391,7 +393,6 @@
             { name: "[ Custom Color ]", color: "#custom" }
         ];
 
-        // Initial default state configuration matching the user's sample
         let linesState = [
             { code: "NS 17A", color: "#d42e12" },
             { code: "CC 15B", color: "#fa9e0d" }
@@ -422,6 +423,8 @@
         const customBgColor = document.getElementById('customBgColor');
         const mrtLogoHeightInput = document.getElementById('mrtLogoHeight');
         const mrtLogoHeightVal = document.getElementById('mrtLogoHeightVal');
+        const fsCapsuleCodeInput = document.getElementById('fsCapsuleCode');
+        const fsCapsuleCodeVal = document.getElementById('fsCapsuleCodeVal');
         const fsStationInput = document.getElementById('fsStation');
         const fsStationVal = document.getElementById('fsStationVal');
         const exitBoxSizeInput = document.getElementById('exitBoxSize');
@@ -437,7 +440,6 @@
         const roundnessVal = document.getElementById('roundnessVal');
         const hradiusVal = document.getElementById('hradiusVal');
 
-        // Intelligent relative luminance calculator for automatic text contrast styling
         function getContrastColor(hexColor) {
             const darkTextLines = ["#FA9E0D", "#97C616", "#0099AA", "#FFCD00"];
             if (darkTextLines.includes(hexColor.toUpperCase())) return '#000000';
@@ -528,7 +530,6 @@
         }
 
         function updateSignagePreview() {
-            // Toggle Display Rules
             exitContainer.style.display = showExit.checked ? 'flex' : 'none';
             exitInputGroup.style.display = showExit.checked ? 'flex' : 'none';
 
@@ -543,7 +544,6 @@
                 widthVal.innerText = signageWidthInput.value + 'px';
             }
 
-            // Backdrop Color Matrix Processing Logic Rules
             let determinedBgHex = signageBgMode.value;
             if (signageBgMode.value === '#customBg') {
                 customBgColor.style.display = 'block';
@@ -553,28 +553,26 @@
             }
             mrtSignage.style.backgroundColor = determinedBgHex;
 
-            // Sync structural scaling values text displays
+            // Sync text value label nodes
             mrtLogoHeightVal.innerText = mrtLogoHeightInput.value + 'px';
+            fsCapsuleCodeVal.innerText = fsCapsuleCodeInput.value + 'px';
             fsStationVal.innerText = fsStationInput.value + 'px';
             exitBoxSizeVal.innerText = exitBoxSizeInput.value + 'px';
             fsExitNumberVal.innerText = fsExitNumberInput.value + 'px';
 
-            // Apply dynamic component overrides onto canvas frame nodes
+            // Apply frame size constraints
             mrtLogoImg.style.height = mrtLogoHeightInput.value + 'px';
             signageName.style.fontSize = fsStationInput.value + 'px';
             exitContainer.style.width = exitBoxSizeInput.value + 'px';
             exitContainer.style.height = exitBoxSizeInput.value + 'px';
             signageExit.style.fontSize = fsExitNumberInput.value + 'px';
 
-            // Update text labels
             signageName.innerText = stationNameInput.value;
             signageExit.innerText = exitNumberInput.value.toUpperCase();
 
-            // Setup mathematical constraints
             const H = parseInt(capsuleHeightInput.value);
             const minVr = Math.ceil(H / 2);
             
-            // Enforce minimum vertical bounds to prevent layout math errors
             capsuleRoundnessInput.min = minVr;
             if (parseInt(capsuleRoundnessInput.value) < minVr) {
                 capsuleRoundnessInput.value = minVr;
@@ -584,18 +582,13 @@
             capsuleHRadiusInput.max = Math.max(160, Vr * 4);
             const Hr = parseInt(capsuleHRadiusInput.value);
 
-            // Update Geometry Indicators
             heightVal.innerText = H + 'px';
             roundnessVal.innerText = Vr + 'px';
             hradiusVal.innerText = Hr + 'px';
 
-            // ===============================
-            // CLEAN CAPSULE RENDERING ENGINE
-            // ===============================
             const borderW = 4;
             const radius = `${Hr}px / ${Vr}px`;
 
-            // Outer white outline
             outerCapsule.style.display = 'inline-flex';
             outerCapsule.style.alignItems = 'stretch';
             outerCapsule.style.padding = borderW + 'px';
@@ -606,7 +599,6 @@
             outerCapsule.style.boxSizing = 'border-box';
             outerCapsule.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
             
-            // Inner coloured segments container
             innerCapsule.style.display = 'inline-flex';
             innerCapsule.style.alignItems = 'stretch';
             innerCapsule.style.height = H + 'px';
@@ -624,6 +616,9 @@
                 segment.style.paddingLeft = '18px';
                 segment.style.paddingRight = '18px';
                 segment.style.height = '100%';
+                
+                // Directly applies user slider size values onto capsule subsegments
+                segment.style.fontSize = fsCapsuleCodeInput.value + 'px';
             
                 if (index > 0) {
                     segment.style.borderLeft = `${borderW}px solid #ffffff`;
@@ -637,7 +632,6 @@
             updateSignagePreview();
         }
 
-        // Event Listeners for controls Configuration
         addLineBtn.addEventListener('click', () => {
             if (linesState.length < 10) { 
                 linesState.push({ code: 'TE 7', color: '#9D5B25' });
@@ -647,7 +641,7 @@
 
         const genericInputsListenersArray = [
             stationNameInput, signageBgMode, customBgColor, exitNumberInput, showExit, autoWidth, signageWidthInput,
-            mrtLogoHeightInput, fsStationInput, exitBoxSizeInput, fsExitNumberInput,
+            mrtLogoHeightInput, fsCapsuleCodeInput, fsStationInput, exitBoxSizeInput, fsExitNumberInput,
             capsuleHeightInput, capsuleRoundnessInput, capsuleHRadiusInput
         ];
 
@@ -656,10 +650,8 @@
             inputNode.addEventListener('change', updateSignagePreview);
         });
 
-        // Core initialization trigger
         renderAll();
 
-        // --- Quality Export Capture Engine ---
         document.getElementById('downloadBtn').addEventListener('click', () => {
             const target = document.getElementById('mrt-signage');
             document.fonts.ready.then(() => {
