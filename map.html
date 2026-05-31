@@ -196,7 +196,7 @@
     <nav style="margin-bottom: 20px; display: flex; gap: 15px;">
         <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Signage Generator</a>
         <a href="map.html" style="font-weight: bold; color: #141517; text-decoration: none;">🗺️ Platform Signage Generator</a>
-        <a href="line_map_horizontal.html" style="color: #64748b; text-decoration: none;">🚇 Route Map Generator</a>
+        <a href="line_map_horizontal.html; text-decoration: none;">🚇 Route Map Generator</a>
     </nav>
 
     <h1>MRT Platform Signage Generator</h1>
@@ -235,6 +235,10 @@
                 <div class="control-group" id="widthSliderGroup">
                     <label for="signageWidth">Custom Width (500px - 1200px): <span id="widthVal">600px</span></label>
                     <input type="range" id="signageWidth" min="500" max="1200" value="600">
+                </div>
+                <div class="control-group" id="heightSliderGroup">
+                    <label for="signageHeight">Custom Height (120px - 400px): <span id="signageHeightVal">180px</span></label>
+                    <input type="range" id="signageHeight" min="120" max="400" value="180">
                 </div>
             </div>
 
@@ -327,6 +331,8 @@
         const widthSliderGroup = document.getElementById('widthSliderGroup');
         const signageWidthInput = document.getElementById('signageWidth');
         const widthVal = document.getElementById('widthVal');
+        const signageHeightInput = document.getElementById('signageHeight');
+        const signageHeightVal = document.getElementById('signageHeightVal');
 
         const capsuleFontSizeInput = document.getElementById('capsuleFontSize');
         const fontSizeVal = document.getElementById('fontSizeVal');
@@ -366,14 +372,14 @@
             // Theme Style Engine Application
             const isSilver = (panelTheme.value === 'silver');
             const textColor = isSilver ? '#000000' : '#ffffff';
-            const outlineColor = isSilver ? '#000000' : '#ffffff'; // Dynamic Black Outline for Silver Panels
+            const outlineColor = isSilver ? '#000000' : '#ffffff';
             
             mrtSignage.style.backgroundColor = isSilver ? panelColorPicker.value : '#141517';
             signageEn.style.color = textColor;
             signageZh.style.color = textColor;
             signageTa.style.color = textColor;
 
-            // Layout Framework Dimensions
+            // Layout Framework Width Dimensions
             if (autoWidth.checked) {
                 mrtSignage.style.width = 'fit-content';
                 mrtSignage.style.minWidth = '500px';
@@ -384,6 +390,10 @@
                 widthSliderGroup.style.display = 'flex';
                 widthVal.innerText = signageWidthInput.value + 'px';
             }
+
+            // Sync and Apply Custom Height Settings
+            mrtSignage.style.height = signageHeightInput.value + 'px';
+            signageHeightVal.innerText = signageHeightInput.value + 'px';
 
             // Sync Text Content
             signageEn.innerText = stationEnInput.value;
@@ -475,6 +485,7 @@
         stationCodeInput.addEventListener('input', updateSignage);
         autoWidth.addEventListener('change', updateSignage);
         signageWidthInput.addEventListener('input', updateSignage);
+        signageHeightInput.addEventListener('input', updateSignage);
         capsuleFontSizeInput.addEventListener('input', updateSignage);
         capsulePaddingInput.addEventListener('input', updateSignage);
         capsuleHeightInput.addEventListener('input', updateSignage);
