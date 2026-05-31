@@ -536,10 +536,12 @@
             if (autoWidth.checked) {
                 mrtSignage.style.width = 'fit-content';
                 mrtSignage.style.minWidth = '1080px';
+                mrtSignage.style.maxWidth = 'unset';
                 widthSliderGroup.style.display = 'none';
             } else {
                 mrtSignage.style.width = signageWidthInput.value + 'px';
-                mrtSignage.style.minWidth = 'unset';
+                mrtSignage.style.minWidth = signageWidthInput.value + 'px';
+                mrtSignage.style.maxWidth = signageWidthInput.value + 'px';
                 widthSliderGroup.style.display = 'flex';
                 widthVal.innerText = signageWidthInput.value + 'px';
             }
