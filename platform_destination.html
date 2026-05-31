@@ -309,7 +309,6 @@
             color: #ffffff;
             font-family: inherit;
             font-weight: 600;
-            font-size: 19px;
             letter-spacing: 0.5px;
         }
         
@@ -515,6 +514,16 @@
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="control-group">
+                        <label for="bottomBannerHeight">Ribbon Height: <span id="bottomBannerHeightVal">50px</span></label>
+                        <input type="range" id="bottomBannerHeight" min="30" max="120" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label for="bottomBannerFontSize">Ribbon Font Size: <span id="bottomBannerFontSizeVal">19px</span></label>
+                        <input type="range" id="bottomBannerFontSize" min="12" max="36" value="19">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                     <div class="checkbox-group">
                         <input type="checkbox" id="showBottomCaplet" checked>
                         <label for="showBottomCaplet">Enable Line Abbreviation Caplet</label>
@@ -614,6 +623,10 @@
         const showBottomBanner = document.getElementById('showBottomBanner');
         const showBottomText = document.getElementById('showBottomText');
         const showBottomCaplet = document.getElementById('showBottomCaplet');
+        const bottomBannerHeightInput = document.getElementById('bottomBannerHeight');
+        const bottomBannerHeightVal = document.getElementById('bottomBannerHeightVal');
+        const bottomBannerFontSizeInput = document.getElementById('bottomBannerFontSize');
+        const bottomBannerFontSizeVal = document.getElementById('bottomBannerFontSizeVal');
         const bottomBannerPrefix = document.getElementById('bottomBannerPrefix');
         const bottomBannerText = document.getElementById('bottomBannerText');
 
@@ -822,6 +835,10 @@
             arrowCircleSizeVal.innerText = arrowCircleSize.value + 'px';
             arrowIconSizeVal.innerText = arrowIconSize.value + 'px';
 
+            // Sync structural trackers for the ribbon metrics controls
+            bottomBannerHeightVal.innerText = bottomBannerHeightInput.value + 'px';
+            bottomBannerFontSizeVal.innerText = bottomBannerFontSizeInput.value + 'px';
+
             const activeLineColor = (systemLineSelect.value === '#custom') ? customLineColor.value : systemLineSelect.value;
             const fallbackLineName = systemLines.find(l => l.color === systemLineSelect.value)?.name.replace(/\s\([^)]*\)$/, "") || "Custom Line Route";
             const ribbonContrastColor = getContrastColor(activeLineColor);
@@ -832,6 +849,11 @@
             if (showBottomBanner.checked) {
                 bottomIdentityBand.style.display = 'flex';
                 bottomIdentityBand.style.backgroundColor = activeLineColor;
+                
+                const ribbonH = parseInt(bottomBannerHeightInput.value);
+                const ribbonFs = parseInt(bottomBannerFontSizeInput.value);
+
+                bottomIdentityBand.style.height = ribbonH + 'px';
                 
                 // Bottom badge assembly processing filter logic
                 if (showBottomCaplet.checked) {
@@ -848,9 +870,9 @@
                     bottomCapletBadge.style.alignItems = 'center';
                     bottomCapletBadge.style.justifyContent = 'center';
                     bottomCapletBadge.style.boxSizing = 'border-box';
-                    bottomCapletBadge.style.height = '34px';
-                    bottomCapletBadge.style.padding = '2px 14px';
-                    bottomCapletBadge.style.border = `2.5px solid ${ribbonContrastColor}`;
+                    bottomCapletBadge.style.height = Math.round(ribbonH * 0.68) + 'px';
+                    bottomCapletBadge.style.padding = `2px ${Math.round(ribbonH * 0.28)}px`;
+                    bottomCapletBadge.style.border = `${Math.max(1.5, ribbonH * 0.05)}px solid ${ribbonContrastColor}`;
                     
                     // Downscales elliptical formula configuration to align nicely with ribbon profile guidelines
                     const ribbonVr = Math.round(parseInt(capVr.value) * 0.65);
@@ -859,7 +881,7 @@
 
                     const labelNodeSpan = document.createElement('span');
                     labelNodeSpan.style.color = ribbonContrastColor;
-                    labelNodeSpan.style.fontSize = '18px';
+                    labelNodeSpan.style.fontSize = Math.round(ribbonFs * 0.95) + 'px';
                     labelNodeSpan.style.fontWeight = '700';
                     labelNodeSpan.style.fontFamily = capletFontProfileSelect.value;
                     labelNodeSpan.innerText = determinedPrefix.toUpperCase();
@@ -874,6 +896,7 @@
                 if (showBottomText.checked) {
                     bandLineNameText.style.display = 'inline';
                     bandLineNameText.style.color = ribbonContrastColor;
+                    bandLineNameText.style.fontSize = ribbonFs + 'px';
                     bandLineNameText.innerText = bottomBannerText.value.trim() ? bottomBannerText.value.trim() : fallbackLineName;
                 } else {
                     bandLineNameText.style.display = 'none';
@@ -1023,7 +1046,7 @@
             platformPanelWidth, platformText, platformBoxWidth, platformBoxHeight,
             fsTerminus, fsPrefix, hideDuplicatePrefixes, fictionalLinesMap, fsCapletCode, capH, capP, capVr, capHr, arrowDirection,
             arrowFlowPlacement, arrowCircleColorMode, arrowCircleSize, arrowIconSize,
-            showBottomBanner, showBottomText, showBottomCaplet, bottomBannerPrefix, bottomBannerText
+            showBottomBanner, showBottomText, showBottomCaplet, bottomBannerHeightInput, bottomBannerFontSizeInput, bottomBannerPrefix, bottomBannerText
         ];
 
         inputsInterceptionSuite.forEach(elementInput => {
