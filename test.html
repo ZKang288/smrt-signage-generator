@@ -492,6 +492,13 @@
 </head>
 <body>
 
+<nav style="margin-bottom: 20px; display: flex; gap: 15px;">
+    <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Exit Signage Generator</a>
+    <a href="map.html" style="color: #64748b; text-decoration: none;">🗺️ Platform Signage Generator</a>
+    <a href="line_map_horizontal.html" style="font-weight: bold; color: #004c54; text-decoration: none;">🚇 Route Map Generator</a>
+    <a href="platform_destination.html" style="color: #64748b; text-decoration: none;">🚏 Platform Destination Generator</a>
+</nav>
+
 <h1>Direction Signage Generator</h1>
 <p class="subtitle">Build wayfinding direction boards — like those seen inside MRT stations. Supports customizable Exit entries and Platform layout maps.</p>
 
@@ -613,8 +620,8 @@
         { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
         { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
         { type: 'exit',     direction: 'right',      arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr', hasDivider: true },
-        { type: 'platform', direction: 'left',       arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'Downtown Line', platforms: ['A'], lineCode: 'DTL', lineBg: '#005ec4', hasDivider: false },
-        { type: 'platform', direction: 'down-right',  arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'North East Line', platforms: ['B'], lineCode: 'NEL', lineBg: '#9900aa', hasDivider: false }
+        { type: 'platform', direction: 'left',       arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'Downtown Line', platforms: [], lineCode: 'DTL', lineBg: '#005ec4', hasDivider: false },
+        { type: 'platform', direction: 'down-right',  arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'North East Line', platforms: [], lineCode: 'NEL', lineBg: '#9900aa', hasDivider: false }
     ];
 
     const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right', 'none-right']);
@@ -782,7 +789,6 @@
         return box;
     }
 
-    // FIXED: Large abbreviation capsule pulls font configurations dynamically via user-defined slider parameter
     function buildLargeLineCapsule(text, bg, rH, fontFamily, lineAbbvFs) {
         const wrapper = document.createElement('div');
         wrapper.className = 'large-capsule-container';
@@ -792,7 +798,7 @@
         const capPadding = gs('capletP') * scaleFactor; 
         
         wrapper.style.height = `${capHeight}px`;
-        wrapper.style.width = `${capHeight * 2.5}px`; 
+        wrapper.style.width = 'auto'; // FIXED: Removed hardcoded scale override to let padding resize the layout naturally
         
         const vr = gs('capletVr') * scaleFactor; 
         const hr = gs('capletHr') * scaleFactor; 
@@ -802,7 +808,7 @@
         inner.className = 'large-capsule-inner';
         inner.textContent = text;
         inner.style.backgroundColor = bg;
-        inner.style.fontSize = `${lineAbbvFs}px`; // Inject dynamic font size property
+        inner.style.fontSize = `${lineAbbvFs}px`; 
         inner.style.padding = `0 ${capPadding}px`; 
         inner.style.fontFamily = fontFamily; 
         inner.style.borderRadius = `${hr}px / ${vr}px`; 
@@ -980,7 +986,7 @@
                 if (type === 'platform') {
                     rows[i].prefix = '';
                     rows[i].viaCodes = '';
-                    rows[i].platforms = [''];
+                    rows[i].platforms = [];
                     rows[i].lineCode = 'CCL';
                     rows[i].lineBg = '#fa9e11';
                 } else {
@@ -1075,79 +1081,14 @@
                 const platformFieldsGrid = document.createElement('div');
                 platformFieldsGrid.className = 'fields-grid-dynamic';
 
-                const pWrap = document.createElement('div');
-                pWrap.className = 'field-wrap';
-                pWrap.innerHTML = '<label>Prefix Label (e.g. via)</label>';
-                const pInp = document.createElement('input');
-                pInp.type = 'text';
-                pInp.value = row.prefix || '';
-                pInp.addEventListener('input', e => { rows[i].prefix = e.target.value; renderSign(); });
-                pWrap.appendChild(pInp);
-
-                const vWrap = document.createElement('div');
-                vWrap.className = 'field-wrap';
-                vWrap.innerHTML = '<label>Via Caplets (Code:#Hex,Code:#Hex)</label>';
-                const vInp = document.createElement('input');
-                vInp.type = 'text';
-                vInp.value = row.viaCodes || '';
-                vInp.placeholder = 'e.g. DT15:#005ec4,CC4:#fa9e11';
-                vInp.addEventListener('input', e => { rows[i].viaCodes = e.target.value; renderSign(); });
-                vWrap.appendChild(vInp);
-
                 const dWrap = document.createElement('div');
                 dWrap.className = 'field-wrap';
-                dWrap.innerHTML = '<label>Terminus / Destination</label>';
+                dWrap.innerHTML = '<label>Line Name</label>';
                 const dInp = document.createElement('input');
                 dInp.type = 'text';
                 dInp.value = row.destination;
                 dInp.addEventListener('input', e => { rows[i].destination = e.target.value; renderSign(); });
                 dWrap.appendChild(dInp);
-
-                const platAreaWrap = document.createElement('div');
-                platAreaWrap.className = 'field-wrap';
-                platAreaWrap.innerHTML = '<label>Platforms</label>';
-                const platFlex = document.createElement('div');
-                platFlex.className = 'exits-area';
-
-                function rebuildPlatformTags() {
-                    platFlex.innerHTML = '';
-                    row.platforms.forEach((platLetter, pi) => {
-                        const tag = document.createElement('div');
-                        tag.className = 'platform-tag';
-
-                        const inp = document.createElement('input');
-                        inp.type = 'text';
-                        inp.value = platLetter;
-                        inp.maxLength = 2;
-                        inp.addEventListener('input', e => {
-                            rows[i].platforms[pi] = e.target.value.toUpperCase();
-                            renderSign();
-                        });
-
-                        const removeBtn = document.createElement('button');
-                        removeBtn.className = 'platform-tag-del';
-                        removeBtn.textContent = '×';
-                        removeBtn.addEventListener('click', () => {
-                            rows[i].platforms.splice(pi, 1);
-                            renderAll();
-                        });
-
-                        tag.appendChild(inp);
-                        tag.appendChild(removeBtn);
-                        platFlex.appendChild(tag);
-                    });
-
-                    const addPlatBtn = document.createElement('button');
-                    addPlatBtn.className = 'btn-add-platform';
-                    addPlatBtn.textContent = '+ Platform';
-                    addPlatBtn.addEventListener('click', () => {
-                        rows[i].platforms.push('');
-                        renderAll();
-                    });
-                    platFlex.appendChild(addPlatBtn);
-                }
-                rebuildPlatformTags();
-                platAreaWrap.appendChild(platFlex);
 
                 const codeWrap = document.createElement('div');
                 codeWrap.className = 'field-wrap';
@@ -1169,10 +1110,7 @@
                 colorInp.addEventListener('input', e => { rows[i].lineBg = e.target.value; renderSign(); });
                 colorWrap.appendChild(colorInp);
 
-                platformFieldsGrid.appendChild(pWrap);
-                platformFieldsGrid.appendChild(vWrap);
                 platformFieldsGrid.appendChild(dWrap);
-                platformFieldsGrid.appendChild(platAreaWrap);
                 platformFieldsGrid.appendChild(codeWrap);
                 platformFieldsGrid.appendChild(colorWrap);
                 botRow.appendChild(platformFieldsGrid);
