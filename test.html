@@ -1713,6 +1713,1200 @@
             <label>Divider Thickness (px): <span id="divThickVal">3</span></label>
             <input type="range" id="divThick" min="1" max="15" value="3">
         </div>
+        <div class="ctrl">
+            <label>Caplet Height (px): <span id="capletHVal">30</span></label>
+            <input type="range" id="capletH" min="10" max="80" value="30">
+        </div>
+        <div class="ctrl">
+            <label>Caplet Length/Padding (px): <span id="capletPVal">12</span></label>
+            <input type="range" id="capletP" min="2" max="60" value="12">
+        </div>
+        <div class="ctrl">
+            <label>Caplet Horiz. Radius (Hr): <span id="capletHrVal">8</span></label>
+            <input type="range" id="capletHr" min="0" max="60" value="8">
+        </div>
+        <div class="ctrl">
+            <label>Caplet Vert. Radius (Vr): <span id="capletVrVal">15</span></label>
+            <input type="range" id="capletVr" min="0" max="60" value="15">
+        </div>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-title">Sign Rows</div>
+    <div class="rows-wrapper" id="rowsContainer"></div>
+    <button class="btn-add" id="addRowBtn">+ Add Row</button>
+</div>
+
+<button class="btn-export" id="exportBtn">⬇ Export as PNG</button>
+
+<div class="preview-area">
+    <div id="sign-board"></div>
+</div>
+
+<script>
+    // ===================== STATE CONFIGURATION =====================
+    let rows = [
+        { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
+        { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
+        { type: 'exit',     direction: 'right',      arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr', hasDivider: true },
+        { type: 'platform', direction: 'left', arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'Downtown Line', platform: '', lineCode: 'DTL', lineBg: '#005ec4', hasDivider: false },
+        { type: 'platform', direction: 'down-right',  arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'North East Line', platform: '', lineCode: 'DTL', lineBg: '9900aa', hasDivider: false }
+    ];
+
+    const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right', 'none-right']);
+
+    const ARROW_IMG = {
+        'up':         ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              0],
+        'right':      ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              90],
+        'down':       ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              180],
+        'left':       ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              270],
+        'up-right':   ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 0],
+        'down-right': ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 90],
+        'down-left':  ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 180],
+        'up-left':    ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 270],
+    };
+
+    const DIR_LABELS = {
+        'none': 'Ø None (Left Aligned)',
+        'none-right': 'Ø None (Right Aligned)',
+        'up': '↑ Up', 'up-right': '↗ Up-Right', 'right': '→ Right',
+        'down-right': '↘ Down-Right', 'down': '↓ Down',
+        'down-left': '↙ Down-Left', 'left': '← Left', 'up-left': '↖ Up-Left',
+    };
+
+    // ===================== DOM REFERENCES =====================
+    const boardEl       = document.getElementById('sign-board');
+    const rowsCont      = document.getElementById('rowsContainer');
+    const addRowBtn     = document.getElementById('addRowBtn');
+    const bgColorSel    = document.getElementById('bgColor');
+    const bgColorCustom = document.getElementById('bgColorCustom');
+    const exportBtn     = document.getElementById('exportBtn');
+    const destFontSel   = document.getElementById('destFont');
+    const exitFontSel   = document.getElementById('exitFont');
+
+    const sliders = {
+        boardWidth: { el: document.getElementById('boardWidth'), disp: document.getElementById('boardWidthVal') },
+        rowHeight:  { el: document.getElementById('rowHeight'),  disp: document.getElementById('rowHeightVal') },
+        boardPadH:  { el: document.getElementById('boardPadH'),  disp: document.getElementById('boardPadHVal') },
+        boardPadV:  { el: document.getElementById('boardPadV'),  disp: document.getElementById('boardPadVVal') },
+        rowGap:     { el: document.getElementById('rowGap'),     disp: document.getElementById('rowGapVal') },
+        destFs:     { el: document.getElementById('destFs'),     disp: document.getElementById('destFsVal') },
+        exitSz:     { el: document.getElementById('exitSz'),     disp: document.getElementById('exitSzVal') },
+        exitFs:     { el: document.getElementById('exitFs'),     disp: document.getElementById('exitFsVal') },
+        exitGap:    { el: document.getElementById('exitGap'),    disp: document.getElementById('exitGapVal') },
+        arrowSz:    { el: document.getElementById('arrowSz'),    disp: document.getElementById('arrowSzVal') },
+        elemGap:    { el: document.getElementById('elemGap'),    disp: document.getElementById('elemGapVal') },
+        divThick:   { el: document.getElementById('divThick'),   disp: document.getElementById('divThickVal') },
+        capletH:    { el: document.getElementById('capletH'),    disp: document.getElementById('capletHVal') },
+        capletP:    { el: document.getElementById('capletP'),    disp: document.getElementById('capletPVal') },
+        capletHr:   { el: document.getElementById('capletHr'),   disp: document.getElementById('capletHrVal') },
+        capletVr:   { el: document.getElementById('capletVr'),   disp: document.getElementById('capletVrVal') }
+    };
+
+    function gs(key) { return parseInt(sliders[key].el.value); }
+
+    // ===================== ARROW IMAGE ENGINE =====================
+    function buildArrowEl(direction, color, size) {
+        const entry = ARROW_IMG[direction];
+        if (!entry) return null;
+
+        const [whiteFile, yellowFile, rot] = entry;
+        const src = color === 'yellow' ? yellowFile : whiteFile;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'sign-arrow';
+        wrapper.style.width  = size + 'px';
+        wrapper.style.height = size + 'px';
+        wrapper.style.flexShrink = '0';
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.justifyContent = 'center';
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = direction;
+        img.style.width     = size + 'px';
+        img.style.height    = size + 'px';
+        img.style.objectFit = 'contain';
+        img.style.display   = 'block';
+        img.style.flexShrink = '0';
+        if (rot !== 0) {
+            img.style.transform = `rotate(${rot}deg)`;
+        }
+
+        wrapper.appendChild(img);
+        return wrapper;
+    }
+
+    // ===================== BUILD ONE EXIT ICON (DOM) =====================
+    function buildExitIconEl(letter, eSz, eFs, eGap, fontFamily) {
+        const exitWrap = document.createElement('div');
+        exitWrap.className = 'exit-wrap';
+        exitWrap.style.width    = eSz + 'px';
+        exitWrap.style.height   = eSz + 'px';
+        exitWrap.style.marginRight = eGap + 'px';
+
+        const exitImg = document.createElement('img');
+        exitImg.src       = 'exit_logo.png';
+        exitImg.alt       = 'Exit';
+        exitImg.className = 'exit-img';
+
+        const exitLetter = document.createElement('div');
+        exitLetter.className      = 'exit-letter';
+        exitLetter.style.fontSize = eFs + 'px';
+        exitLetter.style.fontFamily = fontFamily;
+        exitLetter.textContent    = letter || '?';
+
+        exitWrap.appendChild(exitImg);
+        exitWrap.appendChild(exitLetter);
+        return exitWrap;
+    }
+
+    // ===================== PLATFORM BUILDER SUB-COMPONENTS =====================
+    // FIXED: Uses new customizable sliders for live adjusting height, padding and radii shapes
+    function buildLinkedViaContainer(viaInputString, rH, fontFamily) {
+        const container = document.createElement('div');
+        container.className = 'via-chain-container';
+        
+        if (!viaInputString || !viaInputString.trim()) return container;
+        
+        const pairs = viaInputString.split(',');
+        pairs.forEach((pair) => {
+            const parts = pair.split(':');
+            const code = parts[0] ? parts[0].trim() : '??';
+            const bgColor = parts[1] ? parts[1].trim() : '#747474';
+            
+            const node = document.createElement('div');
+            node.className = 'via-chain-node';
+            node.textContent = code;
+            
+            const nodeHeight = gs('capletH');
+            const nodePadding = gs('capletP');
+            node.style.height = `${nodeHeight}px`;
+            node.style.fontSize = `${nodeHeight * 0.55}px`;
+            node.style.padding = `0 ${nodePadding}px`;
+            node.style.backgroundColor = bgColor;
+            node.style.fontFamily = fontFamily; 
+            
+            const vr = gs('capletVr');
+            const hr = gs('capletHr');
+            node.style.borderRadius = `${hr}px / ${vr}px`;
+            
+            container.appendChild(node);
+        });
+        
+        return container;
+    }
+
+    function buildPlatformBox(letter, rH, fontFamily, lineBg) {
+        const box = document.createElement('div');
+        box.className = 'platform-box-element';
+        box.textContent = letter;
+        
+        const size = rH * 0.72;
+        box.style.width = `${size * 0.85}px`;
+        box.style.height = `${size}px`;
+        box.style.fontSize = `${size * 0.62}px`;
+        box.style.fontFamily = fontFamily; 
+        box.style.backgroundColor = lineBg || 'transparent'; 
+        
+        const bar = document.createElement('div');
+        bar.className = 'platform-underline-bar';
+        bar.style.height = `${size * 0.08}px`;
+        box.appendChild(bar);
+        
+        return box;
+    }
+
+    // FIXED: Dynamically syncs and inherits the base slider variables multiplied cleanly for proportional layout look
+    function buildLargeLineCapsule(text, bg, rH, fontFamily) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'large-capsule-container';
+        
+        const scaleFactor = 1.6;
+        const capHeight = gs('capletH') * scaleFactor;
+        const capPadding = gs('capletP') * scaleFactor;
+        
+        wrapper.style.height = `${capHeight}px`;
+        
+        const vr = gs('capletVr') * scaleFactor;
+        const hr = gs('capletHr') * scaleFactor;
+        wrapper.style.borderRadius = `${hr}px / ${vr}px`;
+        
+        const inner = document.createElement('div');
+        inner.className = 'large-capsule-inner';
+        inner.textContent = text;
+        inner.style.backgroundColor = bg;
+        inner.style.fontSize = `${capHeight * 0.46}px`;
+        inner.style.padding = `0 ${capPadding}px`;
+        inner.style.fontFamily = fontFamily; 
+        inner.style.borderRadius = `${hr}px / ${vr}px`;
+        
+        wrapper.appendChild(inner);
+        return wrapper;
+    }
+
+    // ===================== RENDER SIGN =====================
+    function renderSign() {
+        const bg      = bgColorSel.value === '#custom' ? bgColorCustom.value : bgColorSel.value;
+        const width   = gs('boardWidth');
+        const rH      = gs('rowHeight');
+        const padH    = gs('boardPadH');
+        const padV    = gs('boardPadV');
+        const rGap    = gs('rowGap');
+        const dFs     = gs('destFs');
+        const eSz     = gs('exitSz');
+        const eFs     = gs('exitFs');
+        const eGap    = gs('exitGap');
+        const aSz     = gs('arrowSz');
+        const elemGap = gs('elemGap');
+        const dT      = gs('divThick');
+        
+        const currentDestFont = destFontSel.value;
+        const currentExitFont = exitFontFont = exitFontSel.value;
+
+        boardEl.style.backgroundColor = bg;
+        boardEl.style.width    = width + 'px';
+        boardEl.style.minWidth = width + 'px';
+        boardEl.style.padding  = `${padV}px ${padH}px`;
+        boardEl.style.gap      = rGap + 'px';
+
+        boardEl.innerHTML = '';
+
+        rows.forEach((row, i) => {
+            const onRight = ARROW_RIGHT_DIRS.has(row.direction);
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = `sign-row ${onRight ? 'arrow-right' : 'arrow-left'}`;
+            rowDiv.style.height = rH + 'px';
+            rowDiv.style.gap    = elemGap + 'px';
+            rowDiv.style.width  = '100%';
+
+            // Arrow setup
+            let arrowWrap = null;
+            if (row.direction !== 'none' && row.direction !== 'none-right') {
+                arrowWrap = buildArrowEl(row.direction, row.arrowColor, aSz);
+            } else {
+                arrowWrap = document.createElement('div');
+                arrowWrap.style.width  = (row.direction === 'none') ? aSz + 'px' : '0px';
+                arrowWrap.style.height = aSz + 'px';
+                arrowWrap.style.flexShrink = '0';
+            }
+
+            // Destination container
+            const destEl = document.createElement('div');
+            destEl.className      = 'sign-dest';
+            destEl.style.fontSize = dFs + 'px';
+            destEl.style.fontFamily = currentDestFont;
+
+            if (row.type === 'platform') {
+                const hasPlatform = row.platform && row.platform.trim();
+                const hasLine = row.lineCode && row.lineCode.trim();
+                const hasVia = row.viaCodes && row.viaCodes.trim();
+
+                const contentGroup = document.createElement('div');
+                contentGroup.style.display = 'inline-flex';
+                contentGroup.style.alignItems = 'center';
+                contentGroup.style.gap = `${elemGap}px`;
+
+                if (hasVia && row.prefix && row.prefix.trim()) {
+                    const prefixSpan = document.createElement('span');
+                    prefixSpan.className = 'platform-prefix-text';
+                    prefixSpan.textContent = row.prefix + ' ';
+                    contentGroup.appendChild(prefixSpan);
+                }
+
+                if (hasVia) {
+                    const viaBlock = buildLinkedViaContainer(row.viaCodes, rH, currentExitFont);
+                    contentGroup.appendChild(viaBlock);
+                }
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = row.destination;
+                contentGroup.appendChild(nameSpan);
+
+                const platformBox = hasPlatform ? buildPlatformBox(row.platform, rH, currentExitFont, row.lineBg) : null;
+                const lineCapsule = hasLine ? buildLargeLineCapsule(row.lineCode, row.lineBg || '#747474', rH, currentExitFont) : null;
+
+                if (onRight) {
+                    destEl.appendChild(contentGroup);
+                    if (hasPlatform) destEl.appendChild(platformBox);
+                    if (hasLine) destEl.appendChild(lineCapsule);
+                } else {
+                    if (hasLine) destEl.appendChild(lineCapsule);
+                    if (hasPlatform) destEl.appendChild(platformBox);
+                    destEl.appendChild(contentGroup);
+                }
+            } else {
+                const exitsGroup = document.createElement('div');
+                exitsGroup.className = 'exits-group';
+                exitsGroup.style.gap = '0';
+
+                const exits = row.exits && row.exits.length ? row.exits : ['?'];
+                exits.forEach((letter, ei) => {
+                    const icon = buildExitIconEl(letter, eSz, eFs, ei < exits.length - 1 ? eGap : 0, currentExitFont);
+                    exitsGroup.appendChild(icon);
+                });
+
+                const labelTextNode = document.createElement('span');
+                labelTextNode.textContent = row.destination;
+
+                if (onRight) {
+                    destEl.appendChild(labelTextNode);
+                    destEl.appendChild(exitsGroup);
+                } else {
+                    destEl.appendChild(exitsGroup);
+                    destEl.appendChild(labelTextNode);
+                }
+            }
+
+            if (onRight) {
+                rowDiv.appendChild(destEl);
+                rowDiv.appendChild(arrowWrap);
+            } else {
+                rowDiv.appendChild(arrowWrap);
+                destEl.style.flex = "1";
+                rowDiv.appendChild(destEl);
+            }
+
+            boardEl.appendChild(rowDiv);
+
+            if (row.hasDivider) {
+                const div = document.createElement('div');
+                div.className = 'sign-divider';
+                div.style.height = dT + 'px';
+                boardEl.appendChild(div);
+            }
+        });
+    }
+
+    // ===================== RENDER CONTROLS =====================
+    function renderControls() {
+        rowsCont.innerHTML = '';
+        rows.forEach((row, i) => {
+            const ed = document.createElement('div');
+            ed.className = 'sig-row-editor';
+
+            const topRow = document.createElement('div');
+            topRow.className = 'row-top';
+
+            // Row Type
+            const typeWrap = document.createElement('div');
+            typeWrap.className = 'field-wrap';
+            typeWrap.innerHTML = '<label>Row Type</label>';
+            const typeSel = document.createElement('select');
+            [['exit', 'Exit Wayfinding'], ['platform', 'Platform Guide']].forEach(([val, lbl]) => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = lbl;
+                if (val === row.type) opt.selected = true;
+                typeSel.appendChild(opt);
+            });
+            typeSel.addEventListener('change', e => {
+                const type = e.target.value;
+                rows[i].type = type;
+                if (type === 'platform') {
+                    rows[i].prefix = '';
+                    rows[i].viaCodes = '';
+                    rows[i].platform = '';
+                    rows[i].lineCode = 'CCL';
+                    rows[i].lineBg = '#fa9e11';
+                } else {
+                    rows[i].exits = rows[i].exits || ['A'];
+                }
+                renderAll();
+            });
+            typeWrap.appendChild(typeSel);
+
+            // Direction
+            const dirWrap = document.createElement('div');
+            dirWrap.className = 'field-wrap';
+            dirWrap.innerHTML = '<label>Direction</label>';
+            const dirSel = document.createElement('select');
+            Object.keys(DIR_LABELS).forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = DIR_LABELS[d];
+                if (d === row.direction) opt.selected = true;
+                dirSel.appendChild(opt);
+            });
+            dirSel.addEventListener('change', e => { rows[i].direction = e.target.value; renderAll(); });
+            dirWrap.appendChild(dirSel);
+
+            // Arrow Color
+            const acWrap = document.createElement('div');
+            acWrap.className = 'field-wrap';
+            acWrap.innerHTML = '<label>Arrow Color</label>';
+            const acSel = document.createElement('select');
+            ['yellow', 'white'].forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c.charAt(0).toUpperCase() + c.slice(1);
+                if (c === row.arrowColor) opt.selected = true;
+                acSel.appendChild(opt);
+            });
+            acSel.addEventListener('change', e => { rows[i].arrowColor = e.target.value; renderSign(); });
+            acWrap.appendChild(acSel);
+
+            // Divider selector
+            const divWrap = document.createElement('div');
+            divWrap.className = 'field-wrap';
+            divWrap.innerHTML = '<label>Divider Below</label>';
+            const divSel = document.createElement('select');
+            [['no', 'No'], ['yes', 'Yes']].forEach(([val, lbl]) => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = lbl;
+                if ((val === 'yes' && row.hasDivider) || (val === 'no' && !row.hasDivider)) opt.selected = true;
+                divSel.appendChild(opt);
+            });
+            divSel.addEventListener('change', e => { rows[i].hasDivider = (e.target.value === 'yes'); renderSign(); });
+            divWrap.appendChild(divSel);
+
+            const spacer = document.createElement('div');
+
+            // Move buttons
+            const movePair = document.createElement('div');
+            movePair.style.cssText = 'display:flex;gap:4px;align-self:flex-end;';
+            const upBtn = document.createElement('button');
+            upBtn.className = 'btn-move';
+            upBtn.textContent = '↑';
+            upBtn.disabled = i === 0;
+            upBtn.addEventListener('click', () => { if (i > 0) { [rows[i-1], rows[i]] = [rows[i], rows[i-1]]; renderAll(); } });
+            const dnBtn = document.createElement('button');
+            dnBtn.className = 'btn-move';
+            dnBtn.textContent = '↓';
+            dnBtn.disabled = i === rows.length - 1;
+            dnBtn.addEventListener('click', () => { if (i < rows.length - 1) { [rows[i], rows[i+1]] = [rows[i+1], rows[i]]; renderAll(); } });
+            movePair.appendChild(upBtn);
+            movePair.appendChild(dnBtn);
+
+            // Delete
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-del';
+            delBtn.textContent = '✕';
+            delBtn.disabled = rows.length === 1;
+            delBtn.addEventListener('click', () => { rows.splice(i, 1); renderAll(); });
+
+            topRow.appendChild(typeWrap);
+            topRow.appendChild(dirWrap);
+            topRow.appendChild(acWrap);
+            topRow.appendChild(divWrap);
+            topRow.appendChild(spacer);
+            topRow.appendChild(movePair);
+            topRow.appendChild(delBtn);
+
+            const botRow = document.createElement('div');
+            botRow.className = 'row-bottom';
+
+            if (row.type === 'platform') {
+                const platformFieldsGrid = document.createElement('div');
+                platformFieldsGrid.className = 'fields-grid-dynamic';
+
+                const pWrap = document.createElement('div');
+                pWrap.className = 'field-wrap';
+                pWrap.innerHTML = '<label>Prefix Label (e.g. via)</label>';
+                const pInp = document.createElement('input');
+                pInp.type = 'text';
+                pInp.value = row.prefix || '';
+                pInp.addEventListener('input', e => { rows[i].prefix = e.target.value; renderSign(); });
+                pWrap.appendChild(pInp);
+
+                const vWrap = document.createElement('div');
+                vWrap.className = 'field-wrap';
+                vWrap.innerHTML = '<label>Via Caplets (Code:#Hex,Code:#Hex)</label>';
+                const vInp = document.createElement('input');
+                vInp.type = 'text';
+                vInp.value = row.viaCodes || '';
+                vInp.placeholder = 'e.g. DT15:#005ec4,CC4:#fa9e11';
+                vInp.addEventListener('input', e => { rows[i].viaCodes = e.target.value; renderSign(); });
+                vWrap.appendChild(vInp);
+
+                const dWrap = document.createElement('div');
+                dWrap.className = 'field-wrap';
+                dWrap.innerHTML = '<label>Terminus / Destination</label>';
+                const dInp = document.createElement('input');
+                dInp.type = 'text';
+                dInp.value = row.destination;
+                dInp.addEventListener('input', e => { rows[i].destination = e.target.value; renderSign(); });
+                dWrap.appendChild(dInp);
+
+                const platWrap = document.createElement('div');
+                platWrap.className = 'field-wrap';
+                platWrap.innerHTML = '<label>Platform</label>';
+                const platInp = document.createElement('input');
+                platInp.type = 'text';
+                platInp.value = row.platform || '';
+                platInp.maxLength = 2;
+                platInp.addEventListener('input', e => { rows[i].platform = e.target.value.toUpperCase(); renderSign(); });
+                platWrap.appendChild(platInp);
+
+                const codeWrap = document.createElement('div');
+                codeWrap.className = 'field-wrap';
+                codeWrap.innerHTML = '<label>Line Abbv.</label>';
+                const codeInp = document.createElement('input');
+                codeInp.type = 'text';
+                codeInp.value = row.lineCode || '';
+                codeInp.maxLength = 5;
+                codeInp.addEventListener('input', e => { rows[i].lineCode = e.target.value.toUpperCase(); renderSign(); });
+                codeWrap.appendChild(codeInp);
+
+                const colorWrap = document.createElement('div');
+                colorWrap.className = 'field-wrap';
+                colorWrap.innerHTML = '<label>Line Color</label>';
+                const colorInp = document.createElement('input');
+                colorInp.type = 'color';
+                colorInp.value = row.lineBg || '#fa9e11';
+                colorInp.style.cssText = 'padding:0; height:34px; cursor:pointer;';
+                colorInp.addEventListener('input', e => { rows[i].lineBg = e.target.value; renderSign(); });
+                colorWrap.appendChild(colorInp);
+
+                platformFieldsGrid.appendChild(pWrap);
+                platformFieldsGrid.appendChild(vWrap);
+                platformFieldsGrid.appendChild(dWrap);
+                platformFieldsGrid.appendChild(platWrap);
+                platformFieldsGrid.appendChild(codeWrap);
+                platformFieldsGrid.appendChild(colorWrap);
+                botRow.appendChild(platformFieldsGrid);
+            } else {
+                const exitFieldsGrid = document.createElement('div');
+                exitFieldsGrid.style.cssText = 'display:grid; grid-template-columns: auto 1fr; gap:16px; width:100%;';
+
+                const exitsArea = document.createElement('div');
+                exitsArea.innerHTML = '<label style="display:block;font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;">Exits</label>';
+                const exitsFlex = document.createElement('div');
+                exitsFlex.className = 'exits-area';
+
+                function rebuildExitTags() {
+                    exitsFlex.innerHTML = '';
+                    row.exits.forEach((letter, ei) => {
+                        const tag = document.createElement('div');
+                        tag.className = 'exit-tag';
+
+                        const inp = document.createElement('input');
+                        inp.type = 'text';
+                        inp.value = letter;
+                        inp.maxLength = 3;
+                        inp.addEventListener('input', e => {
+                            rows[i].exits[ei] = e.target.value.toUpperCase();
+                            renderSign();
+                        });
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'exit-tag-del';
+                        removeBtn.textContent = '×';
+                        removeBtn.title = 'Remove exit';
+                        removeBtn.addEventListener('click', () => {
+                            if (rows[i].exits.length > 1) {
+                                rows[i].exits.splice(ei, 1);
+                                renderAll();
+                            }
+                        });
+                        if (row.exits.length === 1) removeBtn.style.display = 'none';
+
+                        tag.appendChild(inp);
+                        tag.appendChild(removeBtn);
+                        exitsFlex.appendChild(tag);
+                    });
+
+                    const addExitBtn = document.createElement('button');
+                    addExitBtn.className = 'btn-add-exit';
+                    addExitBtn.textContent = '+ Exit';
+                    addExitBtn.addEventListener('click', () => {
+                        rows[i].exits.push('');
+                        renderAll();
+                    });
+                    exitsFlex.appendChild(addExitBtn);
+                }
+
+                rebuildExitTags();
+                exitsArea.appendChild(exitsFlex);
+
+                const destWrap = document.createElement('div');
+                destWrap.className = 'field-wrap';
+                destWrap.innerHTML = '<label>Destination</label>';
+                const destInp = document.createElement('input');
+                destInp.type = 'text';
+                destInp.value = row.destination;
+                destInp.placeholder = 'e.g. Bukit Timah Rd';
+                destInp.addEventListener('input', e => { rows[i].destination = e.target.value; renderSign(); });
+                destWrap.appendChild(destInp);
+
+                exitFieldsGrid.appendChild(exitsArea);
+                exitFieldsGrid.appendChild(destWrap);
+                botRow.appendChild(exitFieldsGrid);
+            }
+
+            ed.appendChild(topRow);
+            ed.appendChild(botRow);
+            rowsCont.appendChild(ed);
+        });
+    }
+
+    function renderAll() { renderControls(); renderSign(); }
+
+    // ===================== EVENTS =====================
+    addRowBtn.addEventListener('click', () => {
+        rows.push({ type: 'exit', direction: 'up', arrowColor: 'yellow', exits: ['A'], destination: 'New Destination', hasDivider: false });
+        renderAll();
+    });
+
+    bgColorSel.addEventListener('change', () => {
+        bgColorCustom.style.display = bgColorSel.value === '#custom' ? 'block' : 'none';
+        renderSign();
+    });
+    bgColorCustom.addEventListener('input', renderSign);
+
+    destFontSel.addEventListener('change', renderSign);
+    exitFontSel.addEventListener('change', renderSign);
+
+    Object.values(sliders).forEach(({ el, disp }) => {
+        el.addEventListener('input', () => { disp.textContent = el.value; renderSign(); });
+    });
+
+    exportBtn.addEventListener('click', () => {
+        document.fonts.ready.then(() => {
+            html2canvas(boardEl, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: null
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'direction_signage.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+    });
+
+    // ===================== INIT =====================
+    renderAll();
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direction Signage Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'MRT-Identity';
+            src: url('LTA_Identity-Medium.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Ocean Sans';
+            src: url('OceanSans.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Stroudley';
+            src: url('Stroudley_Trial_Rg.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f0f4f8;
+            margin: 0;
+            padding: 30px 20px 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #1e293b;
+        }
+
+        h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; color: #0f172a; }
+        p.subtitle { margin: 0 0 28px; color: #64748b; font-size: 14px; }
+
+        .panel {
+            width: 100%;
+            max-width: 1150px;
+            background: white;
+            padding: 28px 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px -4px rgba(0,0,0,0.07);
+            margin-bottom: 28px;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 18px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f1f5f9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .global-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .ctrl { display: flex; flex-direction: column; gap: 5px; }
+
+        .ctrl label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .ctrl input[type="range"] { width: 100%; accent-color: #004c54; cursor: pointer; }
+
+        .ctrl input[type="text"],
+        .ctrl select,
+        .ctrl input[type="color"] {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1e293b;
+            background: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .ctrl input:focus, .ctrl select:focus { border-color: #004c54; }
+
+        /* --- Row Builder --- */
+        .rows-wrapper { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+
+        .sig-row-editor {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .row-top {
+            display: grid;
+            grid-template-columns: 140px 140px 100px 110px 1fr auto auto;
+            gap: 8px;
+            align-items: end;
+        }
+
+        .row-bottom {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .fields-grid-dynamic {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            width: 100%;
+        }
+
+        .exits-area {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            align-self: flex-start;
+        }
+
+        .exit-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #ffcd00;
+            border-radius: 6px;
+            padding: 3px 6px 3px 8px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #000;
+            flex-shrink: 0;
+            width: auto;
+        }
+
+        .sig-row-editor .exit-tag input[type="text"] {
+            width: 32px;
+            min-width: 0;
+            flex-shrink: 0;
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 700;
+            color: #000;
+            outline: none;
+            text-align: center;
+            padding: 0;
+        }
+
+        .exit-tag-del {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            color: #7a5a00;
+            line-height: 1;
+            padding: 0 2px;
+        }
+        .exit-tag-del:hover { color: #ef4444; }
+
+        .btn-add-exit {
+            background: #e2e8f0;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-add-exit:hover { background: #cbd5e1; }
+
+        .sig-row-editor label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .sig-row-editor input[type="text"],
+        .sig-row-editor select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #1e293b;
+            background: white;
+            outline: none;
+        }
+
+        .sig-row-editor input:focus, .sig-row-editor select:focus { border-color: #004c54; }
+
+        .field-wrap { display: flex; flex-direction: column; }
+
+        .btn-del {
+            background: #fee2e2;
+            color: #ef4444;
+            border: none;
+            border-radius: 7px;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            transition: background 0.15s;
+            flex-shrink: 0;
+            align-self: flex-end;
+        }
+        .btn-del:hover { background: #fca5a5; }
+        .btn-del:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .btn-move {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: none;
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1;
+        }
+        .btn-move:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .btn-add {
+            width: 100%;
+            padding: 10px;
+            background: #e2e8f0;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-add:hover { background: #cbd5e1; }
+
+        .btn-export {
+            width: 100%;
+            max-width: 1150px;
+            padding: 14px;
+            background: #004c54;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,76,84,0.25);
+            transition: background 0.2s;
+            margin-bottom: 28px;
+        }
+        .btn-export:hover { background: #00333a; }
+
+        /* ===================== SIGNAGE PREVIEW DISPLAY ===================== */
+        .preview-area {
+            width: 100%;
+            max-width: 1150px;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+        }
+
+        #sign-board {
+            background: #004c54;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 22px 36px;
+            gap: 0;
+            user-select: none;
+            min-width: 600px;
+        }
+
+        .sign-row {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            flex-direction: row;
+        }
+
+        .sign-arrow {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .exits-group {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .exit-wrap {
+            flex-shrink: 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .exit-img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .exit-letter {
+            position: absolute;
+            font-weight: 900;
+            color: #000000;
+            background-color: #ffcd00;
+            padding: 0 2px;
+            line-height: 1;
+            text-align: center;
+            top: 56%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .sign-dest {
+            font-weight: 500;
+            color: #fff;
+            white-space: nowrap;
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sign-row.arrow-right .sign-dest { justify-content: flex-end; text-align: right; }
+        .sign-row.arrow-left  .sign-dest { justify-content: flex-start; text-align: left; }
+
+        /* --- Platform UI Styles --- */
+        .platform-prefix-text {
+            color: rgba(255, 255, 255, 0.85);
+            margin-right: 2px;
+        }
+
+        .platform-box-element {
+            border: 2.5px solid #ffffff;
+            border-radius: 4px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 900;
+            text-align: center;
+            line-height: 1;
+            flex-shrink: 0;
+            position: relative;
+        }
+        
+        .platform-box-element .platform-underline-bar {
+            width: 65%;
+            background-color: #ffffff;
+            position: absolute;
+            bottom: 12%;
+        }
+
+        /* --- Chain Linked Caplet Wrappers --- */
+        .via-chain-container {
+            display: inline-flex;
+            align-items: center;
+            background-color: #ffffff;
+            padding: 1.5px;
+            border-radius: 50px;
+            gap: 1px;
+            flex-shrink: 0;
+        }
+
+        .via-chain-node {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #ffffff;
+            box-sizing: border-box;
+            white-space: nowrap;
+        }
+
+        /* --- Large Standard Caplet Squircle Containers --- */
+        .large-capsule-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            padding: 2.5px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .large-capsule-inner {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            color: #ffffff;
+            font-weight: 900;
+            box-sizing: border-box;
+            white-space: nowrap;
+        }
+
+        .sign-divider {
+            background: #ffffff;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Direction Signage Generator</h1>
+<p class="subtitle">Build wayfinding direction boards — like those seen inside MRT stations. Supports customizable Exit entries and Platform layout maps.</p>
+
+<div class="panel">
+    <div class="panel-title">Board Settings</div>
+    <div class="global-grid">
+        <div class="ctrl">
+            <label>Board Background</label>
+            <select id="bgColor">
+                <option value="#004c54">Dark Teal (MRT Standard)</option>
+                <option value="#000000">Black</option>
+                <option value="#1a1a2e">Navy</option>
+                <option value="#custom">Custom…</option>
+            </select>
+            <input type="color" id="bgColorCustom" value="#004c54" style="display:none;margin-top:6px;height:38px;border-radius:8px;border:1px solid #cbd5e1;width:100%;cursor:pointer;padding:0;">
+        </div>
+        <div class="ctrl">
+            <label>Board Width (px): <span id="boardWidthVal">850</span></label>
+            <input type="range" id="boardWidth" min="400" max="1800" value="850">
+        </div>
+        <div class="ctrl">
+            <label>Row Height (px): <span id="rowHeightVal">68</span></label>
+            <input type="range" id="rowHeight" min="36" max="130" value="68">
+        </div>
+        <div class="ctrl">
+            <label>Board Padding H (px): <span id="boardPadHVal">36</span></label>
+            <input type="range" id="boardPadH" min="8" max="90" value="36">
+        </div>
+        <div class="ctrl">
+            <label>Board Padding V (px): <span id="boardPadVVal">22</span></label>
+            <input type="range" id="boardPadV" min="4" max="60" value="22">
+        </div>
+        <div class="ctrl">
+            <label>Row Gap (px): <span id="rowGapVal">5</span></label>
+            <input type="range" id="rowGap" min="0" max="30" value="5">
+        </div>
+        <div class="ctrl">
+            <label>Destination Font (px): <span id="destFsVal">45</span></label>
+            <input type="range" id="destFs" min="14" max="80" value="45">
+        </div>
+        <div class="ctrl">
+            <label>Destination Font Family</label>
+            <select id="destFont">
+                <option value="'Ocean Sans', sans-serif">Ocean Sans</option>
+                <option value="'Stroudley', sans-serif" selected>Stroudley</option>
+                <option value="'MRT-Identity', sans-serif">MRT Identity (LTA)</option>
+            </select>
+        </div>
+        <div class="ctrl">
+            <label>Exit Box Size (px): <span id="exitSzVal">55</span></label>
+            <input type="range" id="exitSz" min="28" max="110" value="55">
+        </div>
+        <div class="ctrl">
+            <label>Exit Letter Font (px): <span id="exitFsVal">25</span></label>
+            <input type="range" id="exitFs" min="10" max="80" value="25">
+        </div>
+        <div class="ctrl">
+            <label>Exit Font Family</label>
+            <select id="exitFont">
+                <option value="'Ocean Sans', sans-serif">Ocean Sans</option>
+                <option value="'Stroudley', sans-serif">Stroudley</option>
+                <option value="'MRT-Identity', sans-serif" selected>MRT Identity (LTA)</option>
+            </select>
+        </div>
+        <div class="ctrl">
+            <label>Gap Between Exits (px): <span id="exitGapVal">6</span></label>
+            <input type="range" id="exitGap" min="0" max="30" value="6">
+        </div>
+        <div class="ctrl">
+            <label>Arrow Size (px): <span id="arrowSzVal">50</span></label>
+            <input type="range" id="arrowSz" min="18" max="100" value="50">
+        </div>
+        <div class="ctrl">
+            <label>Spacing Between Elements (px): <span id="elemGapVal">16</span></label>
+            <input type="range" id="elemGap" min="4" max="50" value="16">
+        </div>
+        <div class="ctrl">
+            <label>Divider Thickness (px): <span id="divThickVal">3</span></label>
+            <input type="range" id="divThick" min="1" max="15" value="3">
+        </div>
     </div>
 </div>
 
