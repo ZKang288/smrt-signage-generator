@@ -477,8 +477,8 @@
             <input type="range" id="rowGap" min="0" max="30" value="5">
         </div>
         <div class="ctrl">
-            <label>Destination Font (px): <span id="destFsVal">42</span></label>
-            <input type="range" id="destFs" min="14" max="80" value="42">
+            <label>Destination Font (px): <span id="destFsVal">45</span></label>
+            <input type="range" id="destFs" min="14" max="80" value="45">
         </div>
         <div class="ctrl">
             <label>Destination Font Family</label>
@@ -489,12 +489,12 @@
             </select>
         </div>
         <div class="ctrl">
-            <label>Exit Box Size (px): <span id="exitSzVal">52</span></label>
-            <input type="range" id="exitSz" min="28" max="110" value="52">
+            <label>Exit Box Size (px): <span id="exitSzVal">55</span></label>
+            <input type="range" id="exitSz" min="28" max="110" value="55">
         </div>
         <div class="ctrl">
-            <label>Exit Letter Font (px): <span id="exitFsVal">24</span></label>
-            <input type="range" id="exitFs" min="10" max="80" value="24">
+            <label>Exit Letter Font (px): <span id="exitFsVal">25</span></label>
+            <input type="range" id="exitFs" min="10" max="80" value="25">
         </div>
         <div class="ctrl">
             <label>Exit Font Family</label>
@@ -509,8 +509,8 @@
             <input type="range" id="exitGap" min="0" max="30" value="6">
         </div>
         <div class="ctrl">
-            <label>Arrow Size (px): <span id="arrowSzVal">48</span></label>
-            <input type="range" id="arrowSz" min="18" max="100" value="48">
+            <label>Arrow Size (px): <span id="arrowSzVal">50</span></label>
+            <input type="range" id="arrowSz" min="18" max="100" value="50">
         </div>
         <div class="ctrl">
             <label>Spacing Between Elements (px): <span id="elemGapVal">16</span></label>
@@ -547,11 +547,6 @@
 
     const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right', 'none-right']);
 
-    const DIR_ROTATION = {
-        'up': 0, 'right': 90, 'down': 180, 'left': 270,
-        'up-right': 0, 'down-right': 90, 'down-left': 180, 'up-left': 270
-    };
-
     const DIR_LABELS = {
         'none': 'Ø None (Left Aligned)',
         'none-right': 'Ø None (Right Aligned)',
@@ -587,31 +582,49 @@
 
     function gs(key) { return parseInt(sliders[key].el.value); }
 
-    // ===================== ARROW SVG GENERATOR =====================
-    function arrowSVG(direction, color, size) {
-        const c   = color === 'yellow' ? '#FFCD00' : '#FFFFFF';
-        const rot = DIR_ROTATION[direction] || 0;
-    
-        const straightPath = "M 50 5 L 95 50 L 66 50 L 66 95 L 34 95 L 34 50 L 5 50 Z";
-        const diagonalPath = "M 25 5 L 95 5 L 95 75 L 68 48 L 23 93 L 7 77 L 52 32 Z";
-        
-        const isDiagonal = ['up-right', 'down-right', 'down-left', 'up-left'].includes(direction);
-        const activePath = isDiagonal ? diagonalPath : straightPath;
+    // ===================== ARROW IMAGE ENGINE =====================
+    const ARROW_IMG = {
+        // [file-white, file-yellow, rotation-deg]
+        'up':         ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              0],
+        'right':      ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              90],
+        'down':       ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              180],
+        'left':       ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              270],
+        'up-right':   ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 0],
+        'down-right': ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 90],
+        'down-left':  ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 180],
+        'up-left':    ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 270],
+    };
 
-        return `
-        <svg
-            width="${size}"
-            height="${size}"
-            viewBox="0 0 100 100"
-            xmlns="http://www.w3.org/2000/svg"
-            style="display:block; flex-shrink:0;"
-        >
-            <path
-                fill="${c}"
-                transform="rotate(${rot}, 50, 50)"
-                d="${activePath}"
-            />
-        </svg>`;
+    function buildArrowEl(direction, color, size) {
+        const entry = ARROW_IMG[direction];
+        if (!entry) return null;
+
+        const [whiteFile, yellowFile, rot] = entry;
+        const src = color === 'yellow' ? yellowFile : whiteFile;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'sign-arrow';
+        wrapper.style.width  = size + 'px';
+        wrapper.style.height = size + 'px';
+        wrapper.style.flexShrink = '0';
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.justifyContent = 'center';
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = direction;
+        img.style.width     = size + 'px';
+        img.style.height    = size + 'px';
+        img.style.objectFit = 'contain';
+        img.style.display   = 'block';
+        img.style.flexShrink = '0';
+        if (rot !== 0) {
+            img.style.transform = `rotate(${rot}deg)`;
+        }
+
+        wrapper.appendChild(img);
+        return wrapper;
     }
 
     // ===================== BUILD ONE EXIT ICON (DOM) =====================
@@ -639,8 +652,6 @@
     }
 
     // ===================== PLATFORM BUILDER SUB-COMPONENTS =====================
-    
-    // Linked Mini Via Capsules
     function buildLinkedViaContainer(viaInputString, rH) {
         const container = document.createElement('div');
         container.className = 'via-chain-container';
@@ -657,14 +668,12 @@
             node.className = 'via-chain-node';
             node.textContent = code;
             
-            // Scaled dynamically according to parent row dimensions
             const nodeHeight = rH * 0.44; 
             node.style.height = `${nodeHeight}px`;
             node.style.fontSize = `${nodeHeight * 0.55}px`;
             node.style.padding = `0 ${nodeHeight * 0.4}px`;
             node.style.backgroundColor = bgColor;
             
-            // Custom horizontal/vertical radius squircle calculation applied here
             const vr = nodeHeight * 0.5;
             const hr = nodeHeight * 0.28;
             node.style.borderRadius = `${hr}px / ${vr}px`;
@@ -675,7 +684,6 @@
         return container;
     }
 
-    // Standard Platform Letter Rectangular Box
     function buildPlatformBox(letter, rH) {
         const box = document.createElement('div');
         box.className = 'platform-box-element';
@@ -695,7 +703,6 @@
         return box;
     }
 
-    // Large Elliptical Line Abbreviation Caplet
     function buildLargeLineCapsule(text, bg, rH) {
         const wrapper = document.createElement('div');
         wrapper.className = 'large-capsule-container';
@@ -704,7 +711,6 @@
         wrapper.style.height = `${capHeight}px`;
         wrapper.style.width = `${capHeight * 1.8}px`;
         
-        // Custom radius calculations to execute authentic squircle geometries
         const vr = capHeight * 0.5;
         const hr = capHeight * 0.45;
         wrapper.style.borderRadius = `${hr}px / ${vr}px`;
@@ -721,7 +727,7 @@
         return wrapper;
     }
 
-    // ===================== RENDER SIGN BOARD =====================
+    // ===================== RENDER SIGN =====================
     function renderSign() {
         const bg      = bgColorSel.value === '#custom' ? bgColorCustom.value : bgColorSel.value;
         const width   = gs('boardWidth');
@@ -757,23 +763,24 @@
             rowDiv.style.gap    = elemGap + 'px';
             rowDiv.style.width  = '100%';
 
-            // Generate Structural Arrow node
-            const arrowWrap = document.createElement('div');
-            arrowWrap.className = 'sign-arrow';
-            arrowWrap.style.width  = aSz + 'px';
-            arrowWrap.style.height = aSz + 'px';
+            // Arrow implementation mapping the external image generator
+            let arrowWrap = null;
             if (row.direction !== 'none' && row.direction !== 'none-right') {
-                arrowWrap.innerHTML = arrowSVG(row.direction, row.arrowColor, aSz);
+                arrowWrap = buildArrowEl(row.direction, row.arrowColor, aSz);
+            } else {
+                arrowWrap = document.createElement('div');
+                arrowWrap.style.width  = (row.direction === 'none') ? aSz + 'px' : '0px';
+                arrowWrap.style.height = aSz + 'px';
+                arrowWrap.style.flexShrink = '0';
             }
 
-            // Generate Core Structural Content Node
+            // Destination container
             const destEl = document.createElement('div');
-            destEl.className = 'sign-dest';
+            destEl.className      = 'sign-dest';
             destEl.style.fontSize = dFs + 'px';
             destEl.style.fontFamily = currentDestFont;
 
             if (row.type === 'platform') {
-                // Platform layout builder track
                 const contentGroup = document.createElement('div');
                 contentGroup.style.display = 'inline-flex';
                 contentGroup.style.alignItems = 'center';
@@ -807,9 +814,7 @@
                     destEl.appendChild(platformBox);
                     destEl.appendChild(contentGroup);
                 }
-
             } else {
-                // Standard structural Exit Wayfinding track
                 const exitsGroup = document.createElement('div');
                 exitsGroup.className = 'exits-group';
                 exitsGroup.style.gap = '0';
@@ -832,7 +837,6 @@
                 }
             }
 
-            // Append structured nodes inside row order framework
             if (onRight) {
                 rowDiv.appendChild(destEl);
                 rowDiv.appendChild(arrowWrap);
@@ -853,7 +857,7 @@
         });
     }
 
-    // ===================== RENDER EDITOR CONTROLS =====================
+    // ===================== RENDER CONTROLS =====================
     function renderControls() {
         rowsCont.innerHTML = '';
         rows.forEach((row, i) => {
@@ -863,7 +867,7 @@
             const topRow = document.createElement('div');
             topRow.className = 'row-top';
 
-            // Row Configuration Class Type Switch
+            // Row Type
             const typeWrap = document.createElement('div');
             typeWrap.className = 'field-wrap';
             typeWrap.innerHTML = '<label>Row Type</label>';
@@ -880,7 +884,7 @@
                 rows[i].type = type;
                 if (type === 'platform') {
                     rows[i].prefix = rows[i].prefix || 'via';
-                    rows[i].viaCodes = rows[i].viaCodes || 'CC1:#fa9e11';
+                    rows[i].viaCodes = rows[i].viaCodes || 'CC4:#fa9e11';
                     rows[i].platform = rows[i].platform || 'A';
                     rows[i].lineCode = rows[i].lineCode || 'CCL';
                     rows[i].lineBg = rows[i].lineBg || '#fa9e11';
@@ -891,7 +895,7 @@
             });
             typeWrap.appendChild(typeSel);
 
-            // Direction Selector
+            // Direction
             const dirWrap = document.createElement('div');
             dirWrap.className = 'field-wrap';
             dirWrap.innerHTML = '<label>Direction</label>';
@@ -906,7 +910,7 @@
             dirSel.addEventListener('change', e => { rows[i].direction = e.target.value; renderAll(); });
             dirWrap.appendChild(dirSel);
 
-            // Arrow Color Switch
+            // Arrow Color
             const acWrap = document.createElement('div');
             acWrap.className = 'field-wrap';
             acWrap.innerHTML = '<label>Arrow Color</label>';
@@ -921,7 +925,7 @@
             acSel.addEventListener('change', e => { rows[i].arrowColor = e.target.value; renderSign(); });
             acWrap.appendChild(acSel);
 
-            // Line Divider switch
+            // Divider selector
             const divWrap = document.createElement('div');
             divWrap.className = 'field-wrap';
             divWrap.innerHTML = '<label>Divider Below</label>';
@@ -938,7 +942,7 @@
 
             const spacer = document.createElement('div');
 
-            // Layer index manipulation controls
+            // Move buttons
             const movePair = document.createElement('div');
             movePair.style.cssText = 'display:flex;gap:4px;align-self:flex-end;';
             const upBtn = document.createElement('button');
@@ -954,7 +958,7 @@
             movePair.appendChild(upBtn);
             movePair.appendChild(dnBtn);
 
-            // Removal action switch
+            // Delete
             const delBtn = document.createElement('button');
             delBtn.className = 'btn-del';
             delBtn.textContent = '✕';
@@ -972,12 +976,10 @@
             const botRow = document.createElement('div');
             botRow.className = 'row-bottom';
 
-            // Conditional interface rendering injection according to active row types
             if (row.type === 'platform') {
                 const platformFieldsGrid = document.createElement('div');
                 platformFieldsGrid.className = 'fields-grid-dynamic';
 
-                // Prefix field
                 const pWrap = document.createElement('div');
                 pWrap.className = 'field-wrap';
                 pWrap.innerHTML = '<label>Prefix Label (e.g. via)</label>';
@@ -987,7 +989,6 @@
                 pInp.addEventListener('input', e => { rows[i].prefix = e.target.value; renderSign(); });
                 pWrap.appendChild(pInp);
 
-                // Chain Linked codes mapping field
                 const vWrap = document.createElement('div');
                 vWrap.className = 'field-wrap';
                 vWrap.innerHTML = '<label>Via Caplets (Code:#Hex,Code:#Hex)</label>';
@@ -998,7 +999,6 @@
                 vInp.addEventListener('input', e => { rows[i].viaCodes = e.target.value; renderSign(); });
                 vWrap.appendChild(vInp);
 
-                // Destination string assignment
                 const dWrap = document.createElement('div');
                 dWrap.className = 'field-wrap';
                 dWrap.innerHTML = '<label>Terminus / Destination</label>';
@@ -1008,7 +1008,6 @@
                 dInp.addEventListener('input', e => { rows[i].destination = e.target.value; renderSign(); });
                 dWrap.appendChild(dInp);
 
-                // Platform letter key code assignment
                 const platWrap = document.createElement('div');
                 platWrap.className = 'field-wrap';
                 platWrap.innerHTML = '<label>Platform</label>';
@@ -1019,7 +1018,6 @@
                 platInp.addEventListener('input', e => { rows[i].platform = e.target.value.toUpperCase(); renderSign(); });
                 platWrap.appendChild(platInp);
 
-                // Line alpha label string assignment
                 const codeWrap = document.createElement('div');
                 codeWrap.className = 'field-wrap';
                 codeWrap.innerHTML = '<label>Line Abbv.</label>';
@@ -1030,7 +1028,6 @@
                 codeInp.addEventListener('input', e => { rows[i].lineCode = e.target.value.toUpperCase(); renderSign(); });
                 codeWrap.appendChild(codeInp);
 
-                // Core Line color canvas property mapping code
                 const colorWrap = document.createElement('div');
                 colorWrap.className = 'field-wrap';
                 colorWrap.innerHTML = '<label>Line Color</label>';
@@ -1048,9 +1045,7 @@
                 platformFieldsGrid.appendChild(codeWrap);
                 platformFieldsGrid.appendChild(colorWrap);
                 botRow.appendChild(platformFieldsGrid);
-
             } else {
-                // Exit editor generation layout code track
                 const exitFieldsGrid = document.createElement('div');
                 exitFieldsGrid.style.cssText = 'display:grid; grid-template-columns: auto 1fr; gap:16px; width:100%;';
 
@@ -1127,7 +1122,7 @@
 
     function renderAll() { renderControls(); renderSign(); }
 
-    // ===================== EVENT REGISTER HANDLERS =====================
+    // ===================== EVENTS =====================
     addRowBtn.addEventListener('click', () => {
         rows.push({ type: 'exit', direction: 'up', arrowColor: 'yellow', exits: ['A'], destination: 'New Destination', hasDivider: false });
         renderAll();
@@ -1163,7 +1158,7 @@
         });
     });
 
-    // ===================== INIT RUNTIME =====================
+    // ===================== INIT =====================
     renderAll();
 </script>
 </body>
