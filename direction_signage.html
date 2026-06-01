@@ -147,7 +147,8 @@
             width: auto;
         }
 
-        .exit-tag input {
+        /* FIXED: Increased selector specificity to prevent global width: 100% and white backgrounds from hijacking the exit pills */
+        .sig-row-editor .exit-tag input {
             width: 32px;
             min-width: 0;
             flex-shrink: 0;
@@ -454,14 +455,14 @@
 
 <script>
     // ===================== STATE =====================
+    // FIXED: Updated fourth entry row blueprint defaults to your requested configuration
     let rows = [
-        { direction: 'up',    arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
-        { direction: 'up',    arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
-        { direction: 'right', arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr', hasDivider: false },
-        { direction: 'down-right',    arrowColor: 'yellow', exits: ['E'],      destination: 'Race Course Rd / Buffalo Rd', hasDivider: false },
+        { direction: 'up',          arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
+        { direction: 'up',          arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
+        { direction: 'right',       arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr', hasDivider: false },
+        { direction: 'down-right',  arrowColor: 'yellow', exits: ['E'],      destination: 'Race Course Rd / Buffalo Rd', hasDivider: false },
     ];
 
-    // Added support for tracking none-right to retain row layout constraints seamlessly
     const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right', 'none-right']);
 
     const DIR_ROTATION = {
@@ -469,7 +470,6 @@
         'down': 180, 'down-left': 225, 'left': 270, 'up-left': 315,
     };
 
-    // Updated labels object map to accommodate dual structural 'none' alignment nodes
     const DIR_LABELS = {
         'none': 'Ø None (Left Aligned)',
         'none-right': 'Ø None (Right Aligned)',
@@ -595,7 +595,7 @@
             rowDiv.style.gap    = elemGap + 'px';
             rowDiv.style.width  = '100%';
 
-            // Arrow (renders an empty alignment spacer box if set to 'none' nodes)
+            // Arrow
             const arrowWrap = document.createElement('div');
             arrowWrap.className = 'sign-arrow';
             arrowWrap.style.width  = aSz + 'px';
@@ -637,7 +637,7 @@
             if (row.hasDivider) {
                 const div = document.createElement('div');
                 div.className = 'sign-divider';
-                div.style.height = dT + 'px'; // Inject dynamic height thickness setting
+                div.style.height = dT + 'px';
                 boardEl.appendChild(div);
             }
         });
