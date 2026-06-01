@@ -537,12 +537,13 @@
 
 <script>
     // ===================== STATE CONFIGURATION =====================
+    // FIXED: Form state preset matches the user image configurations exactly
     let rows = [
-        { type: 'platform', direction: 'none-right', arrowColor: 'white', prefix: 'via', viaCodes: 'DT15:#005ec4,CC4:#fa9e11', destination: 'Promenade', platform: 'D', lineCode: 'CCL', lineBg: '#fa9e11', hasDivider: true },
-        { type: 'platform', direction: 'none-right', arrowColor: 'white', prefix: '', viaCodes: 'BP6:#747474,DT1:#005ec4', destination: 'Bukit Panjang', platform: 'C', lineCode: 'DTL', lineBg: '#005ec4', hasDivider: false },
-        { type: 'exit',     direction: 'up', arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
-        { type: 'exit',     direction: 'up', arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
-        { type: 'exit',     direction: 'right', arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr', hasDivider: false },
+        { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
+        { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
+        { type: 'exit',     direction: 'right',      arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr', hasDivider: true },
+        { type: 'platform', direction: 'down-right', arrowColor: 'yellow', prefix: '',        viaCodes: 'CCL', destination: 'Circle Line', platform: '', lineCode: 'CCL', lineBg: '#fa9e11', hasDivider: false },
+        { type: 'platform', direction: 'down-left',  arrowColor: 'yellow', prefix: '',        viaCodes: 'BP6:#747474,DT1:#005ec4', destination: 'Bukit Panjang', platform: 'C', lineCode: 'DTL', lineBg: '#005ec4', hasDivider: false }
     ];
 
     const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right', 'none-right']);
@@ -584,7 +585,6 @@
 
     // ===================== ARROW IMAGE ENGINE =====================
     const ARROW_IMG = {
-        // [file-white, file-yellow, rotation-deg]
         'up':         ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              0],
         'right':      ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              90],
         'down':       ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              180],
@@ -685,6 +685,8 @@
     }
 
     function buildPlatformBox(letter, rH) {
+        if (!letter || !letter.trim()) return document.createTextNode('');
+        
         const box = document.createElement('div');
         box.className = 'platform-box-element';
         box.textContent = letter;
@@ -763,7 +765,7 @@
             rowDiv.style.gap    = elemGap + 'px';
             rowDiv.style.width  = '100%';
 
-            // Arrow implementation mapping the external image generator
+            // Arrow setup
             let arrowWrap = null;
             if (row.direction !== 'none' && row.direction !== 'none-right') {
                 arrowWrap = buildArrowEl(row.direction, row.arrowColor, aSz);
@@ -802,16 +804,16 @@
                 nameSpan.textContent = row.destination;
                 contentGroup.appendChild(nameSpan);
 
-                const platformBox = buildPlatformBox(row.platform || '?', rH);
+                const platformBox = buildPlatformBox(row.platform || '', rH);
                 const lineCapsule = buildLargeLineCapsule(row.lineCode || '---', row.lineBg || '#747474', rH);
 
                 if (onRight) {
                     destEl.appendChild(contentGroup);
-                    destEl.appendChild(platformBox);
+                    if (row.platform && row.platform.trim()) destEl.appendChild(platformBox);
                     destEl.appendChild(lineCapsule);
                 } else {
                     destEl.appendChild(lineCapsule);
-                    destEl.appendChild(platformBox);
+                    if (row.platform && row.platform.trim()) destEl.appendChild(platformBox);
                     destEl.appendChild(contentGroup);
                 }
             } else {
@@ -883,9 +885,9 @@
                 const type = e.target.value;
                 rows[i].type = type;
                 if (type === 'platform') {
-                    rows[i].prefix = rows[i].prefix || 'via';
-                    rows[i].viaCodes = rows[i].viaCodes || 'CC4:#fa9e11';
-                    rows[i].platform = rows[i].platform || 'A';
+                    rows[i].prefix = rows[i].prefix || '';
+                    rows[i].viaCodes = rows[i].viaCodes || '';
+                    rows[i].platform = rows[i].platform || '';
                     rows[i].lineCode = rows[i].lineCode || 'CCL';
                     rows[i].lineBg = rows[i].lineBg || '#fa9e11';
                 } else {
