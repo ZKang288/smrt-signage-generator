@@ -88,7 +88,6 @@
         /* --- Row Builder --- */
         .rows-wrapper { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
 
-        /* Each row editor is now a vertical card, not a cramped grid */
         .sig-row-editor {
             background: #f8fafc;
             padding: 12px 14px;
@@ -99,7 +98,6 @@
             gap: 10px;
         }
 
-        /* Top strip: direction, color, move, delete */
         .row-top {
             display: grid;
             grid-template-columns: 160px 100px 1fr auto auto;
@@ -107,7 +105,6 @@
             align-items: end;
         }
 
-        /* Bottom strip: exits + destination */
         .row-bottom {
             display: grid;
             grid-template-columns: auto 1fr;
@@ -123,7 +120,6 @@
             align-self: flex-start;
         }
 
-        /* A single exit tag pill in the editor */
         .exit-tag {
             display: inline-flex;
             align-items: center;
@@ -286,10 +282,8 @@
             display: flex;
             align-items: center;
             width: 100%;
+            flex-direction: row;
         }
-
-        /* Always left-to-right; arrow position is handled by DOM order */
-        .sign-row { flex-direction: row; }
 
         .sign-arrow {
             flex-shrink: 0;
@@ -298,14 +292,12 @@
             justify-content: center;
         }
 
-        /* Group of exit icons — always sits between arrow and destination */
         .exits-group {
             display: flex;
             align-items: center;
             flex-shrink: 0;
         }
 
-        /* Individual exit icon wrapper */
         .exit-wrap {
             flex-shrink: 0;
             position: relative;
@@ -343,7 +335,8 @@
             flex: 1;
         }
 
-        .sign-row.arrow-right .sign-dest { text-align: left; }
+        /* FIXED: Right aligned rows text alignment */
+        .sign-row.arrow-right .sign-dest { text-align: right; }
         .sign-row.arrow-left  .sign-dest { text-align: left; }
 
         .sign-divider {
@@ -358,7 +351,6 @@
 <h1>Direction Signage Generator</h1>
 <p class="subtitle">Build wayfinding direction boards — like those seen inside MRT stations. Each row supports multiple exits.</p>
 
-<!-- GLOBAL SETTINGS -->
 <div class="panel">
     <div class="panel-title">Board Settings</div>
     <div class="global-grid">
@@ -426,7 +418,6 @@
     </div>
 </div>
 
-<!-- ROW EDITOR -->
 <div class="panel">
     <div class="panel-title">Sign Rows</div>
     <div class="rows-wrapper" id="rowsContainer"></div>
@@ -435,14 +426,12 @@
 
 <button class="btn-export" id="exportBtn">⬇ Export as PNG</button>
 
-<!-- PREVIEW -->
 <div class="preview-area">
     <div id="sign-board"></div>
 </div>
 
 <script>
     // ===================== STATE =====================
-    // exits is now an ARRAY of strings
     let rows = [
         { direction: 'up',    arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd' },
         { direction: 'up',    arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd' },
@@ -528,7 +517,7 @@
         exitWrap.className = 'exit-wrap';
         exitWrap.style.width    = eSz + 'px';
         exitWrap.style.height   = eSz + 'px';
-        exitWrap.style.marginRight = eGap + 'px'; // spacing between consecutive icons
+        exitWrap.style.marginRight = eGap + 'px';
 
         const exitImg = document.createElement('img');
         exitImg.src       = 'exit_logo.png';
@@ -585,13 +574,10 @@
             arrowWrap.style.height = aSz + 'px';
             arrowWrap.innerHTML    = arrowSVG(row.direction, row.arrowColor, aSz);
 
-            // Exit icons group — always goes between arrow and destination
-            // For right-facing rows the DOM order is reversed (row-reverse flex),
-            // so we keep the same DOM order: exits then destination. The flex reversal
-            // handles visual placement automatically.
+            // Exit icons group
             const exitsGroup = document.createElement('div');
             exitsGroup.className = 'exits-group';
-            exitsGroup.style.gap = '0'; // spacing handled per-icon with marginRight
+            exitsGroup.style.gap = '0';
 
             const exits = row.exits && row.exits.length ? row.exits : ['?'];
             exits.forEach((letter, ei) => {
@@ -605,10 +591,11 @@
             destEl.style.fontSize = dFs + 'px';
             destEl.textContent    = row.destination;
 
+            // FIXED: Flipped appending order for right-facing rows to align elements perfectly
             if (onRight) {
-                // Visual: [Exit][Exit] Destination →
-                rowDiv.appendChild(exitsGroup);
+                // Visual: Destination [Exit][Exit] →
                 rowDiv.appendChild(destEl);
+                rowDiv.appendChild(exitsGroup);
                 rowDiv.appendChild(arrowWrap);
             } else {
                 // Visual: ↑ [Exit][Exit] Destination
@@ -634,7 +621,6 @@
             const ed = document.createElement('div');
             ed.className = 'sig-row-editor';
 
-            /* ---- TOP ROW: direction, color, move buttons, delete ---- */
             const topRow = document.createElement('div');
             topRow.className = 'row-top';
 
@@ -668,7 +654,6 @@
             acSel.addEventListener('change', e => { rows[i].arrowColor = e.target.value; renderSign(); });
             acWrap.appendChild(acSel);
 
-            // Spacer (takes 1fr)
             const spacer = document.createElement('div');
 
             // Move buttons
@@ -700,7 +685,6 @@
             topRow.appendChild(movePair);
             topRow.appendChild(delBtn);
 
-            /* ---- BOTTOM ROW: exits editor + destination ---- */
             const botRow = document.createElement('div');
             botRow.className = 'row-bottom';
 
@@ -735,7 +719,6 @@
                             renderAll();
                         }
                     });
-                    // Don't allow removing the last exit
                     if (row.exits.length === 1) removeBtn.style.display = 'none';
 
                     tag.appendChild(inp);
