@@ -442,12 +442,13 @@
 <nav style="margin-bottom: 20px; display: flex; gap: 15px;">
     <a href="index.html" style="color: #64748b; text-decoration: none;">📋 Exit Signage Generator</a>
     <a href="map.html" style="color: #64748b; text-decoration: none;">🗺️ Platform Signage Generator</a>
-    <a href="line_map_horizontal.html" style="font-weight: bold; color: #004c54; text-decoration: none;">🚇 Route Map Generator</a>
+    <a href="line_map_horizontal.html" style="color: #64748b; text-decoration: none;">🚇 Route Map Generator</a>
     <a href="platform_destination.html" style="color: #64748b; text-decoration: none;">🚏 Platform Destination Generator</a>
+    <a href="direction_signage.html" style="font-weight: bold; color: #004c54; text-decoration: none;">🚶 Direction Signage Generator</a>
 </nav>
 
-<h1>Direction Signage Generator</h1>
-<p class="subtitle">Build wayfinding direction boards — like those seen inside MRT stations. Supports customizable Exit entries and Platform layout maps.</p>
+<h1>🚶 Direction Signage Generator</h1>
+<p class="subtitle">Build wayfinding direction boards. Supports directions to exits and other lines.</p>
 
 <div class="panel">
     <div class="panel-title">Board Settings</div>
@@ -736,6 +737,7 @@
         return box;
     }
 
+    // FIXED: Swapped out standard rigid sizing parameter mapping so wrapper box stretches smoothly to match your dynamic lengths
     function buildLargeLineCapsule(text, bg, rH, fontFamily, lineAbbvFs) {
         const wrapper = document.createElement('div');
         wrapper.className = 'large-capsule-container';
@@ -745,7 +747,7 @@
         const capPadding = gs('capletP') * scaleFactor; 
         
         wrapper.style.height = `${capHeight}px`;
-        wrapper.style.width = `${capHeight * 2.5}px`; 
+        wrapper.style.width = 'auto'; // FIX Applied: Cleared math override to let padding stretch the length freely
         
         const vr = gs('capletVr') * scaleFactor; 
         const hr = gs('capletHr') * scaleFactor; 
@@ -1028,7 +1030,6 @@
                 const platformFieldsGrid = document.createElement('div');
                 platformFieldsGrid.className = 'fields-grid-dynamic';
 
-                // FIXED: Labeled as 'Line Name', other inputs safely cleared out from control layout
                 const dWrap = document.createElement('div');
                 dWrap.className = 'field-wrap';
                 dWrap.innerHTML = '<label>Line Name</label>';
