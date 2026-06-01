@@ -147,7 +147,8 @@
             width: auto;
         }
 
-        .sig-row-editor .exit-tag input {
+        /* FIXED: Added attribute selector restriction [type="text"] to permanently break the specificity tie */
+        .sig-row-editor .exit-tag input[type="text"] {
             width: 32px;
             min-width: 0;
             flex-shrink: 0;
@@ -508,7 +509,6 @@
         const c   = color === 'yellow' ? '#FFCD00' : '#FFFFFF';
         const rot = DIR_ROTATION[direction] || 0;
     
-        // FIXED: Complete mathematical rewrite mapping coordinates to the parallel wing chevron arrow architecture
         return `
         <svg
             width="${size}"
