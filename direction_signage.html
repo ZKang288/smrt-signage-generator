@@ -147,7 +147,6 @@
             width: auto;
         }
 
-        /* FIXED: Added attribute selector restriction [type="text"] to permanently break the specificity tie */
         .sig-row-editor .exit-tag input[type="text"] {
             width: 32px;
             min-width: 0;
@@ -464,9 +463,10 @@
 
     const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right', 'none-right']);
 
+    // Map directions to standard 90-degree step variations for rendering
     const DIR_ROTATION = {
-        'up': 0, 'up-right': 45, 'right': 90, 'down-right': 135,
-        'down': 180, 'down-left': 225, 'left': 270, 'up-left': 315,
+        'up': 0, 'right': 90, 'down': 180, 'left': 270,
+        'up-right': 0, 'down-right': 90, 'down-left': 180, 'up-left': 270
     };
 
     const DIR_LABELS = {
@@ -509,6 +509,16 @@
         const c   = color === 'yellow' ? '#FFCD00' : '#FFFFFF';
         const rot = DIR_ROTATION[direction] || 0;
     
+        // AIGA Straight Arrow Geometry (Up, Right, Down, Left)
+        const straightPath = "M 50 5 L 95 50 L 66 50 L 66 95 L 34 95 L 34 50 L 5 50 Z";
+        
+        // AIGA Diagonal Arrow Geometry (Up-Right, Down-Right, Down-Left, Up-Left)
+        const diagonalPath = "M 25 5 L 95 5 L 95 75 L 68 48 L 23 93 L 7 77 L 52 32 Z";
+        
+        // Determine vector path variant base configuration
+        const isDiagonal = ['up-right', 'down-right', 'down-left', 'up-left'].includes(direction);
+        const activePath = isDiagonal ? diagonalPath : straightPath;
+
         return `
         <svg
             width="${size}"
@@ -520,16 +530,7 @@
             <path
                 fill="${c}"
                 transform="rotate(${rot}, 50, 50)"
-                d="
-                    M 40 95
-                    L 40 65
-                    L 15 40
-                    L 50 5
-                    L 85 40
-                    L 60 65
-                    L 60 95
-                    Z
-                "
+                d="${activePath}"
             />
         </svg>`;
     }
