@@ -33,7 +33,7 @@
 
         .panel {
             width: 100%;
-            max-width: 1100px;
+            max-width: 1150px;
             background: white;
             padding: 28px 30px;
             border-radius: 16px;
@@ -86,18 +86,90 @@
         .ctrl input:focus, .ctrl select:focus { border-color: #004c54; }
 
         /* --- Row Builder --- */
-        .rows-wrapper { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+        .rows-wrapper { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
 
+        /* Each row editor is now a vertical card, not a cramped grid */
         .sig-row-editor {
-            display: grid;
-            grid-template-columns: 140px 90px 70px 1fr 60px auto;
-            gap: 8px;
-            align-items: center;
             background: #f8fafc;
-            padding: 10px 12px;
+            padding: 12px 14px;
             border-radius: 10px;
             border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
+
+        /* Top strip: direction, color, move, delete */
+        .row-top {
+            display: grid;
+            grid-template-columns: 160px 100px 1fr auto auto;
+            gap: 8px;
+            align-items: end;
+        }
+
+        /* Bottom strip: exits + destination */
+        .row-bottom {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .exits-area {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* A single exit tag pill in the editor */
+        .exit-tag {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #ffcd00;
+            border-radius: 6px;
+            padding: 3px 6px 3px 8px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #000;
+        }
+
+        .exit-tag input {
+            width: 34px;
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 700;
+            color: #000;
+            outline: none;
+            text-align: center;
+            padding: 0;
+        }
+
+        .exit-tag-del {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            color: #7a5a00;
+            line-height: 1;
+            padding: 0 2px;
+        }
+        .exit-tag-del:hover { color: #ef4444; }
+
+        .btn-add-exit {
+            background: #e2e8f0;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-add-exit:hover { background: #cbd5e1; }
 
         .sig-row-editor label {
             font-size: 11px;
@@ -107,7 +179,7 @@
             margin-bottom: 3px;
         }
 
-        .sig-row-editor input,
+        .sig-row-editor input[type="text"],
         .sig-row-editor select {
             width: 100%;
             padding: 6px 8px;
@@ -135,9 +207,23 @@
             line-height: 1;
             transition: background 0.15s;
             flex-shrink: 0;
+            align-self: flex-end;
         }
         .btn-del:hover { background: #fca5a5; }
         .btn-del:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .btn-move {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: none;
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1;
+        }
+        .btn-move:disabled { opacity: 0.3; cursor: not-allowed; }
 
         .btn-add {
             width: 100%;
@@ -155,7 +241,7 @@
 
         .btn-export {
             width: 100%;
-            max-width: 1100px;
+            max-width: 1150px;
             padding: 14px;
             background: #004c54;
             color: white;
@@ -173,7 +259,7 @@
         /* ===================== SIGNAGE PREVIEW ===================== */
         .preview-area {
             width: 100%;
-            max-width: 1100px;
+            max-width: 1150px;
             overflow-x: auto;
             display: flex;
             justify-content: center;
@@ -197,7 +283,6 @@
             width: 100%;
         }
 
-        /* Arrow sits on the RIGHT for right-family directions */
         .sign-row.arrow-right { flex-direction: row-reverse; }
         .sign-row.arrow-left  { flex-direction: row; }
 
@@ -208,7 +293,14 @@
             justify-content: center;
         }
 
-        /* Exit icon wrapper — uses exit_logo.png as <img> */
+        /* Group of exit icons — always sits between arrow and destination */
+        .exits-group {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        /* Individual exit icon wrapper */
         .exit-wrap {
             flex-shrink: 0;
             position: relative;
@@ -233,7 +325,6 @@
             padding: 0 2px;
             line-height: 1;
             text-align: center;
-            /* Positioned over the yellow band of exit_logo.png */
             top: 56%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -247,6 +338,7 @@
             flex: 1;
         }
 
+        /* For right-facing rows: destination text aligns right, exits group also on right side of dest */
         .sign-row.arrow-right .sign-dest { text-align: right; }
         .sign-row.arrow-left  .sign-dest { text-align: left; }
 
@@ -260,7 +352,7 @@
 <body>
 
 <h1>Direction Signage Generator</h1>
-<p class="subtitle">Build wayfinding direction boards.</p>
+<p class="subtitle">Build wayfinding direction boards — like those seen inside MRT stations. Each row supports multiple exits.</p>
 
 <!-- GLOBAL SETTINGS -->
 <div class="panel">
@@ -309,6 +401,10 @@
             <input type="range" id="exitFs" min="10" max="55" value="20">
         </div>
         <div class="ctrl">
+            <label>Gap Between Exits (px): <span id="exitGapVal">6</span></label>
+            <input type="range" id="exitGap" min="0" max="30" value="6">
+        </div>
+        <div class="ctrl">
             <label>Arrow Size (px): <span id="arrowSzVal">42</span></label>
             <input type="range" id="arrowSz" min="18" max="100" value="42">
         </div>
@@ -342,37 +438,25 @@
 
 <script>
     // ===================== STATE =====================
+    // exits is now an ARRAY of strings
     let rows = [
-        { direction: 'up',    arrowColor: 'yellow', exit: 'A', destination: 'Bukit Timah Rd' },
-        { direction: 'up',    arrowColor: 'yellow', exit: 'A', destination: 'MacKenzie Rd' },
-        { direction: 'up',    arrowColor: 'yellow', exit: 'C', destination: 'Serangoon Rd / Tekka Ctr' },
-        { direction: 'up',    arrowColor: 'yellow', exit: 'E', destination: 'Race Course Rd / Buffalo Rd' },
+        { direction: 'up',    arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd' },
+        { direction: 'up',    arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd' },
+        { direction: 'right', arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr' },
+        { direction: 'up',    arrowColor: 'yellow', exits: ['E'],      destination: 'Race Course Rd / Buffalo Rd' },
     ];
 
-    // Which directions have the arrow on the right end of the row
     const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right']);
 
-    // Rotation angle in degrees for each direction (0 = pointing up)
     const DIR_ROTATION = {
-        'up':         0,
-        'up-right':   45,
-        'right':      90,
-        'down-right': 135,
-        'down':       180,
-        'down-left':  225,
-        'left':       270,
-        'up-left':    315,
+        'up': 0, 'up-right': 45, 'right': 90, 'down-right': 135,
+        'down': 180, 'down-left': 225, 'left': 270, 'up-left': 315,
     };
 
     const DIR_LABELS = {
-        'up':         '↑ Up',
-        'up-right':   '↗ Up-Right',
-        'right':      '→ Right',
-        'down-right': '↘ Down-Right',
-        'down':       '↓ Down',
-        'down-left':  '↙ Down-Left',
-        'left':       '← Left',
-        'up-left':    '↖ Up-Left',
+        'up': '↑ Up', 'up-right': '↗ Up-Right', 'right': '→ Right',
+        'down-right': '↘ Down-Right', 'down': '↓ Down',
+        'down-left': '↙ Down-Left', 'left': '← Left', 'up-left': '↖ Up-Left',
     };
 
     // ===================== DOM REFS =====================
@@ -393,6 +477,7 @@
         destFs:     { el: document.getElementById('destFs'),     disp: document.getElementById('destFsVal') },
         exitSz:     { el: document.getElementById('exitSz'),     disp: document.getElementById('exitSzVal') },
         exitFs:     { el: document.getElementById('exitFs'),     disp: document.getElementById('exitFsVal') },
+        exitGap:    { el: document.getElementById('exitGap'),    disp: document.getElementById('exitGapVal') },
         arrowSz:    { el: document.getElementById('arrowSz'),    disp: document.getElementById('arrowSzVal') },
         elemGap:    { el: document.getElementById('elemGap'),    disp: document.getElementById('elemGapVal') },
     };
@@ -400,38 +485,55 @@
     function gs(key) { return parseInt(sliders[key].el.value); }
 
     // ===================== ARROW SVG =====================
-    // Bold notched chevron arrow — matches the style in the reference photo.
-    // Always drawn pointing UP in SVG, then rotated via CSS transform.
     function arrowSVG(direction, color, size) {
         const c   = color === 'yellow' ? '#FFCD00' : '#FFFFFF';
         const rot = DIR_ROTATION[direction] || 0;
         const s   = size;
+        const cx  = s / 2;
+        const tip = s * 0.04;
+        const sw  = s * 0.38;
+        const sh  = s * 0.54;
+        const bot = s * 0.96;
+        const notchDepth = s * 0.18;
 
-        // Notched/chunky arrow shape drawn pointing UP within a square viewbox.
-        // Points: tip at top-center, two shoulders, two notch points, two tail corners.
-        const cx  = s / 2;           // horizontal centre
-        const tip = s * 0.04;        // tip Y (near top)
-        const sw  = s * 0.38;        // half shaft width
-        const sh  = s * 0.54;        // shaft top Y (where shoulders meet shaft)
-        const bot = s * 0.96;        // bottom Y
-        const notchDepth = s * 0.18; // how deep the tail notch goes up
-
-        // Clockwise from tip:
         const pts = [
-            [cx,       tip ],          // tip
-            [s - s*0.04, sh],          // right shoulder outer
-            [cx + sw,  sh  ],          // right shoulder inner
-            [cx + sw,  bot ],          // right tail corner
-            [cx,       bot - notchDepth], // tail notch centre
-            [cx - sw,  bot ],          // left tail corner
-            [cx - sw,  sh  ],          // left shoulder inner
-            [s*0.04,   sh  ],          // left shoulder outer
+            [cx,           tip],
+            [s - s * 0.04, sh],
+            [cx + sw,      sh],
+            [cx + sw,      bot],
+            [cx,           bot - notchDepth],
+            [cx - sw,      bot],
+            [cx - sw,      sh],
+            [s * 0.04,     sh],
         ].map(p => p.join(',')).join(' ');
 
         return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg"
                      style="transform:rotate(${rot}deg);display:block;flex-shrink:0;">
             <polygon points="${pts}" fill="${c}"/>
         </svg>`;
+    }
+
+    // ===================== BUILD ONE EXIT ICON (DOM) =====================
+    function buildExitIconEl(letter, eSz, eFs, eGap) {
+        const exitWrap = document.createElement('div');
+        exitWrap.className = 'exit-wrap';
+        exitWrap.style.width    = eSz + 'px';
+        exitWrap.style.height   = eSz + 'px';
+        exitWrap.style.marginRight = eGap + 'px'; // spacing between consecutive icons
+
+        const exitImg = document.createElement('img');
+        exitImg.src       = 'exit_logo.png';
+        exitImg.alt       = 'Exit';
+        exitImg.className = 'exit-img';
+
+        const exitLetter = document.createElement('div');
+        exitLetter.className      = 'exit-letter';
+        exitLetter.style.fontSize = eFs + 'px';
+        exitLetter.textContent    = letter || '?';
+
+        exitWrap.appendChild(exitImg);
+        exitWrap.appendChild(exitLetter);
+        return exitWrap;
     }
 
     // ===================== RENDER SIGN =====================
@@ -445,8 +547,9 @@
         const dFs     = gs('destFs');
         const eSz     = gs('exitSz');
         const eFs     = gs('exitFs');
+        const eGap    = gs('exitGap');
         const aSz     = gs('arrowSz');
-        const eGap    = gs('elemGap');
+        const elemGap = gs('elemGap');
         const dividers = showDividers.value === 'yes';
 
         boardEl.style.backgroundColor = bg;
@@ -463,7 +566,7 @@
             const rowDiv = document.createElement('div');
             rowDiv.className = `sign-row ${onRight ? 'arrow-right' : 'arrow-left'}`;
             rowDiv.style.height = rH + 'px';
-            rowDiv.style.gap    = eGap + 'px';
+            rowDiv.style.gap    = elemGap + 'px';
             rowDiv.style.width  = '100%';
 
             // Arrow
@@ -473,33 +576,30 @@
             arrowWrap.style.height = aSz + 'px';
             arrowWrap.innerHTML    = arrowSVG(row.direction, row.arrowColor, aSz);
 
-            // Exit icon — uses exit_logo.png with letter overlaid (same as index_6_.html)
-            const exitWrap = document.createElement('div');
-            exitWrap.className = 'exit-wrap';
-            exitWrap.style.width  = eSz + 'px';
-            exitWrap.style.height = eSz + 'px';
+            // Exit icons group — always goes between arrow and destination
+            // For right-facing rows the DOM order is reversed (row-reverse flex),
+            // so we keep the same DOM order: exits then destination. The flex reversal
+            // handles visual placement automatically.
+            const exitsGroup = document.createElement('div');
+            exitsGroup.className = 'exits-group';
+            exitsGroup.style.gap = '0'; // spacing handled per-icon with marginRight
 
-            const exitImg = document.createElement('img');
-            exitImg.src       = 'exit_logo.png';
-            exitImg.alt       = 'Exit';
-            exitImg.className = 'exit-img';
-
-            const exitLetter = document.createElement('div');
-            exitLetter.className   = 'exit-letter';
-            exitLetter.style.fontSize = eFs + 'px';
-            exitLetter.textContent = row.exit || '?';
-
-            exitWrap.appendChild(exitImg);
-            exitWrap.appendChild(exitLetter);
+            const exits = row.exits && row.exits.length ? row.exits : ['?'];
+            exits.forEach((letter, ei) => {
+                const icon = buildExitIconEl(letter, eSz, eFs, ei < exits.length - 1 ? eGap : 0);
+                exitsGroup.appendChild(icon);
+            });
 
             // Destination
             const destEl = document.createElement('div');
-            destEl.className   = 'sign-dest';
+            destEl.className      = 'sign-dest';
             destEl.style.fontSize = dFs + 'px';
-            destEl.textContent = row.destination;
+            destEl.textContent    = row.destination;
 
+            // DOM order: arrow | exits | destination
+            // row-reverse flex on arrow-right rows will visually flip to: destination | exits | arrow
             rowDiv.appendChild(arrowWrap);
-            rowDiv.appendChild(exitWrap);
+            rowDiv.appendChild(exitsGroup);
             rowDiv.appendChild(destEl);
 
             boardEl.appendChild(rowDiv);
@@ -519,7 +619,11 @@
             const ed = document.createElement('div');
             ed.className = 'sig-row-editor';
 
-            // Direction — all 8
+            /* ---- TOP ROW: direction, color, move buttons, delete ---- */
+            const topRow = document.createElement('div');
+            topRow.className = 'row-top';
+
+            // Direction
             const dirWrap = document.createElement('div');
             dirWrap.className = 'field-wrap';
             dirWrap.innerHTML = '<label>Direction</label>';
@@ -549,17 +653,93 @@
             acSel.addEventListener('change', e => { rows[i].arrowColor = e.target.value; renderSign(); });
             acWrap.appendChild(acSel);
 
-            // Exit Letter
-            const exWrap = document.createElement('div');
-            exWrap.className = 'field-wrap';
-            exWrap.innerHTML = '<label>Exit</label>';
-            const exInp = document.createElement('input');
-            exInp.type      = 'text';
-            exInp.value     = row.exit;
-            exInp.maxLength = 3;
-            exInp.placeholder = 'A';
-            exInp.addEventListener('input', e => { rows[i].exit = e.target.value.toUpperCase(); renderSign(); });
-            exWrap.appendChild(exInp);
+            // Spacer (takes 1fr)
+            const spacer = document.createElement('div');
+
+            // Move buttons
+            const movePair = document.createElement('div');
+            movePair.style.cssText = 'display:flex;gap:4px;align-self:flex-end;';
+            const upBtn = document.createElement('button');
+            upBtn.className = 'btn-move';
+            upBtn.textContent = '↑';
+            upBtn.disabled = i === 0;
+            upBtn.addEventListener('click', () => { if (i > 0) { [rows[i-1], rows[i]] = [rows[i], rows[i-1]]; renderAll(); } });
+            const dnBtn = document.createElement('button');
+            dnBtn.className = 'btn-move';
+            dnBtn.textContent = '↓';
+            dnBtn.disabled = i === rows.length - 1;
+            dnBtn.addEventListener('click', () => { if (i < rows.length - 1) { [rows[i], rows[i+1]] = [rows[i+1], rows[i]]; renderAll(); } });
+            movePair.appendChild(upBtn);
+            movePair.appendChild(dnBtn);
+
+            // Delete
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-del';
+            delBtn.textContent = '✕';
+            delBtn.disabled = rows.length === 1;
+            delBtn.addEventListener('click', () => { rows.splice(i, 1); renderAll(); });
+
+            topRow.appendChild(dirWrap);
+            topRow.appendChild(acWrap);
+            topRow.appendChild(spacer);
+            topRow.appendChild(movePair);
+            topRow.appendChild(delBtn);
+
+            /* ---- BOTTOM ROW: exits editor + destination ---- */
+            const botRow = document.createElement('div');
+            botRow.className = 'row-bottom';
+
+            // Exits area
+            const exitsArea = document.createElement('div');
+            exitsArea.innerHTML = '<label style="display:block;font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;">Exits</label>';
+            const exitsFlex = document.createElement('div');
+            exitsFlex.className = 'exits-area';
+
+            function rebuildExitTags() {
+                exitsFlex.innerHTML = '';
+                row.exits.forEach((letter, ei) => {
+                    const tag = document.createElement('div');
+                    tag.className = 'exit-tag';
+
+                    const inp = document.createElement('input');
+                    inp.type = 'text';
+                    inp.value = letter;
+                    inp.maxLength = 3;
+                    inp.addEventListener('input', e => {
+                        rows[i].exits[ei] = e.target.value.toUpperCase();
+                        renderSign();
+                    });
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'exit-tag-del';
+                    removeBtn.textContent = '×';
+                    removeBtn.title = 'Remove exit';
+                    removeBtn.addEventListener('click', () => {
+                        if (rows[i].exits.length > 1) {
+                            rows[i].exits.splice(ei, 1);
+                            renderAll();
+                        }
+                    });
+                    // Don't allow removing the last exit
+                    if (row.exits.length === 1) removeBtn.style.display = 'none';
+
+                    tag.appendChild(inp);
+                    tag.appendChild(removeBtn);
+                    exitsFlex.appendChild(tag);
+                });
+
+                const addExitBtn = document.createElement('button');
+                addExitBtn.className = 'btn-add-exit';
+                addExitBtn.textContent = '+ Exit';
+                addExitBtn.addEventListener('click', () => {
+                    rows[i].exits.push('');
+                    renderAll();
+                });
+                exitsFlex.appendChild(addExitBtn);
+            }
+
+            rebuildExitTags();
+            exitsArea.appendChild(exitsFlex);
 
             // Destination
             const destWrap = document.createElement('div');
@@ -572,41 +752,11 @@
             destInp.addEventListener('input', e => { rows[i].destination = e.target.value; renderSign(); });
             destWrap.appendChild(destInp);
 
-            // Move up / down
-            const moveWrap = document.createElement('div');
-            moveWrap.className = 'field-wrap';
-            moveWrap.innerHTML = '<label>Move</label>';
-            const moveRow = document.createElement('div');
-            moveRow.style.cssText = 'display:flex;gap:4px;';
-            const upBtn = document.createElement('button');
-            upBtn.className  = 'btn-del';
-            upBtn.style.cssText = 'background:#e0f2fe;color:#0369a1;width:28px;height:28px;font-size:13px;';
-            upBtn.textContent = '↑';
-            upBtn.disabled   = i === 0;
-            upBtn.addEventListener('click', () => { if (i > 0) { [rows[i-1], rows[i]] = [rows[i], rows[i-1]]; renderAll(); } });
-            const dnBtn = document.createElement('button');
-            dnBtn.className  = 'btn-del';
-            dnBtn.style.cssText = 'background:#e0f2fe;color:#0369a1;width:28px;height:28px;font-size:13px;';
-            dnBtn.textContent = '↓';
-            dnBtn.disabled   = i === rows.length - 1;
-            dnBtn.addEventListener('click', () => { if (i < rows.length - 1) { [rows[i], rows[i+1]] = [rows[i+1], rows[i]]; renderAll(); } });
-            moveRow.appendChild(upBtn);
-            moveRow.appendChild(dnBtn);
-            moveWrap.appendChild(moveRow);
+            botRow.appendChild(exitsArea);
+            botRow.appendChild(destWrap);
 
-            // Delete
-            const delBtn = document.createElement('button');
-            delBtn.className   = 'btn-del';
-            delBtn.textContent = '✕';
-            delBtn.disabled    = rows.length === 1;
-            delBtn.addEventListener('click', () => { rows.splice(i, 1); renderAll(); });
-
-            ed.appendChild(dirWrap);
-            ed.appendChild(acWrap);
-            ed.appendChild(exWrap);
-            ed.appendChild(destWrap);
-            ed.appendChild(moveWrap);
-            ed.appendChild(delBtn);
+            ed.appendChild(topRow);
+            ed.appendChild(botRow);
             rowsCont.appendChild(ed);
         });
     }
@@ -615,7 +765,7 @@
 
     // ===================== EVENTS =====================
     addRowBtn.addEventListener('click', () => {
-        rows.push({ direction: 'up', arrowColor: 'yellow', exit: 'A', destination: 'New Destination' });
+        rows.push({ direction: 'up', arrowColor: 'yellow', exits: ['A'], destination: 'New Destination' });
         renderAll();
     });
 
