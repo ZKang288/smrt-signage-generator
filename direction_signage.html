@@ -492,28 +492,33 @@
     function arrowSVG(direction, color, size) {
         const c   = color === 'yellow' ? '#FFCD00' : '#FFFFFF';
         const rot = DIR_ROTATION[direction] || 0;
-        const s   = size;
-        const cx  = s / 2;
-        const tip = s * 0.04;
-        const sw  = s * 0.38;
-        const sh  = s * 0.54;
-        const bot = s * 0.96;
-        const notchDepth = s * 0.18;
-
-        const pts = [
-            [cx,           tip],
-            [s - s * 0.04, sh],
-            [cx + sw,      sh],
-            [cx + sw,      bot],
-            [cx,           bot - notchDepth],
-            [cx - sw,      bot],
-            [cx - sw,      sh],
-            [s * 0.04,     sh],
-        ].map(p => p.join(',')).join(' ');
-
-        return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg"
-                     style="transform:rotate(${rot}deg);display:block;flex-shrink:0;">
-            <polygon points="${pts}" fill="${c}"/>
+    
+        return `
+        <svg
+            width="${size}"
+            height="${size}"
+            viewBox="0 0 100 100"
+            xmlns="http://www.w3.org/2000/svg"
+            style="
+                transform: rotate(${rot}deg);
+                display:block;
+                flex-shrink:0;
+            "
+        >
+            <path
+                fill="${c}"
+                d="
+                    M50 4
+                    L94 48
+                    L72 48
+                    L72 92
+                    L50 78
+                    L28 92
+                    L28 48
+                    L6 48
+                    Z
+                "
+            />
         </svg>`;
     }
 
