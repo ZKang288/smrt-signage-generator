@@ -98,9 +98,10 @@
             gap: 10px;
         }
 
+        /* Adjusted layout columns to neatly fit the divider control option */
         .row-top {
             display: grid;
-            grid-template-columns: 160px 100px 1fr auto auto;
+            grid-template-columns: 160px 100px 110px 1fr auto auto;
             gap: 8px;
             align-items: end;
         }
@@ -407,13 +408,6 @@
             <label>Spacing Between Elements (px): <span id="elemGapVal">16</span></label>
             <input type="range" id="elemGap" min="4" max="50" value="16">
         </div>
-        <div class="ctrl">
-            <label>Show Divider Lines</label>
-            <select id="showDividers">
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-            </select>
-        </div>
     </div>
 </div>
 
@@ -431,11 +425,12 @@
 
 <script>
     // ===================== STATE =====================
+    // Added 'hasDivider' property to individual row data configurations
     let rows = [
-        { direction: 'up',    arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd' },
-        { direction: 'up',    arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd' },
-        { direction: 'right', arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr' },
-        { direction: 'up',    arrowColor: 'yellow', exits: ['E'],      destination: 'Race Course Rd / Buffalo Rd' },
+        { direction: 'up',    arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
+        { direction: 'up',    arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
+        { direction: 'right', arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr', hasDivider: false },
+        { direction: 'up',    arrowColor: 'yellow', exits: ['E'],      destination: 'Race Course Rd / Buffalo Rd', hasDivider: false },
     ];
 
     const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right']);
@@ -458,7 +453,6 @@
     const bgColorSel    = document.getElementById('bgColor');
     const bgColorCustom = document.getElementById('bgColorCustom');
     const exportBtn     = document.getElementById('exportBtn');
-    const showDividers  = document.getElementById('showDividers');
 
     const sliders = {
         boardWidth: { el: document.getElementById('boardWidth'), disp: document.getElementById('boardWidthVal') },
@@ -481,7 +475,6 @@
         const c   = color === 'yellow' ? '#FFCD00' : '#FFFFFF';
         const rot = DIR_ROTATION[direction] || 0;
     
-        // FIXED: Slender, sharp vector path coordinates modeled after official LTA standards
         return `
         <svg
             width="${size}"
@@ -548,7 +541,6 @@
         const eGap    = gs('exitGap');
         const aSz     = gs('arrowSz');
         const elemGap = gs('elemGap');
-        const dividers = showDividers.value === 'yes';
 
         boardEl.style.backgroundColor = bg;
         boardEl.style.width    = width + 'px';
@@ -603,7 +595,8 @@
 
             boardEl.appendChild(rowDiv);
 
-            if (dividers && i < rows.length - 1) {
+            // CHANGED: Render divider line if specified on this individual row state
+            if (row.hasDivider) {
                 const div = document.createElement('div');
                 div.className = 'sign-divider';
                 boardEl.appendChild(div);
@@ -651,6 +644,21 @@
             acSel.addEventListener('change', e => { rows[i].arrowColor = e.target.value; renderSign(); });
             acWrap.appendChild(acSel);
 
+            // CHANGED: Added individual divider selector field dropdown control
+            const divWrap = document.createElement('div');
+            divWrap.className = 'field-wrap';
+            divWrap.innerHTML = '<label>Divider Below</label>';
+            const divSel = document.createElement('select');
+            [['no', 'No'], ['yes', 'Yes']].forEach(([val, lbl]) => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = lbl;
+                if ((val === 'yes' && row.hasDivider) || (val === 'no' && !row.hasDivider)) opt.selected = true;
+                divSel.appendChild(opt);
+            });
+            divSel.addEventListener('change', e => { rows[i].hasDivider = (e.target.value === 'yes'); renderSign(); });
+            divWrap.appendChild(divSel);
+
             const spacer = document.createElement('div');
 
             // Move buttons
@@ -678,6 +686,7 @@
 
             topRow.appendChild(dirWrap);
             topRow.appendChild(acWrap);
+            topRow.appendChild(divWrap);
             topRow.appendChild(spacer);
             topRow.appendChild(movePair);
             topRow.appendChild(delBtn);
@@ -760,7 +769,7 @@
 
     // ===================== EVENTS =====================
     addRowBtn.addEventListener('click', () => {
-        rows.push({ direction: 'up', arrowColor: 'yellow', exits: ['A'], destination: 'New Destination' });
+        rows.push({ direction: 'up', arrowColor: 'yellow', exits: ['A'], destination: 'New Destination', hasDivider: false });
         renderAll();
     });
 
@@ -773,8 +782,6 @@
     Object.values(sliders).forEach(({ el, disp }) => {
         el.addEventListener('input', () => { disp.textContent = el.value; renderSign(); });
     });
-
-    showDividers.addEventListener('change', renderSign);
 
     exportBtn.addEventListener('click', () => {
         document.fonts.ready.then(() => {
