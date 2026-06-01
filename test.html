@@ -372,7 +372,6 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: transparent;
             color: #ffffff;
             font-weight: 900;
             text-align: center;
@@ -432,7 +431,6 @@
             white-space: nowrap;
         }
 
-        /* FIXED: Changed divider background fill color to solid clean white */
         .sign-divider {
             background: #ffffff;
             width: 100%;
@@ -652,7 +650,6 @@
     }
 
     // ===================== PLATFORM BUILDER SUB-COMPONENTS =====================
-    // FIXED: Inherits target caplet exit font configurations dynamically
     function buildLinkedViaContainer(viaInputString, rH, fontFamily) {
         const container = document.createElement('div');
         container.className = 'via-chain-container';
@@ -686,8 +683,8 @@
         return container;
     }
 
-    // FIXED: Inherits target caplet exit font configurations dynamically
-    function buildPlatformBox(letter, rH, fontFamily) {
+    // FIXED: Inherits and sets the dynamic background fill using the lineBg parameter
+    function buildPlatformBox(letter, rH, fontFamily, lineBg) {
         const box = document.createElement('div');
         box.className = 'platform-box-element';
         box.textContent = letter;
@@ -697,6 +694,7 @@
         box.style.height = `${size}px`;
         box.style.fontSize = `${size * 0.62}px`;
         box.style.fontFamily = fontFamily; 
+        box.style.backgroundColor = lineBg || 'transparent'; 
         
         const bar = document.createElement('div');
         bar.className = 'platform-underline-bar';
@@ -706,7 +704,6 @@
         return box;
     }
 
-    // FIXED: Inherits target caplet exit font configurations dynamically
     function buildLargeLineCapsule(text, bg, rH, fontFamily) {
         const wrapper = document.createElement('div');
         wrapper.className = 'large-capsule-container';
@@ -767,7 +764,7 @@
             rowDiv.style.gap    = elemGap + 'px';
             rowDiv.style.width  = '100%';
 
-            // Arrow
+            // Arrow setup
             let arrowWrap = null;
             if (row.direction !== 'none' && row.direction !== 'none-right') {
                 arrowWrap = buildArrowEl(row.direction, row.arrowColor, aSz);
@@ -785,7 +782,6 @@
             destEl.style.fontFamily = currentDestFont;
 
             if (row.type === 'platform') {
-                // FIXED: Evaluates dynamic fields to omit structure completely if blank
                 const hasPlatform = row.platform && row.platform.trim();
                 const hasLine = row.lineCode && row.lineCode.trim();
                 const hasVia = row.viaCodes && row.viaCodes.trim();
@@ -795,7 +791,6 @@
                 contentGroup.style.alignItems = 'center';
                 contentGroup.style.gap = `${elemGap}px`;
 
-                // Only append prefix string if a valid via capsule chain exists
                 if (hasVia && row.prefix && row.prefix.trim()) {
                     const prefixSpan = document.createElement('span');
                     prefixSpan.className = 'platform-prefix-text';
@@ -812,7 +807,8 @@
                 nameSpan.textContent = row.destination;
                 contentGroup.appendChild(nameSpan);
 
-                const platformBox = hasPlatform ? buildPlatformBox(row.platform, rH, currentExitFont) : null;
+                // FIXED: Passes row.lineBg into the platform tracking engine parameter slot
+                const platformBox = hasPlatform ? buildPlatformBox(row.platform, rH, currentExitFont, row.lineBg) : null;
                 const lineCapsule = hasLine ? buildLargeLineCapsule(row.lineCode, row.lineBg || '#747474', rH, currentExitFont) : null;
 
                 if (onRight) {
@@ -1162,7 +1158,7 @@
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'direction_signage.png';
-                link.href = canvas.toVisual('image/png');
+                link.href = canvas.toDataURL('image/png');
                 link.click();
             });
         });
