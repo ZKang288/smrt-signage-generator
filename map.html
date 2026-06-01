@@ -292,24 +292,32 @@
                     </select>
                     <input type="color" id="panelColorPicker" class="color-picker-box" value="#cbd5e1" style="display: none;">
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
-                    <input type="checkbox" id="autoWidth" style="width: auto; cursor: pointer;">
-                    <label for="autoWidth" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Auto Calculate Panel Width</label>
+                
+                <div style="display: flex; gap: 20px; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="autoWidth" style="width: auto; cursor: pointer;">
+                        <label for="autoWidth" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Auto Calculate Width</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;" id="lockRatioGroup">
+                        <input type="checkbox" id="lockAspectRatio" checked style="width: auto; cursor: pointer;">
+                        <label for="lockAspectRatio" style="font-size: 13px; font-weight: 600; color: #475569; margin: 0; cursor: pointer;">Lock Aspect Ratio</label>
+                    </div>
                 </div>
+
                 <div class="control-group" id="widthSliderGroup">
                     <label for="signageWidth">Custom Width (500px - 2000px): <span id="widthVal">600px</span></label>
-                    <input type="range" id="signageWidth" min="500" max="3000" value="1835">
+                    <input type="range" id="signageWidth" min="500" max="2000" value="600">
                 </div>
                 <div class="control-group" id="heightSliderGroup">
-                    <label for="signageHeight">Custom Height (120px - 400px): <span id="signageHeightVal">180px</span></label>
-                    <input type="range" id="signageHeight" min="120" max="700" value="430">
+                    <label for="signageHeight">Custom Height (120px - 500px): <span id="signageHeightVal">180px</span></label>
+                    <input type="range" id="signageHeight" min="120" max="500" value="180">
                 </div>
             </div>
 
             <div>
                 <div class="section-title">Line Configuration</div>
                 <div class="control-group">
-                    <labelRegistry for="lineSelect">Primary System Line</labelRegistry>
+                    <label for="lineSelect">Primary System Line</label>
                     <select id="lineSelect"></select>
                     <input type="color" id="lineColorPicker" class="color-picker-box" value="#64748b" style="display: none;">
                 </div>
@@ -447,6 +455,7 @@
         
         const mrtSignage = document.getElementById('mrt-signage');
         const autoWidth = document.getElementById('autoWidth');
+        const lockAspectRatio = document.getElementById('lockAspectRatio');
         const widthSliderGroup = document.getElementById('widthSliderGroup');
         const signageWidthInput = document.getElementById('signageWidth');
         const widthVal = document.getElementById('widthVal');
@@ -478,6 +487,10 @@
         const bandCapletWrapper = document.getElementById('bandCapletWrapper');
         const bandLineNameText = document.getElementById('bandLineNameText');
 
+        // Tracking global variables for programmatic symmetrical aspect ratio mapping limits
+        let liveAspectRatio = 600 / 180;
+        let internalSymmetricSyncLock = false;
+
         // Populate Line Selector Options
         standardLines.forEach(line => {
             const opt = document.createElement('option');
@@ -501,6 +514,37 @@
             return '#ffffff';
         }
 
+        // Dedicated event filter listeners for cross-slider proportion syncing calculation routines
+        signageWidthInput.addEventListener('input', () => {
+            if (lockAspectRatio.checked && !internalSymmetricSyncLock && !autoWidth.checked) {
+                internalSymmetricSyncLock = true;
+                let targetHeightValue = Math.round(signageWidthInput.value / liveAspectRatio);
+                targetHeightValue = Math.max(signageHeightInput.min, Math.min(signageHeightInput.max, targetHeightValue));
+                signageHeightInput.value = targetHeightValue;
+                internalSymmetricSyncLock = false;
+            } else if (!lockAspectRatio.checked && !autoWidth.checked) {
+                liveAspectRatio = signageWidthInput.value / signageHeightInput.value;
+            }
+        });
+
+        signageHeightInput.addEventListener('input', () => {
+            if (lockAspectRatio.checked && !internalSymmetricSyncLock && !autoWidth.checked) {
+                internalSymmetricSyncLock = true;
+                let targetWidthValue = Math.round(signageHeightInput.value * liveAspectRatio);
+                targetWidthValue = Math.max(signageWidthInput.min, Math.min(signageWidthInput.max, targetWidthValue));
+                signageWidthInput.value = targetWidthValue;
+                internalSymmetricSyncLock = false;
+            } else if (!lockAspectRatio.checked && !autoWidth.checked) {
+                liveAspectRatio = signageWidthInput.value / signageHeightInput.value;
+            }
+        });
+
+        lockAspectRatio.addEventListener('change', () => {
+            if (lockAspectRatio.checked && !autoWidth.checked) {
+                liveAspectRatio = signageWidthInput.value / signageHeightInput.value;
+            }
+        });
+
         function updateSignage() {
             // Theme Style Engine Application
             const isSilver = (panelTheme.value === 'silver');
@@ -517,10 +561,12 @@
                 mrtSignage.style.width = 'fit-content';
                 mrtSignage.style.minWidth = '500px';
                 widthSliderGroup.style.display = 'none';
+                document.getElementById('lockRatioGroup').style.display = 'none';
             } else {
                 mrtSignage.style.width = signageWidthInput.value + 'px';
                 mrtSignage.style.minWidth = 'unset';
                 widthSliderGroup.style.display = 'flex';
+                document.getElementById('lockRatioGroup').style.display = 'flex';
                 widthVal.innerText = signageWidthInput.value + 'px';
             }
 
@@ -708,7 +754,7 @@
         // Configuration Event Bindings Matrix Suite
         const interactionInterceptorsSuite = [
             panelTheme, panelColorPicker, lineSelect, lineColorPicker, stationEnInput, stationZhInput, 
-            stationTaInput, stationCodeInput, autoWidth, signageWidthInput, signageHeightInput, 
+            stationTaInput, stationCodeInput, autoWidth, lockAspectRatio, signageWidthInput, signageHeightInput, 
             fsStationEn, linkTranslations, fsStationZh, fsStationTa,
             capsuleFontSizeInput, capsulePaddingInput, capsuleHeightInput, capsuleRoundnessInput, capsuleHRadiusInput,
             showBottomBanner, showBottomText, showBottomCaplet, bottomBannerHeightInput, bottomBannerFontSizeInput, bottomBannerPrefix, bottomBannerText
