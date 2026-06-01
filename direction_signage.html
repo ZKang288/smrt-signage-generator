@@ -112,7 +112,7 @@
             display: grid;
             grid-template-columns: auto 1fr;
             gap: 10px;
-            align-items: center;
+            align-items: start;
         }
 
         .exits-area {
@@ -120,11 +120,12 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 6px;
+            align-self: flex-start;
         }
 
         /* A single exit tag pill in the editor */
         .exit-tag {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 4px;
             background: #ffcd00;
@@ -133,10 +134,14 @@
             font-size: 13px;
             font-weight: 700;
             color: #000;
+            flex-shrink: 0;
+            width: auto;
         }
 
         .exit-tag input {
-            width: 34px;
+            width: 32px;
+            min-width: 0;
+            flex-shrink: 0;
             border: none;
             background: transparent;
             font-size: 13px;
@@ -283,8 +288,8 @@
             width: 100%;
         }
 
-        .sign-row.arrow-right { flex-direction: row-reverse; }
-        .sign-row.arrow-left  { flex-direction: row; }
+        /* Always left-to-right; arrow position is handled by DOM order */
+        .sign-row { flex-direction: row; }
 
         .sign-arrow {
             flex-shrink: 0;
@@ -338,8 +343,7 @@
             flex: 1;
         }
 
-        /* For right-facing rows: destination text aligns right, exits group also on right side of dest */
-        .sign-row.arrow-right .sign-dest { text-align: right; }
+        .sign-row.arrow-right .sign-dest { text-align: left; }
         .sign-row.arrow-left  .sign-dest { text-align: left; }
 
         .sign-divider {
@@ -596,11 +600,17 @@
             destEl.style.fontSize = dFs + 'px';
             destEl.textContent    = row.destination;
 
-            // DOM order: arrow | exits | destination
-            // row-reverse flex on arrow-right rows will visually flip to: destination | exits | arrow
-            rowDiv.appendChild(arrowWrap);
-            rowDiv.appendChild(exitsGroup);
-            rowDiv.appendChild(destEl);
+            if (onRight) {
+                // Visual: [Exit][Exit] Destination →
+                rowDiv.appendChild(exitsGroup);
+                rowDiv.appendChild(destEl);
+                rowDiv.appendChild(arrowWrap);
+            } else {
+                // Visual: ↑ [Exit][Exit] Destination
+                rowDiv.appendChild(arrowWrap);
+                rowDiv.appendChild(exitsGroup);
+                rowDiv.appendChild(destEl);
+            }
 
             boardEl.appendChild(rowDiv);
 
