@@ -335,7 +335,6 @@
             flex: 1;
         }
 
-        /* FIXED: Right aligned rows text alignment */
         .sign-row.arrow-right .sign-dest { text-align: right; }
         .sign-row.arrow-left  .sign-dest { text-align: left; }
 
@@ -482,6 +481,7 @@
         const c   = color === 'yellow' ? '#FFCD00' : '#FFFFFF';
         const rot = DIR_ROTATION[direction] || 0;
     
+        // FIXED: Slender, sharp vector path coordinates modeled after official LTA standards
         return `
         <svg
             width="${size}"
@@ -497,14 +497,14 @@
             <path
                 fill="${c}"
                 d="
-                    M50 4
-                    L94 48
-                    L72 48
-                    L72 92
-                    L50 78
-                    L28 92
-                    L28 48
-                    L6 48
+                    M 50 5
+                    L 85 44
+                    L 61 44
+                    L 61 95
+                    L 50 82
+                    L 39 95
+                    L 39 44
+                    L 15 44
                     Z
                 "
             />
@@ -591,14 +591,11 @@
             destEl.style.fontSize = dFs + 'px';
             destEl.textContent    = row.destination;
 
-            // FIXED: Flipped appending order for right-facing rows to align elements perfectly
             if (onRight) {
-                // Visual: Destination [Exit][Exit] →
                 rowDiv.appendChild(destEl);
                 rowDiv.appendChild(exitsGroup);
                 rowDiv.appendChild(arrowWrap);
             } else {
-                // Visual: ↑ [Exit][Exit] Destination
                 rowDiv.appendChild(arrowWrap);
                 rowDiv.appendChild(exitsGroup);
                 rowDiv.appendChild(destEl);
