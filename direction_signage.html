@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direction Signage Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'MRT-Identity';
+            src: url('LTA_Identity-Medium.ttf') format('truetype'),
+                 url('OceanSans.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f0f4f8;
+            margin: 0;
+            padding: 30px 20px 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #1e293b;
+        }
+
+        h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; color: #0f172a; }
+        p.subtitle { margin: 0 0 28px; color: #64748b; font-size: 14px; }
+
+        .panel {
+            width: 100%;
+            max-width: 1100px;
+            background: white;
+            padding: 28px 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px -4px rgba(0,0,0,0.07);
+            margin-bottom: 28px;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 18px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f1f5f9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- Global Settings Grid --- */
+        .global-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .ctrl {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .ctrl label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .ctrl input[type="range"] {
+            width: 100%;
+            accent-color: #004c54;
+            cursor: pointer;
+        }
+
+        .ctrl input[type="text"],
+        .ctrl select,
+        .ctrl input[type="color"] {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1e293b;
+            background: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .ctrl input:focus, .ctrl select:focus { border-color: #004c54; }
+
+        .range-label { font-size: 12px; color: #94a3b8; text-align: right; margin-top: -3px; }
+
+        /* --- Row Builder --- */
+        .rows-wrapper { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+
+        .sig-row-editor {
+            display: grid;
+            grid-template-columns: 90px 90px 80px 1fr 60px auto;
+            gap: 8px;
+            align-items: center;
+            background: #f8fafc;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .sig-row-editor label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .sig-row-editor input,
+        .sig-row-editor select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #1e293b;
+            background: white;
+            outline: none;
+        }
+
+        .sig-row-editor input:focus, .sig-row-editor select:focus { border-color: #004c54; }
+
+        .field-wrap { display: flex; flex-direction: column; }
+
+        .btn-del {
+            background: #fee2e2;
+            color: #ef4444;
+            border: none;
+            border-radius: 7px;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            transition: background 0.15s;
+            flex-shrink: 0;
+        }
+        .btn-del:hover { background: #fca5a5; }
+        .btn-del:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .btn-add {
+            width: 100%;
+            padding: 10px;
+            background: #e2e8f0;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-add:hover { background: #cbd5e1; }
+
+        .btn-export {
+            width: 100%;
+            max-width: 1100px;
+            padding: 14px;
+            background: #004c54;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0,76,84,0.25);
+            transition: background 0.2s;
+            margin-bottom: 28px;
+        }
+        .btn-export:hover { background: #00333a; }
+
+        /* ===================== SIGNAGE PREVIEW ===================== */
+        .preview-area {
+            width: 100%;
+            max-width: 1100px;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+        }
+
+        #sign-board {
+            background: #004c54;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 22px 36px;
+            gap: 0;
+            user-select: none;
+            min-width: 600px;
+        }
+
+        /* ---- One Row on the Signboard ---- */
+        .sign-row {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 0;
+            position: relative;
+        }
+
+        /* Layout: arrow-left side */
+        .sign-row.dir-left  { flex-direction: row; }
+        .sign-row.dir-up    { flex-direction: row; }
+        .sign-row.dir-down  { flex-direction: row; }
+
+        /* Layout: arrow-right side — reverse */
+        .sign-row.dir-right { flex-direction: row-reverse; }
+
+        /* Arrow SVG */
+        .sign-arrow {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Exit icon + letter */
+        .exit-wrap {
+            flex-shrink: 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .exit-img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .exit-letter {
+            position: absolute;
+            font-family: 'MRT-Identity', 'Arial Black', sans-serif;
+            font-weight: 900;
+            color: #000;
+            background: #ffcd00;
+            padding: 0 2px;
+            line-height: 1;
+            text-align: center;
+            top: 56%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Destination text */
+        .sign-dest {
+            font-family: 'MRT-Identity', 'Arial', sans-serif;
+            font-weight: 500;
+            color: #fff;
+            white-space: nowrap;
+            flex: 1;
+        }
+
+        /* When arrow on RIGHT: text should be right-aligned to push against arrow */
+        .sign-row.dir-right .sign-dest { text-align: right; }
+        .sign-row.dir-left  .sign-dest { text-align: left; }
+        .sign-row.dir-up    .sign-dest { text-align: left; }
+        .sign-row.dir-down  .sign-dest { text-align: left; }
+
+        /* Divider between rows */
+        .sign-divider {
+            height: 1.5px;
+            background: rgba(255,255,255,0.15);
+            margin: 0;
+            width: 100%;
+        }
+
+        /* Header strip (optional line label) */
+        .sign-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .sign-header-pill {
+            background: #9900aa;
+            color: white;
+            font-family: 'MRT-Identity', 'Arial', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            padding: 4px 18px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        /* Bus icon placeholder */
+        .bus-icon svg { display: block; }
+    </style>
+</head>
+<body>
+
+<h1>Direction Signage Generator</h1>
+<p class="subtitle">Build wayfinding direction boards — like those seen inside MRT stations.</p>
+
+<!-- GLOBAL SETTINGS -->
+<div class="panel">
+    <div class="panel-title">Board Settings</div>
+    <div class="global-grid">
+        <div class="ctrl">
+            <label>Board Background</label>
+            <select id="bgColor">
+                <option value="#004c54">Dark Teal (MRT Standard)</option>
+                <option value="#000000">Black</option>
+                <option value="#1a1a2e">Navy</option>
+                <option value="#custom">Custom…</option>
+            </select>
+            <input type="color" id="bgColorCustom" value="#004c54" style="display:none; margin-top:6px; height:38px; border-radius:8px; border:1px solid #cbd5e1; width:100%; cursor:pointer; padding:0;">
+        </div>
+
+        <div class="ctrl">
+            <label>Board Width (px): <span id="boardWidthVal">800</span></label>
+            <input type="range" id="boardWidth" min="400" max="1800" value="800">
+        </div>
+
+        <div class="ctrl">
+            <label>Row Height (px): <span id="rowHeightVal">62</span></label>
+            <input type="range" id="rowHeight" min="36" max="130" value="62">
+        </div>
+
+        <div class="ctrl">
+            <label>Board Padding H (px): <span id="boardPadHVal">36</span></label>
+            <input type="range" id="boardPadH" min="8" max="90" value="36">
+        </div>
+
+        <div class="ctrl">
+            <label>Board Padding V (px): <span id="boardPadVVal">22</span></label>
+            <input type="range" id="boardPadV" min="4" max="60" value="22">
+        </div>
+
+        <div class="ctrl">
+            <label>Row Gap (px): <span id="rowGapVal">0</span></label>
+            <input type="range" id="rowGap" min="0" max="30" value="0">
+        </div>
+
+        <div class="ctrl">
+            <label>Destination Font (px): <span id="destFsVal">32</span></label>
+            <input type="range" id="destFs" min="14" max="80" value="32">
+        </div>
+
+        <div class="ctrl">
+            <label>Exit Box Size (px): <span id="exitSzVal">54</span></label>
+            <input type="range" id="exitSz" min="28" max="110" value="54">
+        </div>
+
+        <div class="ctrl">
+            <label>Exit Letter Font (px): <span id="exitFsVal">20</span></label>
+            <input type="range" id="exitFs" min="10" max="55" value="20">
+        </div>
+
+        <div class="ctrl">
+            <label>Arrow Size (px): <span id="arrowSzVal">42</span></label>
+            <input type="range" id="arrowSz" min="18" max="100" value="42">
+        </div>
+
+        <div class="ctrl">
+            <label>Spacing Between Elements (px): <span id="elemGapVal">16</span></label>
+            <input type="range" id="elemGap" min="4" max="50" value="16">
+        </div>
+
+        <div class="ctrl">
+            <label>Show Divider Lines</label>
+            <select id="showDividers">
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- ROW EDITOR -->
+<div class="panel">
+    <div class="panel-title">Sign Rows</div>
+    <div class="rows-wrapper" id="rowsContainer"></div>
+    <button class="btn-add" id="addRowBtn">+ Add Row</button>
+</div>
+
+<button class="btn-export" id="exportBtn">⬇ Export as PNG</button>
+
+<!-- PREVIEW -->
+<div class="preview-area">
+    <div id="sign-board"></div>
+</div>
+
+<script>
+    // ===================== STATE =====================
+    let rows = [
+        { direction: 'up', arrowColor: 'yellow', exit: 'A', destination: 'Bukit Timah Rd' },
+        { direction: 'up', arrowColor: 'yellow', exit: 'A', destination: 'MacKenzie Rd' },
+        { direction: 'up', arrowColor: 'yellow', exit: 'C', destination: 'Serangoon Rd / Tekka Ctr' },
+        { direction: 'up', arrowColor: 'yellow', exit: 'E', destination: 'Race Course Rd / Buffalo Rd' },
+    ];
+
+    // ===================== DOM REFS =====================
+    const boardEl       = document.getElementById('sign-board');
+    const rowsCont      = document.getElementById('rowsContainer');
+    const addRowBtn     = document.getElementById('addRowBtn');
+    const bgColorSel    = document.getElementById('bgColor');
+    const bgColorCustom = document.getElementById('bgColorCustom');
+    const exportBtn     = document.getElementById('exportBtn');
+
+    const sliders = {
+        boardWidth: { el: document.getElementById('boardWidth'), disp: document.getElementById('boardWidthVal') },
+        rowHeight:  { el: document.getElementById('rowHeight'),  disp: document.getElementById('rowHeightVal') },
+        boardPadH:  { el: document.getElementById('boardPadH'),  disp: document.getElementById('boardPadHVal') },
+        boardPadV:  { el: document.getElementById('boardPadV'),  disp: document.getElementById('boardPadVVal') },
+        rowGap:     { el: document.getElementById('rowGap'),     disp: document.getElementById('rowGapVal') },
+        destFs:     { el: document.getElementById('destFs'),     disp: document.getElementById('destFsVal') },
+        exitSz:     { el: document.getElementById('exitSz'),     disp: document.getElementById('exitSzVal') },
+        exitFs:     { el: document.getElementById('exitFs'),     disp: document.getElementById('exitFsVal') },
+        arrowSz:    { el: document.getElementById('arrowSz'),    disp: document.getElementById('arrowSzVal') },
+        elemGap:    { el: document.getElementById('elemGap'),    disp: document.getElementById('elemGapVal') },
+    };
+
+    const showDividers = document.getElementById('showDividers');
+
+    function gs(key) { return parseInt(sliders[key].el.value); }
+
+    // ===================== ARROW SVG =====================
+    function arrowSVG(direction, color, size) {
+        const c = color === 'yellow' ? '#FFCD00' : '#FFFFFF';
+        const s = size;
+        // We always draw the arrow pointing in the correct visual direction
+        let path;
+        const pad = s * 0.08;
+        const mid = s / 2;
+        const tip = s - pad;
+
+        if (direction === 'up') {
+            // Up arrow: pointing top
+            path = `M${mid},${pad} L${tip},${tip} L${mid},${s*0.72} L${pad},${tip} Z`;
+        } else if (direction === 'down') {
+            path = `M${mid},${tip} L${tip},${pad} L${mid},${s*0.28} L${pad},${pad} Z`;
+        } else if (direction === 'left') {
+            path = `M${pad},${mid} L${tip},${pad} L${s*0.28},${mid} L${tip},${tip} Z`;
+        } else { // right
+            path = `M${tip},${mid} L${pad},${pad} L${s*0.72},${mid} L${pad},${tip} Z`;
+        }
+
+        return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
+            <path d="${path}" fill="${c}"/>
+        </svg>`;
+    }
+
+    // ===================== EXIT ICON =====================
+    // Inline SVG that mimics the exit_logo.png style (white box with yellow stripe, person walking)
+    function exitIconSVG(letter, size, fontSize) {
+        // The exit icon: white rounded square with a yellow horizontal band and a running figure
+        const r = size * 0.13;
+        const bandY = size * 0.55;
+        const bandH = size * 0.32;
+        const figScale = size / 76;
+
+        // Simple running figure path (scaled)
+        const figX = size * 0.48;
+        const figY = size * 0.3;
+        const hs = size * 0.1; // head size
+
+        return `
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+            <!-- White background -->
+            <rect x="0" y="0" width="${size}" height="${size}" rx="${r}" fill="#ffffff"/>
+            <!-- Yellow band -->
+            <rect x="0" y="${bandY}" width="${size}" height="${bandH}" fill="#FFCD00"/>
+            <!-- Rounded clip so band doesn't overflow corners -->
+            <rect x="0" y="0" width="${size}" height="${size}" rx="${r}" fill="none" stroke="#ffffff" stroke-width="0"/>
+            <!-- Exit letter overlaid on band -->
+            <text x="${size*0.5}" y="${bandY + bandH*0.72}"
+                  text-anchor="middle"
+                  font-family="MRT-Identity, Arial Black, sans-serif"
+                  font-weight="900"
+                  font-size="${fontSize}"
+                  fill="#000000">${letter}</text>
+            <!-- Running figure (simplified) -->
+            <!-- Head -->
+            <circle cx="${size*0.5}" cy="${size*0.16}" r="${size*0.095}" fill="#000"/>
+            <!-- Body + legs simplified as lines -->
+            <line x1="${size*0.5}" y1="${size*0.255}" x2="${size*0.5}" y2="${size*0.47}" stroke="#000" stroke-width="${size*0.07}" stroke-linecap="round"/>
+            <!-- Left leg -->
+            <line x1="${size*0.5}" y1="${size*0.47}" x2="${size*0.34}" y2="${size*0.62}" stroke="#000" stroke-width="${size*0.065}" stroke-linecap="round"/>
+            <!-- Right leg -->
+            <line x1="${size*0.5}" y1="${size*0.47}" x2="${size*0.64}" y2="${size*0.56}" stroke="#000" stroke-width="${size*0.065}" stroke-linecap="round"/>
+            <!-- Left arm -->
+            <line x1="${size*0.5}" y1="${size*0.32}" x2="${size*0.34}" y2="${size*0.41}" stroke="#000" stroke-width="${size*0.065}" stroke-linecap="round"/>
+            <!-- Right arm -->
+            <line x1="${size*0.5}" y1="${size*0.32}" x2="${size*0.65}" y2="${size*0.36}" stroke="#000" stroke-width="${size*0.065}" stroke-linecap="round"/>
+        </svg>`;
+    }
+
+    // ===================== RENDER SIGN =====================
+    function renderSign() {
+        const bg      = bgColorSel.value === '#custom' ? bgColorCustom.value : bgColorSel.value;
+        const width   = gs('boardWidth');
+        const rH      = gs('rowHeight');
+        const padH    = gs('boardPadH');
+        const padV    = gs('boardPadV');
+        const rGap    = gs('rowGap');
+        const dFs     = gs('destFs');
+        const eSz     = gs('exitSz');
+        const eFs     = gs('exitFs');
+        const aSz     = gs('arrowSz');
+        const eGap    = gs('elemGap');
+        const dividers = showDividers.value === 'yes';
+
+        boardEl.style.backgroundColor = bg;
+        boardEl.style.width  = width + 'px';
+        boardEl.style.minWidth = width + 'px';
+        boardEl.style.padding = `${padV}px ${padH}px`;
+        boardEl.style.gap = rGap + 'px';
+
+        boardEl.innerHTML = '';
+
+        rows.forEach((row, i) => {
+            const isRight = row.direction === 'right';
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = `sign-row dir-${row.direction}`;
+            rowDiv.style.height = rH + 'px';
+            rowDiv.style.gap = eGap + 'px';
+            rowDiv.style.width = '100%';
+
+            // Arrow
+            const arrowWrap = document.createElement('div');
+            arrowWrap.className = 'sign-arrow';
+            arrowWrap.style.width = aSz + 'px';
+            arrowWrap.style.height = aSz + 'px';
+            arrowWrap.innerHTML = arrowSVG(row.direction, row.arrowColor, aSz);
+
+            // Exit icon
+            const exitWrap = document.createElement('div');
+            exitWrap.className = 'exit-wrap';
+            exitWrap.style.width = eSz + 'px';
+            exitWrap.style.height = eSz + 'px';
+            exitWrap.innerHTML = exitIconSVG(row.exit || '?', eSz, eFs);
+
+            // Destination
+            const destEl = document.createElement('div');
+            destEl.className = 'sign-dest';
+            destEl.style.fontSize = dFs + 'px';
+            destEl.textContent = row.destination;
+
+            rowDiv.appendChild(arrowWrap);
+            rowDiv.appendChild(exitWrap);
+            rowDiv.appendChild(destEl);
+
+            boardEl.appendChild(rowDiv);
+
+            // Divider
+            if (dividers && i < rows.length - 1) {
+                const div = document.createElement('div');
+                div.className = 'sign-divider';
+                boardEl.appendChild(div);
+            }
+        });
+    }
+
+    // ===================== RENDER CONTROLS =====================
+    function renderControls() {
+        rowsCont.innerHTML = '';
+        rows.forEach((row, i) => {
+            const ed = document.createElement('div');
+            ed.className = 'sig-row-editor';
+
+            // Direction
+            const dirWrap = document.createElement('div');
+            dirWrap.className = 'field-wrap';
+            dirWrap.innerHTML = '<label>Direction</label>';
+            const dirSel = document.createElement('select');
+            ['up','down','left','right'].forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = { up: '↑ Up', down: '↓ Down', left: '← Left', right: '→ Right' }[d];
+                if (d === row.direction) opt.selected = true;
+                dirSel.appendChild(opt);
+            });
+            dirSel.addEventListener('change', e => { rows[i].direction = e.target.value; renderAll(); });
+            dirWrap.appendChild(dirSel);
+
+            // Arrow Color
+            const acWrap = document.createElement('div');
+            acWrap.className = 'field-wrap';
+            acWrap.innerHTML = '<label>Arrow Color</label>';
+            const acSel = document.createElement('select');
+            ['yellow','white'].forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c.charAt(0).toUpperCase() + c.slice(1);
+                if (c === row.arrowColor) opt.selected = true;
+                acSel.appendChild(opt);
+            });
+            acSel.addEventListener('change', e => { rows[i].arrowColor = e.target.value; renderSign(); });
+            acWrap.appendChild(acSel);
+
+            // Exit Letter
+            const exWrap = document.createElement('div');
+            exWrap.className = 'field-wrap';
+            exWrap.innerHTML = '<label>Exit</label>';
+            const exInp = document.createElement('input');
+            exInp.type = 'text';
+            exInp.value = row.exit;
+            exInp.maxLength = 3;
+            exInp.placeholder = 'A';
+            exInp.addEventListener('input', e => { rows[i].exit = e.target.value.toUpperCase(); renderSign(); });
+            exWrap.appendChild(exInp);
+
+            // Destination
+            const destWrap = document.createElement('div');
+            destWrap.className = 'field-wrap';
+            destWrap.innerHTML = '<label>Destination</label>';
+            const destInp = document.createElement('input');
+            destInp.type = 'text';
+            destInp.value = row.destination;
+            destInp.placeholder = 'e.g. Bukit Timah Rd';
+            destInp.addEventListener('input', e => { rows[i].destination = e.target.value; renderSign(); });
+            destWrap.appendChild(destInp);
+
+            // Move up / down
+            const moveWrap = document.createElement('div');
+            moveWrap.className = 'field-wrap';
+            moveWrap.innerHTML = '<label>Move</label>';
+            const moveRow = document.createElement('div');
+            moveRow.style.cssText = 'display:flex;gap:4px;';
+            const upBtn = document.createElement('button');
+            upBtn.className = 'btn-del';
+            upBtn.style.cssText = 'background:#e0f2fe;color:#0369a1;width:28px;height:28px;font-size:13px;';
+            upBtn.textContent = '↑';
+            upBtn.disabled = i === 0;
+            upBtn.title = 'Move up';
+            upBtn.addEventListener('click', () => { if(i>0){[rows[i-1],rows[i]]=[rows[i],rows[i-1]];renderAll();} });
+            const dnBtn = document.createElement('button');
+            dnBtn.className = 'btn-del';
+            dnBtn.style.cssText = 'background:#e0f2fe;color:#0369a1;width:28px;height:28px;font-size:13px;';
+            dnBtn.textContent = '↓';
+            dnBtn.disabled = i === rows.length - 1;
+            dnBtn.title = 'Move down';
+            dnBtn.addEventListener('click', () => { if(i<rows.length-1){[rows[i],rows[i+1]]=[rows[i+1],rows[i]];renderAll();} });
+            moveRow.appendChild(upBtn);
+            moveRow.appendChild(dnBtn);
+            moveWrap.appendChild(moveRow);
+
+            // Delete
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-del';
+            delBtn.textContent = '✕';
+            delBtn.disabled = rows.length === 1;
+            delBtn.addEventListener('click', () => { rows.splice(i, 1); renderAll(); });
+
+            ed.appendChild(dirWrap);
+            ed.appendChild(acWrap);
+            ed.appendChild(exWrap);
+            ed.appendChild(destWrap);
+            ed.appendChild(moveWrap);
+            ed.appendChild(delBtn);
+            rowsCont.appendChild(ed);
+        });
+    }
+
+    function renderAll() {
+        renderControls();
+        renderSign();
+    }
+
+    // ===================== EVENTS =====================
+    addRowBtn.addEventListener('click', () => {
+        rows.push({ direction: 'up', arrowColor: 'yellow', exit: 'A', destination: 'New Destination' });
+        renderAll();
+    });
+
+    bgColorSel.addEventListener('change', () => {
+        bgColorCustom.style.display = bgColorSel.value === '#custom' ? 'block' : 'none';
+        renderSign();
+    });
+    bgColorCustom.addEventListener('input', renderSign);
+
+    Object.values(sliders).forEach(({ el, disp }) => {
+        el.addEventListener('input', () => { disp.textContent = el.value; renderSign(); });
+    });
+
+    showDividers.addEventListener('change', renderSign);
+
+    exportBtn.addEventListener('click', () => {
+        document.fonts.ready.then(() => {
+            html2canvas(boardEl, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                backgroundColor: null
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'direction_signage.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+    });
+
+    // ===================== INIT =====================
+    renderAll();
+</script>
+</body>
+</html>
