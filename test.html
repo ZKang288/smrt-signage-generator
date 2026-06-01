@@ -683,7 +683,6 @@
         return container;
     }
 
-    // FIXED: Inherits and sets the dynamic background fill using the lineBg parameter
     function buildPlatformBox(letter, rH, fontFamily, lineBg) {
         const box = document.createElement('div');
         box.className = 'platform-box-element';
@@ -710,10 +709,11 @@
         
         const capHeight = rH * 0.72;
         wrapper.style.height = `${capHeight}px`;
-        wrapper.style.width = `${capHeight * 1.8}px`;
+        wrapper.style.width = `${capHeight * 2.5}px`; // Pill length ratio matched to station code template
         
+        // FIXED: Dynamically matches the exact elliptical border-radius math of the station caplets
         const vr = capHeight * 0.5;
-        const hr = capHeight * 0.45;
+        const hr = capHeight * 0.28;
         wrapper.style.borderRadius = `${hr}px / ${vr}px`;
         
         const inner = document.createElement('div');
@@ -807,7 +807,6 @@
                 nameSpan.textContent = row.destination;
                 contentGroup.appendChild(nameSpan);
 
-                // FIXED: Passes row.lineBg into the platform tracking engine parameter slot
                 const platformBox = hasPlatform ? buildPlatformBox(row.platform, rH, currentExitFont, row.lineBg) : null;
                 const lineCapsule = hasLine ? buildLargeLineCapsule(row.lineCode, row.lineBg || '#747474', rH, currentExitFont) : null;
 
