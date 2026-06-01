@@ -432,8 +432,9 @@
             white-space: nowrap;
         }
 
+        /* FIXED: Changed divider background fill color to solid clean white */
         .sign-divider {
-            background: rgba(255,255,255,0.15);
+            background: #ffffff;
             width: 100%;
         }
     </style>
@@ -537,7 +538,6 @@
 
 <script>
     // ===================== STATE CONFIGURATION =====================
-    // FIXED: Form state preset matches the user image configurations exactly
     let rows = [
         { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
         { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
@@ -547,6 +547,17 @@
     ];
 
     const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right', 'none-right']);
+
+    const ARROW_IMG = {
+        'up':         ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              0],
+        'right':      ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              90],
+        'down':       ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              180],
+        'left':       ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              270],
+        'up-right':   ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 0],
+        'down-right': ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 90],
+        'down-left':  ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 180],
+        'up-left':    ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 270],
+    };
 
     const DIR_LABELS = {
         'none': 'Ø None (Left Aligned)',
@@ -584,17 +595,6 @@
     function gs(key) { return parseInt(sliders[key].el.value); }
 
     // ===================== ARROW IMAGE ENGINE =====================
-    const ARROW_IMG = {
-        'up':         ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              0],
-        'right':      ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              90],
-        'down':       ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              180],
-        'left':       ['Aiga_uparrow white.png',              'Aiga_uparrow yellow.png',              270],
-        'up-right':   ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 0],
-        'down-right': ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 90],
-        'down-left':  ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 180],
-        'up-left':    ['Aiga_forwardandrightarrow white.png', 'Aiga_forwardandrightarrow yellow.png', 270],
-    };
-
     function buildArrowEl(direction, color, size) {
         const entry = ARROW_IMG[direction];
         if (!entry) return null;
@@ -652,7 +652,8 @@
     }
 
     // ===================== PLATFORM BUILDER SUB-COMPONENTS =====================
-    function buildLinkedViaContainer(viaInputString, rH) {
+    // FIXED: Inherits target caplet exit font configurations dynamically
+    function buildLinkedViaContainer(viaInputString, rH, fontFamily) {
         const container = document.createElement('div');
         container.className = 'via-chain-container';
         
@@ -673,6 +674,7 @@
             node.style.fontSize = `${nodeHeight * 0.55}px`;
             node.style.padding = `0 ${nodeHeight * 0.4}px`;
             node.style.backgroundColor = bgColor;
+            node.style.fontFamily = fontFamily; 
             
             const vr = nodeHeight * 0.5;
             const hr = nodeHeight * 0.28;
@@ -684,9 +686,8 @@
         return container;
     }
 
-    function buildPlatformBox(letter, rH) {
-        if (!letter || !letter.trim()) return document.createTextNode('');
-        
+    // FIXED: Inherits target caplet exit font configurations dynamically
+    function buildPlatformBox(letter, rH, fontFamily) {
         const box = document.createElement('div');
         box.className = 'platform-box-element';
         box.textContent = letter;
@@ -695,7 +696,7 @@
         box.style.width = `${size * 0.85}px`;
         box.style.height = `${size}px`;
         box.style.fontSize = `${size * 0.62}px`;
-        box.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
+        box.style.fontFamily = fontFamily; 
         
         const bar = document.createElement('div');
         bar.className = 'platform-underline-bar';
@@ -705,7 +706,8 @@
         return box;
     }
 
-    function buildLargeLineCapsule(text, bg, rH) {
+    // FIXED: Inherits target caplet exit font configurations dynamically
+    function buildLargeLineCapsule(text, bg, rH, fontFamily) {
         const wrapper = document.createElement('div');
         wrapper.className = 'large-capsule-container';
         
@@ -722,7 +724,7 @@
         inner.textContent = text;
         inner.style.backgroundColor = bg;
         inner.style.fontSize = `${capHeight * 0.46}px`;
-        inner.style.fontFamily = "'MRT-Identity', Arial, sans-serif";
+        inner.style.fontFamily = fontFamily; 
         inner.style.borderRadius = `${hr}px / ${vr}px`;
         
         wrapper.appendChild(inner);
@@ -765,7 +767,7 @@
             rowDiv.style.gap    = elemGap + 'px';
             rowDiv.style.width  = '100%';
 
-            // Arrow setup
+            // Arrow
             let arrowWrap = null;
             if (row.direction !== 'none' && row.direction !== 'none-right') {
                 arrowWrap = buildArrowEl(row.direction, row.arrowColor, aSz);
@@ -783,20 +785,26 @@
             destEl.style.fontFamily = currentDestFont;
 
             if (row.type === 'platform') {
+                // FIXED: Evaluates dynamic fields to omit structure completely if blank
+                const hasPlatform = row.platform && row.platform.trim();
+                const hasLine = row.lineCode && row.lineCode.trim();
+                const hasVia = row.viaCodes && row.viaCodes.trim();
+
                 const contentGroup = document.createElement('div');
                 contentGroup.style.display = 'inline-flex';
                 contentGroup.style.alignItems = 'center';
                 contentGroup.style.gap = `${elemGap}px`;
 
-                if (row.prefix && row.prefix.trim()) {
+                // Only append prefix string if a valid via capsule chain exists
+                if (hasVia && row.prefix && row.prefix.trim()) {
                     const prefixSpan = document.createElement('span');
                     prefixSpan.className = 'platform-prefix-text';
                     prefixSpan.textContent = row.prefix + ' ';
                     contentGroup.appendChild(prefixSpan);
                 }
 
-                if (row.viaCodes && row.viaCodes.trim()) {
-                    const viaBlock = buildLinkedViaContainer(row.viaCodes, rH);
+                if (hasVia) {
+                    const viaBlock = buildLinkedViaContainer(row.viaCodes, rH, currentExitFont);
                     contentGroup.appendChild(viaBlock);
                 }
 
@@ -804,16 +812,16 @@
                 nameSpan.textContent = row.destination;
                 contentGroup.appendChild(nameSpan);
 
-                const platformBox = buildPlatformBox(row.platform || '', rH);
-                const lineCapsule = buildLargeLineCapsule(row.lineCode || '---', row.lineBg || '#747474', rH);
+                const platformBox = hasPlatform ? buildPlatformBox(row.platform, rH, currentExitFont) : null;
+                const lineCapsule = hasLine ? buildLargeLineCapsule(row.lineCode, row.lineBg || '#747474', rH, currentExitFont) : null;
 
                 if (onRight) {
                     destEl.appendChild(contentGroup);
-                    if (row.platform && row.platform.trim()) destEl.appendChild(platformBox);
-                    destEl.appendChild(lineCapsule);
+                    if (hasPlatform) destEl.appendChild(platformBox);
+                    if (hasLine) destEl.appendChild(lineCapsule);
                 } else {
-                    destEl.appendChild(lineCapsule);
-                    if (row.platform && row.platform.trim()) destEl.appendChild(platformBox);
+                    if (hasLine) destEl.appendChild(lineCapsule);
+                    if (hasPlatform) destEl.appendChild(platformBox);
                     destEl.appendChild(contentGroup);
                 }
             } else {
@@ -885,11 +893,11 @@
                 const type = e.target.value;
                 rows[i].type = type;
                 if (type === 'platform') {
-                    rows[i].prefix = rows[i].prefix || '';
-                    rows[i].viaCodes = rows[i].viaCodes || '';
-                    rows[i].platform = rows[i].platform || '';
-                    rows[i].lineCode = rows[i].lineCode || 'CCL';
-                    rows[i].lineBg = rows[i].lineBg || '#fa9e11';
+                    rows[i].prefix = '';
+                    rows[i].viaCodes = '';
+                    rows[i].platform = '';
+                    rows[i].lineCode = 'CCL';
+                    rows[i].lineBg = '#fa9e11';
                 } else {
                     rows[i].exits = rows[i].exits || ['A'];
                 }
@@ -1154,7 +1162,7 @@
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'direction_signage.png';
-                link.href = canvas.toDataURL('image/png');
+                link.href = canvas.toVisual('image/png');
                 link.click();
             });
         });
