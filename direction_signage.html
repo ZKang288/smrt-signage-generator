@@ -147,7 +147,6 @@
             width: auto;
         }
 
-        /* FIXED: Increased selector specificity to prevent global width: 100% and white backgrounds from hijacking the exit pills */
         .sig-row-editor .exit-tag input {
             width: 32px;
             min-width: 0;
@@ -455,7 +454,6 @@
 
 <script>
     // ===================== STATE =====================
-    // FIXED: Updated fourth entry row blueprint defaults to your requested configuration
     let rows = [
         { direction: 'up',          arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
         { direction: 'up',          arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
@@ -510,6 +508,7 @@
         const c   = color === 'yellow' ? '#FFCD00' : '#FFFFFF';
         const rot = DIR_ROTATION[direction] || 0;
     
+        // FIXED: Complete mathematical rewrite mapping coordinates to the parallel wing chevron arrow architecture
         return `
         <svg
             width="${size}"
@@ -522,13 +521,13 @@
                 fill="${c}"
                 transform="rotate(${rot}, 50, 50)"
                 d="
-                    M 50 5
-                    L 85 44
-                    L 61 44
-                    L 61 95
-                    L 39 95
-                    L 39 44
-                    L 15 44
+                    M 40 95
+                    L 40 65
+                    L 15 40
+                    L 50 5
+                    L 85 40
+                    L 60 65
+                    L 60 95
                     Z
                 "
             />
