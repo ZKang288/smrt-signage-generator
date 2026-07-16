@@ -155,7 +155,7 @@
         }
 
         .sig-row-editor .exit-tag input[type="text"] {
-            width: 32px;
+            width: 55px;
             min-width: 0;
             flex-shrink: 0;
             border: none;
@@ -337,11 +337,10 @@
             position: absolute;
             font-weight: 900;
             color: #000000;
-            background-color: #ffcd00;
             padding: 0 2px;
             line-height: 1;
             text-align: center;
-            top: 56%;
+            top: 59%; /* Balanced vertically against vector frames */
             left: 50%;
             transform: translate(-50%, -50%);
         }
@@ -566,9 +565,9 @@
 <script>
     // ===================== STATE CONFIGURATION =====================
     let rows = [
-        { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
-        { type: 'exit',     direction: 'up',         arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
-        { type: 'exit',     direction: 'right',      arrowColor: 'yellow', exits: ['C'],      destination: 'Serangoon Rd / Tekka Ctr', hasDivider: true },
+        { type: 'exit', exitType: 'double', direction: 'up', arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
+        { type: 'exit', exitType: 'single', direction: 'up', arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
+        { type: 'exit', exitType: 'b1',     direction: 'right',   arrowColor: 'yellow', exits: ['A - D'],  destination: 'Serangoon Rd / Tekka Ctr', hasDivider: true },
         { type: 'platform', direction: 'left',       arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'Downtown Line', platforms: [], lineCode: 'DTL', lineBg: '#005ec4', hasDivider: false },
         { type: 'platform', direction: 'down-right',  arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'North East Line', platforms: [], lineCode: 'NEL', lineBg: '#9900aa', hasDivider: false }
     ];
@@ -592,6 +591,13 @@
         'up': '↑ Up', 'up-right': '↗ Up-Right', 'right': '→ Right',
         'down-right': '↘ Down-Right', 'down': '↓ Down',
         'down-left': '↙ Down-Left', 'left': '← Left', 'up-left': '↖ Up-Left',
+    };
+
+    const EXIT_ASSETS = {
+        'single': 'https://jooferj.github.io/media/icons/exit-type-a-single.svg',
+        'double': 'https://jooferj.github.io/media/icons/exit-type-a-double.svg',
+        'b1':     'https://jooferj.github.io/media/icons/exit-type-b1-range.svg',
+        'b2':     'https://jooferj.github.io/media/icons/exit-type-b2-range.svg'
     };
 
     // ===================== DOM REFERENCES =====================
@@ -660,23 +666,26 @@
     }
 
     // ===================== BUILD ONE EXIT ICON (DOM) =====================
-    function buildExitIconEl(letter, eSz, eFs, eGap, fontFamily) {
+    function buildExitIconEl(letter, eSz, eFs, eGap, fontFamily, exitType = 'single') {
         const exitWrap = document.createElement('div');
         exitWrap.className = 'exit-wrap';
-        exitWrap.style.width    = eSz + 'px';
         exitWrap.style.height   = eSz + 'px';
         exitWrap.style.marginRight = eGap + 'px';
+        
+        // Dynamically scales width aspect ratios based on frame layouts
+        exitWrap.style.width = (exitType === 'single') ? `${eSz}px` : `${eSz * 1.7}px`;
 
         const exitImg = document.createElement('img');
-        exitImg.src       = 'exit_logo.png';
-        exitImg.alt       = 'Exit';
+        exitImg.src = EXIT_ASSETS[exitType] || EXIT_ASSETS['single'];
+        exitImg.crossOrigin = 'anonymous'; // Enforce safe high-fidelity raster downloads
+        exitImg.alt = 'Exit';
         exitImg.className = 'exit-img';
 
         const exitLetter = document.createElement('div');
-        exitLetter.className      = 'exit-letter';
+        exitLetter.className = 'exit-letter';
         exitLetter.style.fontSize = eFs + 'px';
         exitLetter.style.fontFamily = fontFamily;
-        exitLetter.textContent    = letter || '?';
+        exitLetter.textContent = letter || '?';
 
         exitWrap.appendChild(exitImg);
         exitWrap.appendChild(exitLetter);
@@ -738,7 +747,6 @@
         return box;
     }
 
-    // FIXED: Swapped out standard rigid sizing parameter mapping so wrapper box stretches smoothly to match your dynamic lengths
     function buildLargeLineCapsule(text, bg, rH, fontFamily, lineAbbvFs) {
         const wrapper = document.createElement('div');
         wrapper.className = 'large-capsule-container';
@@ -748,7 +756,7 @@
         const capPadding = gs('capletP') * scaleFactor; 
         
         wrapper.style.height = `${capHeight}px`;
-        wrapper.style.width = 'auto'; // FIX Applied: Cleared math override to let padding stretch the length freely
+        wrapper.style.width = 'auto'; 
         
         const vr = gs('capletVr') * scaleFactor; 
         const hr = gs('capletHr') * scaleFactor; 
@@ -872,7 +880,7 @@
 
                 const exits = row.exits && row.exits.length ? row.exits : ['?'];
                 exits.forEach((letter, ei) => {
-                    const icon = buildExitIconEl(letter, eSz, eFs, ei < exits.length - 1 ? eGap : 0, currentExitFont);
+                    const icon = buildExitIconEl(letter, eSz, eFs, ei < exits.length - 1 ? eGap : 0, currentExitFont, row.exitType);
                     exitsGroup.appendChild(icon);
                 });
 
@@ -940,6 +948,7 @@
                     rows[i].lineCode = 'CCL';
                     rows[i].lineBg = '#fa9e11';
                 } else {
+                    rows[i].exitType = 'single';
                     rows[i].exits = rows[i].exits || ['A'];
                 }
                 renderAll();
@@ -1066,7 +1075,30 @@
                 botRow.appendChild(platformFieldsGrid);
             } else {
                 const exitFieldsGrid = document.createElement('div');
-                exitFieldsGrid.style.cssText = 'display:grid; grid-template-columns: auto 1fr; gap:16px; width:100%;';
+                exitFieldsGrid.style.cssText = 'display:grid; grid-template-columns: 160px auto 1fr; gap:16px; width:100%;';
+
+                // Icon Variant Selector
+                const exitTypeWrap = document.createElement('div');
+                exitTypeWrap.className = 'field-wrap';
+                exitTypeWrap.innerHTML = '<label>Icon Variant</label>';
+                const exitTypeSel = document.createElement('select');
+                [
+                    ['single', 'Single SVG'],
+                    ['double', 'Double SVG'],
+                    ['b1', 'Range B1 SVG'],
+                    ['b2', 'Range B2 SVG']
+                ].forEach(([val, lbl]) => {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = lbl;
+                    if (val === (row.exitType || 'single')) opt.selected = true;
+                    exitTypeSel.appendChild(opt);
+                });
+                exitTypeSel.addEventListener('change', e => {
+                    rows[i].exitType = e.target.value;
+                    renderSign();
+                });
+                exitTypeWrap.appendChild(exitTypeSel);
 
                 const exitsArea = document.createElement('div');
                 exitsArea.innerHTML = '<label style="display:block;font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;">Exits</label>';
@@ -1082,7 +1114,6 @@
                         const inp = document.createElement('input');
                         inp.type = 'text';
                         inp.value = letter;
-                        inp.maxLength = 3;
                         inp.addEventListener('input', e => {
                             rows[i].exits[ei] = e.target.value.toUpperCase();
                             renderSign();
@@ -1128,6 +1159,7 @@
                 destInp.addEventListener('input', e => { rows[i].destination = e.target.value; renderSign(); });
                 destWrap.appendChild(destInp);
 
+                exitFieldsGrid.appendChild(exitTypeWrap);
                 exitFieldsGrid.appendChild(exitsArea);
                 exitFieldsGrid.appendChild(destWrap);
                 botRow.appendChild(exitFieldsGrid);
@@ -1143,7 +1175,7 @@
 
     // ===================== EVENTS =====================
     addRowBtn.addEventListener('click', () => {
-        rows.push({ type: 'exit', direction: 'up', arrowColor: 'yellow', exits: ['A'], destination: 'New Destination', hasDivider: false });
+        rows.push({ type: 'exit', exitType: 'single', direction: 'up', arrowColor: 'yellow', exits: ['A'], destination: 'New Destination', hasDivider: false });
         renderAll();
     });
 
