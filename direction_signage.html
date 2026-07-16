@@ -155,7 +155,7 @@
         }
 
         .sig-row-editor .exit-tag input[type="text"] {
-            width: 55px;
+            width: 65px;
             min-width: 0;
             flex-shrink: 0;
             border: none;
@@ -340,7 +340,7 @@
             padding: 0 2px;
             line-height: 1;
             text-align: center;
-            top: 59%; /* Balanced vertically against vector frames */
+            top: 59%;
             left: 50%;
             transform: translate(-50%, -50%);
         }
@@ -490,8 +490,8 @@
         <div class="ctrl">
             <label>Destination Font Family</label>
             <select id="destFont">
-                <option value="'Ocean Sans', sans-serif">Ocean Sans</option>
-                <option value="'Stroudley', sans-serif" selected>Stroudley</option>
+                <option value="'Ocean Sans', sans-serif" selected>Ocean Sans</option>
+                <option value="'Stroudley', sans-serif">Stroudley</option>
                 <option value="'MRT-Identity', sans-serif">MRT Identity (LTA)</option>
             </select>
         </div>
@@ -565,7 +565,7 @@
 <script>
     // ===================== STATE CONFIGURATION =====================
     let rows = [
-        { type: 'exit', exitType: 'double', direction: 'up', arrowColor: 'yellow', exits: ['A', 'B'], destination: 'Bukit Timah Rd', hasDivider: false },
+        { type: 'exit', exitType: 'double', direction: 'up', arrowColor: 'yellow', exits: ['A B'], destination: 'Bukit Timah Rd', hasDivider: false },
         { type: 'exit', exitType: 'single', direction: 'up', arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
         { type: 'exit', exitType: 'b1',     direction: 'right',   arrowColor: 'yellow', exits: ['A - D'],  destination: 'Serangoon Rd / Tekka Ctr', hasDivider: true },
         { type: 'platform', direction: 'left',       arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'Downtown Line', platforms: [], lineCode: 'DTL', lineBg: '#005ec4', hasDivider: false },
@@ -666,29 +666,86 @@
     }
 
     // ===================== BUILD ONE EXIT ICON (DOM) =====================
-    function buildExitIconEl(letter, eSz, eFs, eGap, fontFamily, exitType = 'single') {
+    function buildExitIconEl(textVal, eSz, eFs, eGap, fontFamily, exitType = 'single') {
         const exitWrap = document.createElement('div');
         exitWrap.className = 'exit-wrap';
         exitWrap.style.height   = eSz + 'px';
         exitWrap.style.marginRight = eGap + 'px';
+        exitWrap.style.position = 'relative';
+        exitWrap.style.display = 'flex';
+        exitWrap.style.alignItems = 'center';
+        exitWrap.style.justifyContent = 'center';
         
-        // Dynamically scales width aspect ratios based on frame layouts
-        exitWrap.style.width = (exitType === 'single') ? `${eSz}px` : `${eSz * 1.7}px`;
+        // Dynamically adjusts aspect ratio bounding boxes for double formats[cite: 5]
+        exitWrap.style.width = (exitType === 'single') ? `${eSz}px` : `${eSz * 1.75}px`;
 
         const exitImg = document.createElement('img');
         exitImg.src = EXIT_ASSETS[exitType] || EXIT_ASSETS['single'];
-        exitImg.crossOrigin = 'anonymous'; // Enforce safe high-fidelity raster downloads
+        exitImg.crossOrigin = 'anonymous'; 
         exitImg.alt = 'Exit';
         exitImg.className = 'exit-img';
-
-        const exitLetter = document.createElement('div');
-        exitLetter.className = 'exit-letter';
-        exitLetter.style.fontSize = eFs + 'px';
-        exitLetter.style.fontFamily = fontFamily;
-        exitLetter.textContent = letter || '?';
-
+        exitImg.style.width = '100%';
+        exitImg.style.height = '100%';
+        exitImg.style.display = 'block';
         exitWrap.appendChild(exitImg);
-        exitWrap.appendChild(exitLetter);
+
+        const cleanText = (textVal || '?').trim();
+
+        if (exitType === 'double') {
+            // Decouple inputs into Left and Right layout compartments[cite: 5]
+            let parts = cleanText.split(/[\s,-]+/).filter(p => p.length > 0);
+            let leftLetter = parts[0] || '';
+            let rightLetter = parts[1] || '';
+
+            if (!rightLetter && cleanText.length >= 2) {
+                leftLetter = cleanText[0];
+                rightLetter = cleanText[1];
+            }
+
+            // Left letter layer
+            const leftNode = document.createElement('div');
+            leftNode.style.cssText = `position: absolute; font-weight: 900; color: #000000; top: 59%; left: 31%; transform: translate(-50%, -50%); z-index: 2;`;
+            leftNode.style.fontSize = eFs + 'px';
+            leftNode.style.fontFamily = fontFamily;
+            leftNode.textContent = leftLetter;
+            exitWrap.appendChild(leftNode);
+
+            // Right letter layer
+            const rightNode = document.createElement('div');
+            rightNode.style.cssText = `position: absolute; font-weight: 900; color: #000000; top: 59%; left: 69%; transform: translate(-50%, -50%); z-index: 2;`;
+            rightNode.style.fontSize = eFs + 'px';
+            rightNode.style.fontFamily = fontFamily;
+            rightNode.textContent = rightLetter || leftLetter;
+            exitWrap.appendChild(rightNode);
+
+        } else if (exitType === 'b1' || exitType === 'b2') {
+            // Uses standard flexible inline text flow mapping to distribute letters cleanly across range panels[cite: 5]
+            const textContainer = document.createElement('div');
+            textContainer.style.cssText = `position: absolute; top: 59%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; z-index: 2; width: 85%;`;
+            textContainer.style.gap = `${eSz * 0.08}px`;
+            
+            let characters = cleanText.split('');
+            characters.forEach(char => {
+                const charSpan = document.createElement('span');
+                charSpan.style.fontWeight = '900';
+                charSpan.style.color = '#000000';
+                charSpan.style.fontSize = (char === '-' || char === '–') ? `${eFs * 0.8}px` : `${eFs}px`;
+                charSpan.style.fontFamily = fontFamily;
+                charSpan.textContent = char;
+                textContainer.appendChild(charSpan);
+            });
+            exitWrap.appendChild(textContainer);
+
+        } else {
+            // Standard Single layout container block
+            const exitLetter = document.createElement('div');
+            exitLetter.className = 'exit-letter';
+            exitLetter.style.fontSize = eFs + 'px';
+            exitLetter.style.fontFamily = fontFamily;
+            exitLetter.textContent = cleanText;
+            exitWrap.appendChild(exitLetter);
+        }
+
         return exitWrap;
     }
 
