@@ -155,7 +155,7 @@
         }
 
         .sig-row-editor .exit-tag input[type="text"] {
-            width: 65px;
+            width: 55px;
             min-width: 0;
             flex-shrink: 0;
             border: none;
@@ -504,14 +504,6 @@
             <input type="range" id="exitFs" min="10" max="80" value="25">
         </div>
         <div class="ctrl">
-            <label>Exit Font Family</label>
-            <select id="exitFont">
-                <option value="'Ocean Sans', sans-serif">Ocean Sans</option>
-                <option value="'Stroudley', sans-serif">Stroudley</option>
-                <option value="'MRT-Identity', sans-serif" selected>MRT Identity (LTA)</option>
-            </select>
-        </div>
-        <div class="ctrl">
             <label>Gap Between Exits (px): <span id="exitGapVal">6</span></label>
             <input type="range" id="exitGap" min="0" max="30" value="6">
         </div>
@@ -565,11 +557,11 @@
 <script>
     // ===================== STATE CONFIGURATION =====================
     let rows = [
-        { type: 'exit', exitType: 'double', direction: 'up', arrowColor: 'yellow', exits: ['A B'], destination: 'Bukit Timah Rd', hasDivider: false },
-        { type: 'exit', exitType: 'single', direction: 'up', arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true },
-        { type: 'exit', exitType: 'b1',     direction: 'right',   arrowColor: 'yellow', exits: ['A - D'],  destination: 'Serangoon Rd / Tekka Ctr', hasDivider: true },
-        { type: 'platform', direction: 'left',       arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'Downtown Line', platforms: [], lineCode: 'DTL', lineBg: '#005ec4', hasDivider: false },
-        { type: 'platform', direction: 'down-right',  arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'North East Line', platforms: [], lineCode: 'NEL', lineBg: '#9900aa', hasDivider: false }
+        { type: 'exit', exitType: 'double', direction: 'up', arrowColor: 'yellow', exits: ['A B'], destination: 'Bukit Timah Rd', hasDivider: false, exitFont: "'MRT-Identity', sans-serif" },
+        { type: 'exit', exitType: 'single', direction: 'up', arrowColor: 'yellow', exits: ['A'],      destination: 'MacKenzie Rd',   hasDivider: true, exitFont: "'MRT-Identity', sans-serif" },
+        { type: 'exit', exitType: 'b1',     direction: 'right',   arrowColor: 'yellow', exits: ['A - D'],  destination: 'Serangoon Rd / Tekka Ctr', hasDivider: true, exitFont: "'MRT-Identity', sans-serif" },
+        { type: 'platform', direction: 'left',       arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'Downtown Line', platforms: [], lineCode: 'DTL', lineBg: '#005ec4', hasDivider: false, exitFont: "'MRT-Identity', sans-serif" },
+        { type: 'platform', direction: 'down-right',  arrowColor: 'yellow', prefix: '',        viaCodes: '', destination: 'North East Line', platforms: [], lineCode: 'NEL', lineBg: '#9900aa', hasDivider: false, exitFont: "'MRT-Identity', sans-serif" }
     ];
 
     const ARROW_RIGHT_DIRS = new Set(['right', 'up-right', 'down-right', 'none-right']);
@@ -608,7 +600,6 @@
     const bgColorCustom = document.getElementById('bgColorCustom');
     const exportBtn     = document.getElementById('exportBtn');
     const destFontSel   = document.getElementById('destFont');
-    const exitFontSel   = document.getElementById('exitFont');
 
     const sliders = {
         boardWidth: { el: document.getElementById('boardWidth'), disp: document.getElementById('boardWidthVal') },
@@ -850,7 +841,6 @@
         const lineAbbvFs = gs('lineAbbvFs');
         
         const currentDestFont = destFontSel.value;
-        const currentExitFont = exitFontSel.value;
 
         boardEl.style.backgroundColor = bg;
         boardEl.style.width    = width + 'px';
@@ -862,6 +852,9 @@
 
         rows.forEach((row, i) => {
             const onRight = ARROW_RIGHT_DIRS.has(row.direction);
+            
+            // Extract row-specific typography targets dynamically[cite: 6]
+            const currentExitFont = row.exitFont || "'MRT-Identity', sans-serif";
 
             const rowDiv = document.createElement('div');
             rowDiv.className = `sign-row ${onRight ? 'arrow-right' : 'arrow-left'}`;
@@ -1092,6 +1085,28 @@
 
             const botRow = document.createElement('div');
             botRow.className = 'row-bottom';
+            
+            // Common specialized element component providing per-row font isolation mechanics[cite: 6]
+            const fontWrap = document.createElement('div');
+            fontWrap.className = 'field-wrap';
+            fontWrap.innerHTML = '<label>Exit/Caplet Font</label>';
+            const fontSel = document.createElement('select');
+            [
+                ["'MRT-Identity', sans-serif", 'MRT Identity (LTA)'],
+                ["'Ocean Sans', sans-serif", 'Ocean Sans'],
+                ["'Stroudley', sans-serif", 'Stroudley']
+            ].forEach(([val, lbl]) => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = lbl;
+                if (val === (row.exitFont || "'MRT-Identity', sans-serif")) opt.selected = true;
+                fontSel.appendChild(opt);
+            });
+            fontSel.addEventListener('change', e => {
+                rows[i].exitFont = e.target.value;
+                renderSign();
+            });
+            fontWrap.appendChild(fontSel);
 
             if (row.type === 'platform') {
                 const platformFieldsGrid = document.createElement('div');
@@ -1129,10 +1144,11 @@
                 platformFieldsGrid.appendChild(dWrap);
                 platformFieldsGrid.appendChild(codeWrap);
                 platformFieldsGrid.appendChild(colorWrap);
+                platformFieldsGrid.appendChild(fontWrap); // Append per-row asset binding[cite: 6]
                 botRow.appendChild(platformFieldsGrid);
             } else {
                 const exitFieldsGrid = document.createElement('div');
-                exitFieldsGrid.style.cssText = 'display:grid; grid-template-columns: 160px auto 1fr; gap:16px; width:100%;';
+                exitFieldsGrid.style.cssText = 'display:grid; grid-template-columns: 160px 180px auto 1fr; gap:16px; width:100%;';
 
                 // Icon Variant Selector
                 const exitTypeWrap = document.createElement('div');
@@ -1217,6 +1233,7 @@
                 destWrap.appendChild(destInp);
 
                 exitFieldsGrid.appendChild(exitTypeWrap);
+                exitFieldsGrid.appendChild(fontWrap); // Append per-row asset binding[cite: 6]
                 exitFieldsGrid.appendChild(exitsArea);
                 exitFieldsGrid.appendChild(destWrap);
                 botRow.appendChild(exitFieldsGrid);
@@ -1232,7 +1249,7 @@
 
     // ===================== EVENTS =====================
     addRowBtn.addEventListener('click', () => {
-        rows.push({ type: 'exit', exitType: 'single', direction: 'up', arrowColor: 'yellow', exits: ['A'], destination: 'New Destination', hasDivider: false });
+        rows.push({ type: 'exit', exitType: 'single', direction: 'up', arrowColor: 'yellow', exits: ['A'], destination: 'New Destination', hasDivider: false, exitFont: "'MRT-Identity', sans-serif" });
         renderAll();
     });
 
@@ -1243,7 +1260,6 @@
     bgColorCustom.addEventListener('input', renderSign);
 
     destFontSel.addEventListener('change', renderSign);
-    exitFontSel.addEventListener('change', renderSign);
 
     Object.values(sliders).forEach(({ el, disp }) => {
         el.addEventListener('input', () => { disp.textContent = el.value; renderSign(); });
