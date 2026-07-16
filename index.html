@@ -239,10 +239,14 @@
         }
 
         .exit-image {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             display: block;
             object-fit: contain;
+            z-index: 1;
         }
 
         .exit-number {
@@ -251,13 +255,12 @@
             font-size: 28px;
             font-weight: 900;
             font-family: 'MRT-Identity', 'Arial Black', sans-serif;
-            top: 56%;
+            top: 59%; /* Adjusted for optical balance against the new SVG path */
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: #ffcd00; 
-            padding: 0 2px;
             line-height: 1;
             text-align: center;
+            z-index: 2;
         }
     </style>
 </head>
@@ -375,7 +378,7 @@
             </div>
 
             <div class="exit-container" id="exitContainer">
-                <img src="exit_logo.png" alt="Exit Icon" class="exit-image">
+                <img src="https://jooferj.github.io/media/icons/exit-type-a-single.svg" crossOrigin="anonymous" alt="Exit Icon" class="exit-image">
                 <div class="exit-number" id="signageExit">1</div>
             </div>
         </div>
