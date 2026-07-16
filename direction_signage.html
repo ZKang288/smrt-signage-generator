@@ -340,7 +340,7 @@
             padding: 0 2px;
             line-height: 1;
             text-align: center;
-            top: 59%;
+            top: 63%; /* Fixed: Lowered down to sit perfectly inside the yellow viewport entry */
             left: 50%;
             transform: translate(-50%, -50%);
         }
@@ -693,17 +693,17 @@
                 rightLetter = cleanText[1];
             }
 
-            // Left letter layer
+            // Fixed: Moved left component from 31% to 32% and lowered top window threshold to 63% for flawless centering[cite: 6]
             const leftNode = document.createElement('div');
-            leftNode.style.cssText = `position: absolute; font-weight: 900; color: #000000; top: 59%; left: 31%; transform: translate(-50%, -50%); z-index: 2;`;
+            leftNode.style.cssText = `position: absolute; font-weight: 900; color: #000000; top: 63%; left: 32%; transform: translate(-50%, -50%); z-index: 2;`;
             leftNode.style.fontSize = eFs + 'px';
             leftNode.style.fontFamily = fontFamily;
             leftNode.textContent = leftLetter;
             exitWrap.appendChild(leftNode);
 
-            // Right letter layer
+            // Fixed: Moved right component from 69% to 68% and lowered top window threshold to 63% for flawless centering[cite: 6]
             const rightNode = document.createElement('div');
-            rightNode.style.cssText = `position: absolute; font-weight: 900; color: #000000; top: 59%; left: 69%; transform: translate(-50%, -50%); z-index: 2;`;
+            rightNode.style.cssText = `position: absolute; font-weight: 900; color: #000000; top: 63%; left: 68%; transform: translate(-50%, -50%); z-index: 2;`;
             rightNode.style.fontSize = eFs + 'px';
             rightNode.style.fontFamily = fontFamily;
             rightNode.textContent = rightLetter || leftLetter;
@@ -712,7 +712,7 @@
         } else if (exitType === 'b1' || exitType === 'b2') {
             // Uses standard flexible inline text flow mapping to distribute letters cleanly across range panels[cite: 5]
             const textContainer = document.createElement('div');
-            textContainer.style.cssText = `position: absolute; top: 59%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; z-index: 2; width: 85%;`;
+            textContainer.style.cssText = `position: absolute; top: 63%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; z-index: 2; width: 85%;`;
             textContainer.style.gap = `${eSz * 0.08}px`;
             
             let characters = cleanText.split('');
@@ -728,7 +728,7 @@
             exitWrap.appendChild(textContainer);
 
         } else {
-            // Standard Single layout container block
+            // Standard Single layout container block handles centering parameters automatically via the stylesheet layout
             const exitLetter = document.createElement('div');
             exitLetter.className = 'exit-letter';
             exitLetter.style.fontSize = eFs + 'px';
