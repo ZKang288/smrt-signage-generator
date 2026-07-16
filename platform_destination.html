@@ -201,7 +201,6 @@
             justify-content: center;
             border-radius: 6px;
             box-sizing: border-box;
-            font-family: inherit;
             font-weight: 700;
             text-align: center;
         }
@@ -281,7 +280,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: inherit;
             font-weight: 700;
             white-space: nowrap;
             box-sizing: border-box;
@@ -314,7 +312,6 @@
         }
         .band-text {
             color: #ffffff;
-            font-family: inherit;
             font-weight: 600;
             letter-spacing: 0.5px;
         }
@@ -401,7 +398,7 @@
                         <select id="systemLineSelect"></select>
                     </div>
                     <div class="control-group">
-                        <label for="fontProfileSelect">Main Text Font Profile (Destinations & Platforms)</label>
+                        <label for="fontProfileSelect">Main Text Font Profile (Destinations Only)</label>
                         <select id="fontProfileSelect">
                             <option value="'MRT-Identity', Arial, sans-serif">LTA Identity Font (Standard)</option>
                             <option value="'Ocean Sans', Arial, sans-serif">Ocean Sans (Alternative)</option>
@@ -908,6 +905,7 @@
                     bandLineNameText.style.display = 'inline';
                     bandLineNameText.style.color = ribbonContrastColor;
                     bandLineNameText.style.fontSize = ribbonFs + 'px';
+                    bandLineNameText.style.fontFamily = capletFontProfileSelect.value; // Explicitly locked to Capsule Font Profile
                     bandLineNameText.innerText = bottomBannerText.value.trim() ? bottomBannerText.value.trim() : fallbackLineName;
                 } else {
                     bandLineNameText.style.display = 'none';
@@ -934,6 +932,7 @@
                 box.style.backgroundColor = activeLineColor;
                 box.style.color = getContrastColor(activeLineColor);
                 box.style.fontSize = Math.round(pBoxH * 0.52) + 'px';
+                box.style.fontFamily = capletFontProfileSelect.value; // Explicitly locked to Capsule Font Profile
                 
                 const textContainer = document.createElement('div');
                 textContainer.innerText = platformText.value;
